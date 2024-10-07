@@ -58,11 +58,11 @@ For editing the project, you will want to use [Visual Studio Code](https://code.
 
 WebGPU errors will appear in your browser's developer console (Ctrl + Shift + J for Chrome on Windows). Unlike some other graphics APIs, WebGPU error messages are often very helpful, especially if you've labeled your various pipeline components with meaningful names. Be sure to check the console whenever something isn't working correctly.
 
-### Part 1: Implement the different rendering methods
+### Part 1: Implement the different rendering methods 
 
 To start off, the naive renderer is missing a camera view projection matrix buffer, and your job is to fill in the missing parts. This will expose you to various parts of the codebase and will hopefully help you understand the general layout of the WebGPU rendering pipeline.
 
-#### 1) Naive
+#### 1) Naive (+35)
 
 1.1) Create and write to the buffer
 - You first need to create the buffer in `camera.ts` and write the view projection matrix to it
@@ -79,7 +79,7 @@ To start off, the naive renderer is missing a camera view projection matrix buff
 
 Then, based on the discussions in lecture and recitation, you are expected to implement the Forward+ and Clustered Deferred rendering methods and analyze their results. Here is a summary of both methods:
 
-#### 2) Forward+
+#### 2) Forward+ (+50)
 
   - Build a data structure to keep track of how many lights are in each cluster and what their indices are
   - Render each fragment using only the lights that overlap its cluster
@@ -87,32 +87,51 @@ Then, based on the discussions in lecture and recitation, you are expected to im
 
 When adding new buffers, especially if they contain new structs, their alignment might be different than what you expect. Be sure to check your structs' alignment using [this online calculator](https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html#) and match the memory layout on the host.
 
-#### 3) Clustered Deferred
+#### 3) Clustered Deferred (+15)
 
   - Reuse the clustering logic from Forward+
   - Store vertex attributes in a G-buffer
   - Read from the G-buffer in a separate fullscreen pass to produce final output
   - Look for comments containing `TODO-3` for details
 
-### Part 2: Effects and Optimizations
+### Part 2: Extra Credits---Effects and Optimizations
 
-#### Effects
+### Extra Credit: Post Processing (+3)
 
-Choose one of the following effects to implement. (Or do multiple for extra credit!)
-- Implement deferred Blinn-Phong shading (diffuse + specular) for point lights
-- Implement one of the following post-processing effects:
-  - Bloom using post-process blur (box or Gaussian)
-  - Toon shading (with ramp shading + simple depth-edge detection for outlines)
+Implement one of the following post-processing effects, to receive full credits you need to create a new compute pass for the post-processing:
+- Bloom using post-process blur (box or Gaussian)
+- Toon shading (with ramp shading + simple depth-edge detection for outlines)
 
-#### Optimizations
+### Extra Credit: GBuffer Optimization (+7)
 
-Optimize the G-buffer used for the Clustered Deferred renderer. In particular, aim to reduce the amount of textures and the size of per-pixel data. Some ideas to get you started:
+Use a single compute pass to replace the vs+fs full screen pass you are provided in the base code. (+3)
+
+Optimize the G-buffer used for the Clustered Deferred renderer. In particular, aim to reduce the amount of textures and the size of per-pixel data, you will receive full points if your gbuffer uses only one color output image and each pixel stores less or equal than `vec4f`. (+4) 
+
+Some ideas to get you started:
+
 - Pack values together into `vec4`s
 - Use 2-component normals
-  - For even more compression, look into octahedron normal encoding, which can even be packed into one `u32`
+  - For even more compression, look into octahedron normal encoding, which can even be packed into one `f32`
 - Quantize values by packing them into smaller data types
 - Reduce number of properties passed via the G-buffer
   - For example, reconstruct world space position using camera matrices and depth
+
+### Extra Credit: Visibility Buffer (+15)
+
+For device with limited GPU bandwidth, we can try to further reduce the memory footprint of the geometry pass. This EC will create a single channel `u32` buffer for shading. Here are some hints to do that:
+
+- You need to rewrite the current gbuffer code to output ObjectID and TriangleID, the format can be somewhat like (`ObjectID << offset + TriangleID`)
+- In the shading stage, you need to bind the triangles index buffer and vertex buffer as two storage buffer and load the vertex attribute according to ObjectID and TriangleID
+- Next use current pixel position, reconstruct the world position, and get the barycentric coordinates using current pixel's worldPos and worldPos of the three vertices of the triangle
+- Interpolate vertex attributes
+- Perform shading according to ObjectID (You don't need to do mipmapping when sampling texture here to receive full credits)
+
+For more reference, please refer to these following materials:
+
+- [The Visibility Buffer: A Cache-Friendly Approach to Deferred Shading (JCGT)](https://jcgt.org/published/0002/02/04/)
+
+- [Visibility Buffer Rendering with Material Graphs – Filmic Worlds](http://filmicworlds.com/blog/visibility-buffer-rendering-with-material-graphs/)
 
 For full credit, you must show a good optimization effort and record the performance of each version you test.
 
