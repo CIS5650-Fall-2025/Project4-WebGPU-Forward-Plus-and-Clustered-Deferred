@@ -94,46 +94,51 @@ When adding new buffers, especially if they contain new structs, their alignment
   - Read from the G-buffer in a separate fullscreen pass to produce final output
   - Look for comments containing `TODO-3` for details
 
-### Part 2: Extra Credits---Effects and Optimizations
+### Part 2: Extra Credit: Effects and Optimizations
+
+For full credit, you must show a good optimization effort and record the performance of each version you test.
 
 ### Extra Credit: Post Processing (+3)
 
-Implement one of the following post-processing effects, to receive full credits you need to create a new compute pass for the post-processing:
+Implement one of the following post-processing effects:
 - Bloom using post-process blur (box or Gaussian)
 - Toon shading (with ramp shading + simple depth-edge detection for outlines)
 
-### Extra Credit: GBuffer Optimization (+7)
+For full credit, you must create a new compute pass (not a fullscreen rendering pass) for post-processing.
 
-Use a single compute pass to replace the vs+fs full screen pass you are provided in the base code. (+3)
+### Extra Credit: G-buffer Optimization (+7)
 
-Optimize the G-buffer used for the Clustered Deferred renderer. In particular, aim to reduce the amount of textures and the size of per-pixel data, you will receive full points if your gbuffer uses only one color output image and each pixel stores less or equal than `vec4f`. (+4) 
+Use a single compute pass to replace the vertex + fragment shader fullscreen rendering pass you are provided in the base code. (+3)
 
-Some ideas to get you started:
+Optimize the G-buffer used for the Clustered Deferred renderer. In particular, aim to reduce the amount of textures and the size of per-pixel data. You will receive full points if your G-buffer uses only one color output image and each pixel stores additional data less than or equal to one `vec4f`. (+4) 
+
+Here are some ideas to get you started:
 
 - Pack values together into `vec4`s
+  - Use `vec4f` or `vec4u` depending on how you pack your data
 - Use 2-component normals
-  - For even more compression, look into octahedron normal encoding, which can even be packed into one `f32`
+  - For even more compression, look into octahedron normal encoding, which can even be packed into one `u32`
 - Quantize values by packing them into smaller data types
-- Reduce number of properties passed via the G-buffer
-  - For example, reconstruct world space position using camera matrices and depth
+  - You may find functions like [`pack2x16snorm`](https://www.w3.org/TR/WGSL/#pack2x16snorm-builtin) helpful
+- Reduce the number of properties passed via the G-buffer
+  - For example, instead of storing world position in a texture, reconstruct it using camera matrices and depth
 
 ### Extra Credit: Visibility Buffer (+15)
 
-For device with limited GPU bandwidth, we can try to further reduce the memory footprint of the geometry pass. This EC will create a single channel `u32` buffer for shading. Here are some hints to do that:
+For devices with limited GPU bandwidth, we can try to further reduce the memory footprint of the geometry pass. This can be done by using a single channel `u32` buffer for shading. Here are some hints to do that:
 
-- You need to rewrite the current gbuffer code to output ObjectID and TriangleID, the format can be somewhat like (`ObjectID << offset + TriangleID`)
-- In the shading stage, you need to bind the triangles index buffer and vertex buffer as two storage buffer and load the vertex attribute according to ObjectID and TriangleID
-- Next use current pixel position, reconstruct the world position, and get the barycentric coordinates using current pixel's worldPos and worldPos of the three vertices of the triangle
-- Interpolate vertex attributes
-- Perform shading according to ObjectID (You don't need to do mipmapping when sampling texture here to receive full credits)
+1. Rewrite the current G-buffer code to output ObjectID and TriangleID; the format can be something like (`(ObjectID << offset) + TriangleID`)
+1. In the shading stage, bind the triangles index buffer and vertex buffer as two storage buffers and load vertex attributes according to ObjectID and TriangleID
+1. Use the current pixel's position and depth to reconstruct its world position, then calculate the barycentric coordinates using the world positions of the current pixel and the three triangle vertices
+1. Interpolate vertex attributes
+1. Perform shading according to ObjectID (you don't need to do mipmapping when sampling texture here to receive full credits)
 
-For more reference, please refer to these following materials:
+Note that if you want to implement this in addition to the G-buffer optimizations, in order to receive full credit for both, you will need some method of switching between the two pipelines.
+
+For more reference, please refer to the following materials:
 
 - [The Visibility Buffer: A Cache-Friendly Approach to Deferred Shading (JCGT)](https://jcgt.org/published/0002/02/04/)
-
 - [Visibility Buffer Rendering with Material Graphs – Filmic Worlds](http://filmicworlds.com/blog/visibility-buffer-rendering-with-material-graphs/)
-
-For full credit, you must show a good optimization effort and record the performance of each version you test.
 
 ## Performance Analysis
 
