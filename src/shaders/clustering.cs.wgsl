@@ -71,6 +71,42 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // Store the AABB in the clusterSet
     clusterSet.clusters[clusterIndex].minBounds = minPoint;
     clusterSet.clusters[clusterIndex].maxBounds = maxPoint;
+
+    // ------------------------------------
+    // Assigning lights to clusters:
+    // ------------------------------------
+
+    // Initialize a counter for the number of lights in this cluster.
+    var lightCount: u32 = 0u;
+    let lightRadius: f32 = 10.0;
+    let maxLightsPerCluster: u32 = 256u; // Adjust this value as needed
+
+    // For each light
+    for (var i: u32 = 0u; i < lightSet.numLights; i++) {
+        let light = lightSet.lights[i];
+        
+        // Check if the light intersects with the cluster's bounding box (AABB)
+        if (sphereIntersectsAABB(light.pos, lightRadius, minPoint, maxPoint)) {
+            // If it intersects, add it to the cluster's light list
+            if (lightCount < maxLightsPerCluster) {
+                clusterSet.clusters[clusterIndex].lightIndices[lightCount] = i;
+                lightCount++;
+            } else {
+                // Stop adding lights if the maximum number of lights is reached
+                break;
+            }
+        }
+    }
+
+    // Store the number of lights assigned to this cluster
+    clusterSet.clusters[clusterIndex].lightCount = lightCount;
+    
+}
+
+fn sphereIntersectsAABB(sphereCenter: vec3<f32>, sphereRadius: f32, aabbMin: vec3<f32>, aabbMax: vec3<f32>) -> bool {
+    let closestPoint = clamp(sphereCenter, aabbMin, aabbMax);
+    let distance = length(sphereCenter - closestPoint);
+    return distance <= sphereRadius;
 }
 
 fn unprojectPoint(point: vec3<f32>, invViewProj: mat4x4<f32>) -> vec3<f32> {

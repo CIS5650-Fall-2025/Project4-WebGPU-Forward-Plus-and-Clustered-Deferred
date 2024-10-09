@@ -24,6 +24,7 @@ struct ClusterSet {
     numClustersZ: u32,
     clusters: array<Cluster>,
 }
+
 struct CameraUniforms {
     // TODO-1.3: add an entry for the view proj mat (of type mat4x4f)
     viewProjMat: mat4x4f,
