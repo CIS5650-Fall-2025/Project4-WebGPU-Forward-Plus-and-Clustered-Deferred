@@ -16,6 +16,9 @@ import clusteredDeferredFullscreenFragRaw from './clustered_deferred_fullscreen.
 import moveLightsComputeRaw from './move_lights.cs.wgsl?raw';
 import clusteringComputeRaw from './clustering.cs.wgsl?raw';
 
+import depthVisualVertRaw from './visualize_depth.vs.wgsl?raw';
+import depthVisualFragRaw from './visualize_depth.fs.wgsl?raw';
+
 // CONSTANTS (for use in shaders)
 // =================================
 
@@ -30,7 +33,7 @@ export const constants = {
 
     moveLightsWorkgroupSize: 128,
 
-    lightRadius: 2
+    lightRadius: 10
 };
 
 // =================================
@@ -42,6 +45,7 @@ function evalShaderRaw(raw: string) {
 const commonSrc: string = evalShaderRaw(commonRaw);
 
 function processShaderRaw(raw: string) {
+    //console.log(commonSrc + evalShaderRaw(raw));
     return commonSrc + evalShaderRaw(raw);
 }
 
@@ -56,3 +60,6 @@ export const clusteredDeferredFullscreenFragSrc: string = processShaderRaw(clust
 
 export const moveLightsComputeSrc: string = processShaderRaw(moveLightsComputeRaw);
 export const clusteringComputeSrc: string = processShaderRaw(clusteringComputeRaw);
+
+export const depthVisualVertSrc: string = processShaderRaw(depthVisualVertRaw);
+export const depthVisualFragSrc: string = processShaderRaw(depthVisualFragRaw);
