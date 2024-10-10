@@ -18,9 +18,9 @@
 //         - Stop adding lights if the maximum number of lights is reached.
 //     - Store the number of lights assigned to this cluster.
 
-@group(0) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
-@group(0) @binding(1) var<storage, read> lightSet: LightSet;
-@group(0) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
+@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
+@group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
 @compute @workgroup_size(8, 8, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -45,7 +45,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let zNear = cameraUniforms.nearPlane;
     let zFar = cameraUniforms.farPlane;
     let clusterSizeZ = f32(clusterSet.numClustersZ);
-    // 对数深度分布z(for now...?)
     let zSlice = f32(global_id.z);
     let nearDepth = zNear * pow(zFar / zNear, zSlice / clusterSizeZ);
     let farDepth = zNear * pow(zFar / zNear, (zSlice + 1.0) / clusterSizeZ);
@@ -78,17 +77,15 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     // Initialize a counter for the number of lights in this cluster.
     var lightCount: u32 = 0u;
-    let lightRadius: f32 = 10.0;
-    let maxLightsPerCluster: u32 = 256u; // Adjust this value as needed
 
     // For each light
     for (var i: u32 = 0u; i < lightSet.numLights; i++) {
         let light = lightSet.lights[i];
         
         // Check if the light intersects with the cluster's bounding box (AABB)
-        if (sphereIntersectsAABB(light.pos, lightRadius, minPoint, maxPoint)) {
+        if (sphereIntersectsAABB(light.pos, ${lightRadius}, minPoint, maxPoint)) {
             // If it intersects, add it to the cluster's light list
-            if (lightCount < maxLightsPerCluster) {
+            if (lightCount < ${maxLightPerCluster}) {
                 clusterSet.clusters[clusterIndex].lightIndices[lightCount] = i;
                 lightCount++;
             } else {
@@ -104,6 +101,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 }
 
 fn sphereIntersectsAABB(sphereCenter: vec3<f32>, sphereRadius: f32, aabbMin: vec3<f32>, aabbMax: vec3<f32>) -> bool {
+    // For simplicity, assume the frustrum is a cube instead of frustrum
     let closestPoint = clamp(sphereCenter, aabbMin, aabbMax);
     let distance = length(sphereCenter - closestPoint);
     return distance <= sphereRadius;

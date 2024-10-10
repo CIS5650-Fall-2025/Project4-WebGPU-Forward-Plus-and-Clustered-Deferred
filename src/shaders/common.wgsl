@@ -15,7 +15,7 @@ struct Cluster {
     minBounds: vec3<f32>,
     maxBounds: vec3<f32>,
     lightCount: u32,
-    lightIndices: array<u32, 256>,
+    lightIndices: array<u32, ${maxLightPerCluster}>,
 }
 
 struct ClusterSet {
