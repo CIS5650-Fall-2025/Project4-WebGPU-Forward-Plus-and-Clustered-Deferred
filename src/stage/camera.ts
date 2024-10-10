@@ -1,9 +1,9 @@
-import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
+import { Mat4, mat4, Vec2, Vec3, vec3 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
+    readonly buffer = new ArrayBuffer(16 * 4 * 3 + 8);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -14,6 +14,23 @@ class CameraUniforms {
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
+    set viewMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[i + 16] = mat[i];
+        }
+    }
+    
+    set projInvMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[i + 32] = mat[i];
+        }
+    }
+
+    set nearFar(nearfar: Vec3) {
+        for (let i = 0; i < 2; i++) {
+            this.floatView[i + 48] = nearfar[i];
+        }
+    }
 }
 
 export class Camera {
@@ -140,6 +157,9 @@ export class Camera {
         this.uniforms.viewProjMat = viewProjMat;
 
         // TODO-2: write to extra buffers needed for light clustering here
+        this.uniforms.viewMat = viewMat;
+        this.uniforms.projInvMat = mat4.inverse(this.projMat);
+        this.uniforms.nearFar = vec3.create(Camera.nearPlane, Camera.farPlane, 0);
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`

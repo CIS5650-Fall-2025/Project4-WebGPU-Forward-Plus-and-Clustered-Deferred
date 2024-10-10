@@ -178,7 +178,7 @@ export class Node {
         if (this.mesh != undefined) {
             this.modelMatUniformBuffer = device.createBuffer({
                 label: "model mat uniform",
-                size: 16 * 4,
+                size: 16 * 4 + 8,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
             });
 
