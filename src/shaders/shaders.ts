@@ -6,6 +6,7 @@ import commonRaw from './common.wgsl?raw';
 
 import naiveVertRaw from './naive.vs.wgsl?raw';
 import naiveFragRaw from './naive.fs.wgsl?raw';
+import preDepthFragRaw from './pre_depth.fs.wgsl?raw';
 
 import forwardPlusFragRaw from './forward_plus.fs.wgsl?raw';
 
@@ -15,6 +16,7 @@ import clusteredDeferredFullscreenFragRaw from './clustered_deferred_fullscreen.
 
 import moveLightsComputeRaw from './move_lights.cs.wgsl?raw';
 import clusteringComputeRaw from './clustering.cs.wgsl?raw';
+import clusterBoundComputeRaw from './cluster_bounds.cs.wgsl?raw';
 
 import depthVisualVertRaw from './visualize_depth.vs.wgsl?raw';
 import depthVisualFragRaw from './visualize_depth.fs.wgsl?raw';
@@ -30,10 +32,14 @@ export const constants = {
     bindGroup_scene: 0,
     bindGroup_model: 1,
     bindGroup_material: 2,
+    bindGroup_cluster: 0,
 
-    moveLightsWorkgroupSize: 128,
-
+    groupMaxLights: 1000,
+    clusterSize: [32, 18, 48],
+    clusterBoundSize:32,
+    moveLightsWorkgroupSize: 128, 
     lightRadius: 10
+
 };
 
 // =================================
@@ -51,6 +57,7 @@ function processShaderRaw(raw: string) {
 
 export const naiveVertSrc: string = processShaderRaw(naiveVertRaw);
 export const naiveFragSrc: string = processShaderRaw(naiveFragRaw);
+export const preDepthFragSrc: string = processShaderRaw(preDepthFragRaw);
 
 export const forwardPlusFragSrc: string = processShaderRaw(forwardPlusFragRaw);
 
@@ -60,6 +67,7 @@ export const clusteredDeferredFullscreenFragSrc: string = processShaderRaw(clust
 
 export const moveLightsComputeSrc: string = processShaderRaw(moveLightsComputeRaw);
 export const clusteringComputeSrc: string = processShaderRaw(clusteringComputeRaw);
+export const clusterBoundComputeSrc: string = processShaderRaw(clusterBoundComputeRaw);
 
 export const depthVisualVertSrc: string = processShaderRaw(depthVisualVertRaw);
 export const depthVisualFragSrc: string = processShaderRaw(depthVisualFragRaw);

@@ -21,3 +21,17 @@
 //         - Stop adding lights if the maximum number of lights is reached.
 
 //     - Store the number of lights assigned to this cluster.
+
+@group(${bindGroup_cluster}) @binding(0) var<storage, read> lightSet: LightSet;
+@group(${bindGroup_cluster}) @binding(1) var<uniform> time: f32;
+@group(${bindGroup_cluster}) @binding(2) var<storage, read_write> visibleLightIndicesBuffer:array<u32>;
+
+@compute
+@workgroup_size(${moveLightsWorkgroupSize})
+fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
+    let lightIdx = globalIdx.x;
+    if (lightIdx >= lightSet.numLights) {
+        return;
+    }
+
+}
