@@ -1,5 +1,7 @@
 // TODO-2: implement the light clustering compute shader
-
+@group(${bindGroup_scene}) @binding(0) var<storage, read_write> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(1) var<storage, read> clusterSet: ClusterSet;
+@group(${bindGroup_scene}) @binding(2) var<uniform> cameraUniforms: CameraUniforms;
 // ------------------------------------
 // Calculating cluster bounds:
 // ------------------------------------
@@ -21,3 +23,9 @@
 //         - Stop adding lights if the maximum number of lights is reached.
 
 //     - Store the number of lights assigned to this cluster.
+@compute
+// @workgroup_size(${clusterLightsWorkgroupSize})
+@workgroup_size(${moveLightsWorkgroupSize})
+fn main(@builtin(global_invocation_id) globalIdx: vec3u){
+    return;
+}

@@ -10,7 +10,19 @@ struct LightSet {
     lights: array<Light>
 }
 
+
 // TODO-2: you may want to create a ClusterSet struct similar to LightSet
+struct Cluster {
+    minPos: vec4f, //Avoid using vec3f to avoid padding
+    maxPos: vec4f,
+    numLights: u32,
+    lightIndices: array<u32,100> //I need to know the maximum number of lights per cluster
+}
+
+struct ClusterSet {
+    //numClusters: u32,
+    clusters: array<Cluster,512> //I need to know the maximum number of clusters
+}
 
 struct CameraUniforms {
     // TODO-1.3: add an entry for the view proj mat (of type mat4x4f)
