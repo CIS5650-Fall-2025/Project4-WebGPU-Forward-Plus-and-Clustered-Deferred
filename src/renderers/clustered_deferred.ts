@@ -5,6 +5,21 @@ import { Stage } from '../stage/stage';
 export class ClusteredDeferredRenderer extends renderer.Renderer {
     // TODO-3: add layouts, pipelines, textures, etc. needed for Forward+ here
     // you may need extra uniforms such as the camera view matrix and the canvas resolution
+    sceneUniformsBindGroupLayout: GPUBindGroupLayout;
+    sceneUniformsBindGroup: GPUBindGroup;
+
+    depthVisualGroupLayout: GPUBindGroupLayout;
+    depthVisualBindGroup: GPUBindGroup;
+    depthSampler: GPUSampler;
+
+    depthTexture: GPUTexture;
+    depthTextureView: GPUTextureView;
+    testTexture: GPUTexture;
+    testTextureView: GPUTextureView;
+
+    depthbufferPipeline: GPURenderPipeline;
+    depthbufferVisualPipeline: GPURenderPipeline;
+    renderPipeline: GPURenderPipeline;
 
     constructor(stage: Stage) {
         super(stage);

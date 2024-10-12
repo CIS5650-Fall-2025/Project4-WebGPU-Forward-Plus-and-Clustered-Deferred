@@ -46,6 +46,8 @@ export class Lights {
         mappedAtCreation: true,
     });
 
+    computeBound = true;
+
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
 
     constructor(camera: Camera) {
@@ -279,7 +281,9 @@ export class Lights {
         // implementing clustering here allows for reusing the code in both Forward+ and Clustered Deferred
 
         // cluster bounds compute
+        if(this.computeBound)
         {
+            this.computeBound = false;
             const clusterBoundsComputePass = encoder.beginComputePass();
             clusterBoundsComputePass.setPipeline(this.clusterBoundComputePipeline);
             clusterBoundsComputePass.setBindGroup(0, this.clusterComputeBindGroup);

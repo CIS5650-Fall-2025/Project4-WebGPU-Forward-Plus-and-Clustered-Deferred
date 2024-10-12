@@ -34,12 +34,12 @@ export const constants = {
     bindGroup_material: 2,
     bindGroup_cluster: 0,
 
-    clusterMaxLights: 1000,
+    clusterMaxLights: 300,
     clusterSize: [32, 18, 48],
     clusterBoundByteSize:32,
     clusterLightByteSize: 8,
     moveLightsWorkgroupSize: 128, 
-    lightRadius: 2
+    lightRadius: 6
 
 };
 
