@@ -15,11 +15,36 @@ struct LightSet {
 struct CameraUniforms {
     // TODO-1.3: add an entry for the view proj mat (of type mat4x4f)
     viewProjMat: mat4x4f,
-    inverseMatrix: mat4x4f,
+    inverseProjMatrix: mat4x4f,
     outputSize: vec2<f32>,
     zNear: f32,
     zFar: f32
 }
+
+struct ViewUniforms {
+    matrix : mat4x4<f32>,
+    position : vec3<f32>
+};
+
+struct ClusterLights {
+  offset : u32,
+  count : u32
+};
+
+struct ClusterLightGroup {
+  offset : atomic<u32>,
+  lights : array<ClusterLights, 27648>,
+  indices : array<u32, 27648*${clusterMaxLights}>
+};
+
+struct ClusterBounds {
+  minAABB : vec3<f32>,
+  maxAABB : vec3<f32>
+};
+
+struct Clusters {
+  bounds : array<ClusterBounds, 27648>
+};
 
 // CHECKITOUT: this special attenuation function ensures lights don't affect geometry outside the maximum light radius
 fn rangeAttenuation(distance: f32) -> f32 {

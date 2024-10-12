@@ -20,11 +20,16 @@ export class NaiveRenderer extends renderer.Renderer {
                 // TODO-1.2: add an entry for camera uniforms at binding 0, visible to only the vertex shader, and of type "uniform"
                 { // Camera Uniforms
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: "uniform" }
+                },
+                { // View Uniforms
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" }
                 },
                 { // lightSet
-                    binding: 1,
+                    binding: 2,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" }
                 }
@@ -42,8 +47,12 @@ export class NaiveRenderer extends renderer.Renderer {
                     binding: 0,
                     resource: { buffer: this.camera.uniformsBuffer }
                 },
-                {
+                { // Camera Uniforms
                     binding: 1,
+                    resource: { buffer: this.camera.viewUniformBuffer }
+                },
+                {
+                    binding: 2,
                     resource: { buffer: this.lights.lightSetStorageBuffer }
                 }
             ]

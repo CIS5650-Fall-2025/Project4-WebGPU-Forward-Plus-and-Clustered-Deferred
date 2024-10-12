@@ -2,8 +2,8 @@
 
 // TODO-1.3: add a uniform variable here for camera uniforms (of type CameraUniforms)
 // make sure to use ${bindGroup_scene} for the group
-@group(${bindGroup_scene}) @binding(0)
-var<uniform> cameraUniforms: CameraUniforms;
+@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
+@group(0) @binding(1) var<uniform> view : ViewUniforms;
 
 @group(${bindGroup_model}) @binding(0) var<uniform> modelMat: mat4x4f;
 
@@ -19,7 +19,8 @@ struct VertexOutput
     @builtin(position) fragPos: vec4f,
     @location(0) pos: vec3f,
     @location(1) nor: vec3f,
-    @location(2) uv: vec2f
+    @location(2) uv: vec2f,
+    @location(3) viewPosition: vec3f
 }
 
 @vertex
@@ -32,5 +33,6 @@ fn main(in: VertexInput) -> VertexOutput
     out.pos = modelPos.xyz / modelPos.w;
     out.nor = in.nor;
     out.uv = in.uv;
+    out.viewPosition = (view.matrix * modelPos).xyz;
     return out;
 }

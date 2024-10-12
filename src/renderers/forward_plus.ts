@@ -31,15 +31,30 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
                 label: "forward plus scene uniforms bind group layout",
                 entries: [
-                    { // Camera Uniforms
+                    { // projection buffer
                         binding: 0,
-                        visibility: GPUShaderStage.VERTEX,
+                        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
+                        buffer: { type: "uniform" }
+                    },
+                    { // view buffer
+                        binding: 1,
+                        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
                         buffer: { type: "uniform" }
                     },
                     { // lightSet
-                        binding: 1,
+                        binding: 2,
                         visibility: GPUShaderStage.FRAGMENT,
                         buffer: { type: "read-only-storage" }
+                    },
+                    { // cluster bounds
+                        binding: 3,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: { type: "storage" }
+                    },
+                    { // cluster lights
+                        binding: 4,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: { type: "storage" }
                     }
                 ]
             });
@@ -48,13 +63,25 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 label: "forward plus scene uniforms bind group",
                 layout: this.sceneUniformsBindGroupLayout,
                 entries: [
-                    { // Camera Uniforms
+                    {
                         binding: 0,
                         resource: { buffer: this.camera.uniformsBuffer }
                     },
                     {
                         binding: 1,
+                        resource: { buffer: this.camera.viewUniformBuffer }
+                    },
+                    {
+                        binding: 2,
                         resource: { buffer: this.lights.lightSetStorageBuffer }
+                    },
+                    {
+                        binding: 3,
+                        resource: { buffer: this.lights.clusterBoundBuffer   }
+                    },
+                    {
+                        binding: 4,
+                        resource: { buffer: this.lights.clusterLightsBuffer }
                     }
                 ]
             });
@@ -154,7 +181,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 fragment: {
                     module: renderer.device.createShaderModule({
                         label: "forward plus frag shader",
-                        code: shaders.naiveFragSrc,
+                        code: shaders.forwardPlusFragSrc,
                     }),
                     targets: [
                         {

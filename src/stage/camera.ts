@@ -8,13 +8,14 @@ class CameraUniforms {
 
     set viewProjMat(mat: Float32Array) {
         // TODO-1.1: set the first 16 elements of `this.floatView` to the input `mat`
-        var inverseMat = mat4.clone(mat);
-        mat4.invert(inverseMat, inverseMat);
-        let inverseMatArray = new Float32Array(inverseMat);
-
         for (let i = 0; i < 16; i++) {
             this.floatView[i] = mat[i];
-            this.floatView[i + 16] = inverseMatArray[i];
+        }
+    }
+
+    set invProjMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[i + 16] = mat[i];
         }
     }
 
@@ -32,9 +33,30 @@ class CameraUniforms {
     }
 }
 
+class ViewUniforms
+{
+    readonly buffer = new ArrayBuffer(80);
+    private readonly floatView = new Float32Array(this.buffer);
+
+    set viewMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[i] = mat[i];
+        }
+    }
+
+    set viewPos(pos: Vec3) {
+        for (let i = 0; i < 3; i++) {
+            this.floatView[i + 16] = pos[i];
+        }
+    }
+}
+
 export class Camera {
     uniforms: CameraUniforms = new CameraUniforms();
     uniformsBuffer: GPUBuffer;
+
+    viewUniforms: ViewUniforms = new ViewUniforms();
+    viewUniformBuffer: GPUBuffer;
 
     projMat: Mat4 = mat4.create();
     cameraPos: Vec3 = vec3.create(-7, 2, 0);
@@ -46,8 +68,8 @@ export class Camera {
     moveSpeed: number = 0.004;
     sensitivity: number = 0.15;
 
-    static readonly nearPlane = 0.1;
-    static readonly farPlane = 1000;
+    static readonly nearPlane = 0.2;
+    static readonly farPlane = 100;
 
     keys: { [key: string]: boolean } = {};
 
@@ -59,6 +81,11 @@ export class Camera {
         // note that you can add more variables (e.g. inverse proj matrix) to this buffer in later parts of the assignment
         this.uniformsBuffer = device.createBuffer({
             size: this.uniforms.buffer.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+
+        this.viewUniformBuffer = device.createBuffer({
+            size: this.viewUniforms.buffer.byteLength,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
 
@@ -151,16 +178,24 @@ export class Camera {
         const lookPos = vec3.add(this.cameraPos, vec3.scale(this.cameraFront, 1));
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
         const viewProjMat = mat4.mul(this.projMat, viewMat);
+
+        var invProjMat = mat4.clone(this.projMat);
+        mat4.invert(invProjMat, invProjMat);
+        let invProjMatMatArray = new Float32Array(invProjMat);
         // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
         this.uniforms.viewProjMat = new Float32Array(viewProjMat);  
         this.uniforms.canvasSize = [canvas.width, canvas.height];
         this.uniforms.nearPlane = Camera.nearPlane;
         this.uniforms.farPlane = Camera.farPlane;
+        this.uniforms.invProjMat = invProjMatMatArray;
 
         // TODO-2: write to extra buffers needed for light clustering here
+        this.viewUniforms.viewMat = new Float32Array(viewMat);
+        this.viewUniforms.viewPos = this.cameraPos;
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);
+        device.queue.writeBuffer(this.viewUniformBuffer, 0, this.viewUniforms.buffer);
     }
 }
