@@ -72,14 +72,14 @@ export class NaiveRenderer extends renderer.Renderer {
             },
             vertex: {
                 module: renderer.device.createShaderModule({
-                    label: "naive vert shader",
+                    label: "naive vertex shader",
                     code: shaders.naiveVertSrc
                 }),
                 buffers: [ renderer.vertexBufferLayout ]
             },
             fragment: {
                 module: renderer.device.createShaderModule({
-                    label: "naive frag shader",
+                    label: "naive fragment shader",
                     code: shaders.naiveFragSrc,
                 }),
                 targets: [

@@ -3,15 +3,28 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
+    readonly buffer = new ArrayBuffer(40 * 4); // 40 floats in total (16 for viewProjMat + 16 for inverse + 3 for cameraPos + 1 padding + 2 for zNear/zFar)
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
-        // TODO-1.1: set the first 16 elements of `this.floatView` to the input `mat`
-        this.floatView.set(mat.subarray(0, 16), 0);
+        this.floatView.set(mat.subarray(0, 16), 0); 
     }
 
-    // TODO-2: add extra functions to set values needed for light clustering here
+    set invViewProjMat(invMat: Float32Array) {
+        this.floatView.set(invMat.subarray(0, 16), 16);
+    }
+
+    set cameraPos(pos: Float32Array) {
+        this.floatView.set(pos.subarray(0, 3), 32);
+    }
+
+    set zNearFar(zNear: number) {
+        this.floatView[36] = zNear;
+    }
+
+    set zFar(zFar: number) {
+        this.floatView[37] = zFar;
+    }
 }
 
 export class Camera {
@@ -19,6 +32,7 @@ export class Camera {
     uniformsBuffer: GPUBuffer;
 
     projMat: Mat4 = mat4.create();
+    invProjMat: Mat4 = mat4.create();
     cameraPos: Vec3 = vec3.create(-7, 2, 0);
     cameraFront: Vec3 = vec3.create(0, 0, -1);
     cameraUp: Vec3 = vec3.create(0, 1, 0);
@@ -40,12 +54,14 @@ export class Camera {
         //
         // note that you can add more variables (e.g. inverse proj matrix) to this buffer in later parts of the assignment
         this.uniformsBuffer = device.createBuffer({
+            label: 'camera uniforms',
             size: this.uniforms.buffer.byteLength,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
             mappedAtCreation: false,
         });
 
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
+        this.invProjMat = mat4.invert(this.projMat);
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
@@ -136,6 +152,11 @@ export class Camera {
         const viewProjMat = mat4.mul(this.projMat, viewMat);
         // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
         this.uniforms.viewProjMat = viewProjMat;
+        this.uniforms.invViewProjMat = mat4.invert(viewProjMat);
+
+        this.uniforms.cameraPos = this.cameraPos;
+        this.uniforms.zNearFar = Camera.nearPlane;
+        this.uniforms.zFar = Camera.farPlane;
 
         // TODO-2: write to extra buffers needed for light clustering here
 
