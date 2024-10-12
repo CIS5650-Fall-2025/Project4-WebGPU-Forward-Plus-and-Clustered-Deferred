@@ -1,5 +1,7 @@
 // TODO-2: implement the light clustering compute shader
 
+
+
 // ------------------------------------
 // Calculating cluster bounds:
 // ------------------------------------
@@ -8,6 +10,10 @@
 //     - Calculate the depth bounds for this cluster in Z (near and far planes).
 //     - Convert these screen and depth bounds into view-space coordinates.
 //     - Store the computed bounding box (AABB) for the cluster.
+
+
+
+
 
 // ------------------------------------
 // Assigning lights to clusters:
