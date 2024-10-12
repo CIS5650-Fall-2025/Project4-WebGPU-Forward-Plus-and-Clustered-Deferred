@@ -22,6 +22,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         super(stage);
         // TODO-2: initialize layouts, pipelines, textures, etc. needed for Forward+ here
 
+        // Writing cluster buffer
         const numClustersX = 16; 
         const numClustersY = 9;
         const numClustersZ = 24;
@@ -34,10 +35,20 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         const clusterSetSize = 
             3 * 4 + // numClustersX, numClustersY, numClustersZ (3 * u32)
             numClustersX * numClustersY * numClustersZ * clusterSize; // clusters array
+        const clusterSetInitData = new Uint32Array([
+            numClustersX,
+            numClustersY,
+            numClustersZ,
+        ]);
         this.clusterBuffer = renderer.device.createBuffer({
             size: clusterSetSize,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
+        renderer.device.queue.writeBuffer(
+            this.clusterBuffer,
+            0, 
+            clusterSetInitData
+        );
 
         this.depthTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],

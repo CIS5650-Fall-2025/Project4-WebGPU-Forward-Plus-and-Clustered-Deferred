@@ -36,44 +36,45 @@ fn main(in: FragmentInput) -> @location(0) vec4f
         discard;
     }
 
-    // Determine which cluster contains the current fragment.
-    let viewPos = (cameraUniforms.viewProjMat * vec4(in.pos, 1.0)).xyz;
-    let ndc = viewPos.xy / viewPos.z;
-    
-    let clusterX = u32(floor((ndc.x * 0.5 + 0.5) * f32(clusterSet.numClustersX)));
-    let clusterY = u32(floor((ndc.y * 0.5 + 0.5) * f32(clusterSet.numClustersY)));
-    
-    let viewZ = -viewPos.z;
+    let clipPos = cameraUniforms.viewProjMat * vec4(in.pos, 1.0);
+    let ndc = clipPos.xyz / clipPos.w;
+    let ndcXY01 = ndc.xy * 0.5 + 0.5;
+
+    let epsilon = 0.0001;
+    let ndcX = clamp(ndcXY01.x, 0.0, 1.0 - epsilon);
+    let ndcY = clamp(ndcXY01.y, 0.0, 1.0 - epsilon);
+
+    let clusterX = u32(floor(ndcX * f32(clusterSet.numClustersX)));
+    let clusterY = u32(floor(ndcY * f32(clusterSet.numClustersY)));
+
+    let viewPos = cameraUniforms.viewProjMat * vec4(in.pos, 1.0);
+    let viewZ = -viewPos.z; 
+
     let zNear = cameraUniforms.nearPlane;
     let zFar = cameraUniforms.farPlane;
-    let clusterZ = u32(floor(log(viewZ / zNear) / log(zFar / zNear) * f32(clusterSet.numClustersZ)));
-    
-    let clusterIndex = clusterX + 
+
+    let clusterSizeZ = (zFar - zNear) / f32(clusterSet.numClustersZ);
+    var clusterZ = u32(floor((viewZ - zNear) / clusterSizeZ));
+    clusterZ = clamp(clusterZ, 0u, clusterSet.numClustersZ - 1u);
+
+    var clusterIndex = clusterX + 
                        clusterY * clusterSet.numClustersX + 
                        clusterZ * clusterSet.numClustersX * clusterSet.numClustersY;
-
-
-    // Retrieve the number of lights that affect the current fragment from the cluster's data.
+    let maxClusterIndex = clusterSet.numClustersX * clusterSet.numClustersY * clusterSet.numClustersZ - 1u;
+    clusterIndex = clamp(clusterIndex,0, maxClusterIndex);
     let cluster = clusterSet.clusters[clusterIndex];
-    let numLightsInCluster = cluster.lightCount;
 
+    let numLightsInCluster = cluster.lightCount;
     var totalLightContrib = vec3f(0.0, 0.0, 0.0);
-    // For each light in the cluster:
     for (var i = 0u; i < numLightsInCluster; i++) {
-        // Access the light's properties using its index.
         let lightIndex = cluster.lightIndices[i];
         let light = lightSet.lights[lightIndex];
 
-        // Calculate the contribution of the light based on its position, the fragment's position, and the surface normal.
         let lightContrib = calculateLightContrib(light, in.pos, in.nor);
-
-        // Add the calculated contribution to the total light accumulation.
         totalLightContrib += lightContrib;
+        //totalLightContrib += vec3f(0.01f);
     }
 
-    // Multiply the fragment's diffuse color by the accumulated light contribution.
     var finalColor = diffuseColor.rgb * totalLightContrib;
-
-    // Return the final color, ensuring that the alpha component is set appropriately (typically to 1).
     return vec4(finalColor, 1.0);
 }

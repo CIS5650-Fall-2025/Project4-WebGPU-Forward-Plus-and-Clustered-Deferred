@@ -34,10 +34,20 @@ export class DebugShaderRenderer extends renderer.Renderer {
         const clusterSetSize = 
             3 * 4 + // numClustersX, numClustersY, numClustersZ (3 * u32)
             numClustersX * numClustersY * numClustersZ * clusterSize; // clusters array
+        const clusterSetInitData = new Uint32Array([
+            numClustersX,
+            numClustersY,
+            numClustersZ,
+        ]);
         this.clusterBuffer = renderer.device.createBuffer({
             size: clusterSetSize,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
+        renderer.device.queue.writeBuffer(
+            this.clusterBuffer,
+            0, 
+            clusterSetInitData
+        );
 
         this.depthTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
@@ -103,7 +113,6 @@ export class DebugShaderRenderer extends renderer.Renderer {
                 }
             ]
         });
-
         this.clusterComputeBindGroup = renderer.device.createBindGroup({
             layout: this.clusterComputeBindGroupLayout,
             entries: [

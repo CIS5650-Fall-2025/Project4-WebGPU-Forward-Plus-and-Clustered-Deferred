@@ -24,6 +24,12 @@
 
 @compute @workgroup_size(8, 8, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    if (global_id.x >= clusterSet.numClustersX ||
+        global_id.y >= clusterSet.numClustersY || 
+        global_id.z >= clusterSet.numClustersZ) {
+        return;
+    }
+    
     // Calculating cluster index
     let clusterIndex = global_id.x + 
                        global_id.y * clusterSet.numClustersX + 
@@ -34,38 +40,48 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // ------------------------------------
 
     // - Calculate the screen-space bounds for this cluster in 2D (XY).
+    let epsilon = 0.0001;
     let clusterSizeX = 2.0 / f32(clusterSet.numClustersX);
     let clusterSizeY = 2.0 / f32(clusterSet.numClustersY);
     let minX = -1.0 + f32(global_id.x) * clusterSizeX;
     let minY = -1.0 + f32(global_id.y) * clusterSizeY;
-    let maxX = minX + clusterSizeX;
-    let maxY = minY + clusterSizeY;
+    let maxX = min(minX + clusterSizeX, 1.0 - epsilon);
+    let maxY = min(minY + clusterSizeY, 1.0 - epsilon);
 
     // - Calculate the depth bounds for this cluster in Z (near and far planes).
     let zNear = cameraUniforms.nearPlane;
     let zFar = cameraUniforms.farPlane;
-    let clusterSizeZ = f32(clusterSet.numClustersZ);
-    let zSlice = f32(global_id.z);
-    let nearDepth = zNear * pow(zFar / zNear, zSlice / clusterSizeZ);
-    let farDepth = zNear * pow(zFar / zNear, (zSlice + 1.0) / clusterSizeZ);
+    let clusterSizeZ = (zFar - zNear) / f32(clusterSet.numClustersZ);
+    let minZ = zNear + f32(global_id.z) * clusterSizeZ;
+    let maxZ = minZ + clusterSizeZ;
 
     // - Convert these screen and depth bounds into view-space coordinates.
-    let invViewProj = cameraUniforms.invViewProjMat;
-    let nearBottomLeft = unprojectPoint(vec3(minX, minY, nearDepth), invViewProj);
-    let nearBottomRight = unprojectPoint(vec3(maxX, minY, nearDepth), invViewProj);
-    let nearTopLeft = unprojectPoint(vec3(minX, maxY, nearDepth), invViewProj);
-    let nearTopRight = unprojectPoint(vec3(maxX, maxY, nearDepth), invViewProj);
-    let farBottomLeft = unprojectPoint(vec3(minX, minY, farDepth), invViewProj);
-    let farBottomRight = unprojectPoint(vec3(maxX, minY, farDepth), invViewProj);
-    let farTopLeft = unprojectPoint(vec3(minX, maxY, farDepth), invViewProj);
-    let farTopRight = unprojectPoint(vec3(maxX, maxY, farDepth), invViewProj);
+    let ndcCorners = array<vec4<f32>, 8>(
+        // For minZ
+        projectPointToNDC(vec3<f32>(minX, minY, minZ), cameraUniforms.viewProjMat),
+        projectPointToNDC(vec3<f32>(maxX, minY, minZ), cameraUniforms.viewProjMat),
+        projectPointToNDC(vec3<f32>(minX, maxY, minZ), cameraUniforms.viewProjMat),
+        projectPointToNDC(vec3<f32>(maxX, maxY, minZ), cameraUniforms.viewProjMat),
+        // For maxZ
+        projectPointToNDC(vec3<f32>(minX, minY, maxZ), cameraUniforms.viewProjMat),
+        projectPointToNDC(vec3<f32>(maxX, minY, maxZ), cameraUniforms.viewProjMat),
+        projectPointToNDC(vec3<f32>(minX, maxY, maxZ), cameraUniforms.viewProjMat),
+        projectPointToNDC(vec3<f32>(maxX, maxY, maxZ), cameraUniforms.viewProjMat)
+    );
+
+    var viewCorners = array<vec3<f32>, 8>();
+    for (var i = 0u; i < 8u; i++) {
+        let viewPos = unprojectPoint(ndcCorners[i], cameraUniforms.invViewProjMat);
+        viewCorners[i] = viewPos;
+    }
 
     // - Store the computed bounding box (AABB) for the cluster.
-    let minPoint = min(min(min(nearBottomLeft, nearBottomRight), min(nearTopLeft, nearTopRight)),
-                    min(min(farBottomLeft, farBottomRight), min(farTopLeft, farTopRight)));
-
-    let maxPoint = max(max(max(nearBottomLeft, nearBottomRight), max(nearTopLeft, nearTopRight)),
-                    max(max(farBottomLeft, farBottomRight), max(farTopLeft, farTopRight)));
+    var minPoint = viewCorners[0];
+    var maxPoint = viewCorners[0];
+    for (var i = 1u; i < 8u; i++) {
+        minPoint = min(minPoint, viewCorners[i]);
+        maxPoint = max(maxPoint, viewCorners[i]);
+    }
 
     // Store the AABB in the clusterSet
     clusterSet.clusters[clusterIndex].minBounds = minPoint;
@@ -100,15 +116,19 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     
 }
 
+fn projectPointToNDC(viewPos: vec3<f32>, projMat: mat4x4<f32>) -> vec4<f32> {
+    let clipPos = projMat * vec4<f32>(viewPos, 1.0);
+    return clipPos / clipPos.w;
+}
+
 fn sphereIntersectsAABB(sphereCenter: vec3<f32>, sphereRadius: f32, aabbMin: vec3<f32>, aabbMax: vec3<f32>) -> bool {
     // For simplicity, assume the frustrum is a cube instead of frustrum
     let closestPoint = clamp(sphereCenter, aabbMin, aabbMax);
     let distance = length(sphereCenter - closestPoint);
-    return distance <= sphereRadius;
+    return distance <= sphereRadius * 3.0f;
 }
 
-fn unprojectPoint(point: vec3<f32>, invViewProj: mat4x4<f32>) -> vec3<f32> {
-    let clip = vec4(point, 1.0);
-    let view = invViewProj * clip;
+fn unprojectPoint(point: vec4<f32>, invViewProj: mat4x4<f32>) -> vec3<f32> {
+    let view = invViewProj * point;
     return view.xyz / view.w;
 }
