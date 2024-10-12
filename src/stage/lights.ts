@@ -41,7 +41,7 @@ export class Lights {
 
     zeroClusterLightsArray:Uint8Array;
     zeroGpuBuffer = device.createBuffer({
-        size: 4096, // 小的缓冲区，用来重复拷贝
+        size: 4096, // samll zero buffer in gpu
         usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
         mappedAtCreation: true,
     });

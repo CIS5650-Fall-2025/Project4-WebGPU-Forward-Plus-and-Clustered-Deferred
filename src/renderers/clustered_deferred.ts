@@ -14,6 +14,12 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
 
     depthTexture: GPUTexture;
     depthTextureView: GPUTextureView;
+    posTexture: GPUTexture;
+    posTextureView: GPUTextureView;
+    normalTexture: GPUTexture;
+    normalTextureView: GPUTextureView;
+    albedoTexture: GPUTexture;
+    albedoTextureView: GPUTextureView;
     testTexture: GPUTexture;
     testTextureView: GPUTextureView;
 

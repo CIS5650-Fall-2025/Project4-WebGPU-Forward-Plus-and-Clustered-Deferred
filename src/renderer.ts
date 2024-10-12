@@ -146,3 +146,20 @@ export abstract class Renderer {
         this.frameRequestId = requestAnimationFrame((t) => this.onFrame(t));
     }
 }
+
+export function initResizeObserver(onResizeCallback: (param: any) => void, param: any) {
+    const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            const { width, height } = entry.contentRect;
+            const devicePixelRatio = window.devicePixelRatio;
+    
+            canvas.width = width * devicePixelRatio;
+            canvas.height = height * devicePixelRatio;
+    
+            aspectRatio = canvas.width / canvas.height;
+            onResizeCallback(param);
+        }
+    });
+
+    resizeObserver.observe(canvas);
+}

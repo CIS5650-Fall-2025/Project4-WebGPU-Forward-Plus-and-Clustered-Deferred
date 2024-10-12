@@ -32,14 +32,15 @@ export const constants = {
     bindGroup_scene: 0,
     bindGroup_model: 1,
     bindGroup_material: 2,
+    bindGroupGbuffer: 3,
     bindGroup_cluster: 0,
 
-    clusterMaxLights: 300,
+    clusterMaxLights: 100,
     clusterSize: [32, 18, 48],
     clusterBoundByteSize:32,
     clusterLightByteSize: 8,
     moveLightsWorkgroupSize: 128, 
-    lightRadius: 6
+    lightRadius: 2
 
 };
 

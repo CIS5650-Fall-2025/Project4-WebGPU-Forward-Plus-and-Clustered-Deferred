@@ -1,7 +1,7 @@
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 
-import { initWebGPU, Renderer } from './renderer';
+import { initWebGPU, Renderer, initResizeObserver } from './renderer';
 import { NaiveRenderer } from './renderers/naive';
 import { ForwardPlusRenderer } from './renderers/forward_plus';
 import { ClusteredDeferredRenderer } from './renderers/clustered_deferred';
@@ -40,7 +40,7 @@ function setRenderer(mode: string) {
         case renderModes.naive:
             renderer = new NaiveRenderer(stage);
             break;
-        case renderModes.forwardPlus:
+        case renderModes.clusterForward:
             renderer = new ForwardPlusRenderer(stage);
             break;
         case renderModes.clusteredDeferred:
@@ -49,8 +49,9 @@ function setRenderer(mode: string) {
     }
 }
 
-const renderModes = { naive: 'naive', forwardPlus: 'forward+', clusteredDeferred: 'clustered deferred' };
-let renderModeController = gui.add({ mode: renderModes.forwardPlus }, 'mode', renderModes);
+const renderModes = { naive: 'naive', clusterForward: 'cluster forward', clusteredDeferred: 'clustered deferred' };
+let renderModeController = gui.add({ mode: renderModes.clusterForward }, 'mode', renderModes);
 renderModeController.onChange(setRenderer);
+initResizeObserver(setRenderer, renderModeController.getValue());
 
 setRenderer(renderModeController.getValue());
