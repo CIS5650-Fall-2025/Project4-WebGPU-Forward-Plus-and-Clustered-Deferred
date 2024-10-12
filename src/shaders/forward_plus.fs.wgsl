@@ -55,7 +55,7 @@ fn getTile(fragCoord : vec4<f32>) -> vec3<u32> {
 }
 
 fn getClusterIndex(fragCoord : vec4<f32>) -> u32 {
-  let tile = getTile(fragCoordHolly );
+  let tile = getTile(fragCoord);
   return tile.x +
          tile.y * tileCount.x +
          tile.z * tileCount.x * tileCount.y;
@@ -84,7 +84,7 @@ var<private> colorSet : array<vec3<f32>, 9> = array<vec3<f32>, 9>(
 const tileCount : vec3<u32> = vec3<u32>(32u, 18u, 48u);
 @fragment
 fn main(in: Fragmentin) -> @location(0) vec4f {
-    let diffI heard you for facial paperuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
+    let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
         discard;
     }
