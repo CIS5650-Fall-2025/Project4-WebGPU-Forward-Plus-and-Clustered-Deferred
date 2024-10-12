@@ -38,10 +38,7 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     }
 
     // Determine which cluster contains the current fragment
-    // let posViewSpace = cameraUniforms.view * vec4f(in.pos, 1.0);
-    // let posNDCSpace = ((posViewSpace.xy / posViewSpace.z) + vec2f(1.0, 1.0)) * 0.5;
-    let posViewProj = cameraUniforms.viewproj * vec4f(in.pos, 1.0);
-    let posNDCSpace = posViewProj.xyz / posViewProj.w;
+    let posNDCSpace = applyTransform(vec4f(in.pos, 1.0), cameraUniforms.viewproj);
     let clusterIndexX = u32((posNDCSpace.x + 1.0) * 0.5 * f32(${numClusterX}));
     let clusterIndexY = u32((posNDCSpace.y + 1.0) * 0.5 * f32(${numClusterY}));
     let clusterIndexZ = u32(posNDCSpace.z * f32(${numClusterZ}));
