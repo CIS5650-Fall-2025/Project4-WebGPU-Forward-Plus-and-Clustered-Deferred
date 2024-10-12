@@ -1,10 +1,10 @@
 import * as renderer from '../renderer';
 import * as shaders from '../shaders/shaders';
 import { Stage } from '../stage/stage';
+import { device } from "../renderer";
 
-export class ClusteredDeferredRenderer extends renderer.Renderer {
-    // TODO-3: add layouts, pipelines, textures, etc. needed for Forward+ here
-    // you may need extra uniforms such as the camera view matrix and the canvas resolution
+class GBuffer {
+    stage: Stage;
 
     depthTexture: GPUTexture;
     depthTextureView: GPUTextureView;
@@ -22,12 +22,12 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     gbufferBindGroup: GPUBindGroup;
 
     constructor(stage: Stage) {
-        super(stage);
-
         // TODO-3: initialize layouts, pipelines, textures, etc. needed for Forward+ here
         // you'll need two pipelines: one for the G-buffer pass and one for the fullscreen pass
 
-        this.depthTexture = renderer.device.createTexture({
+        this.stage = stage;
+
+        this.depthTexture = device.createTexture({
             label: "depth texture",
             size: [renderer.canvas.width, renderer.canvas.height],
             format: "depth24plus",
@@ -35,7 +35,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         });
         this.depthTextureView = this.depthTexture.createView();
 
-        this.gbufferAlbedoTexture = renderer.device.createTexture({
+        this.gbufferAlbedoTexture = device.createTexture({
             label: "g-buffer albedo texture",
             size: [renderer.canvas.width, renderer.canvas.height],
             format: "rgba8unorm",
@@ -43,7 +43,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         });
         this.gbufferAlbedoTextureView = this.gbufferAlbedoTexture.createView();
 
-        this.gbufferNormalTexture = renderer.device.createTexture({
+        this.gbufferNormalTexture = device.createTexture({
             label: "g-buffer normal texture",
             size: [renderer.canvas.width, renderer.canvas.height],
             format: "rgba16float",
@@ -51,7 +51,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         });
         this.gbufferNormalTextureView = this.gbufferNormalTexture.createView();
 
-        this.gbufferPositionTexture = renderer.device.createTexture({
+        this.gbufferPositionTexture = device.createTexture({
             label: "g-buffer position texture",
             size: [renderer.canvas.width, renderer.canvas.height],
             format: "rgba16float",
@@ -59,7 +59,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         });
         this.gbufferPositionTextureView = this.gbufferPositionTexture.createView();
 
-        this.gbufferBindGroupLayout = renderer.device.createBindGroupLayout({
+        this.gbufferBindGroupLayout = device.createBindGroupLayout({
             label: "g-buffer bind group layout",
             entries: [
                 {
@@ -71,18 +71,18 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             ]
         });
 
-        this.gbufferBindGroup = renderer.device.createBindGroup({
+        this.gbufferBindGroup = device.createBindGroup({
             label: "g-buffer bind group",
             layout: this.gbufferBindGroupLayout,
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.camera.uniformsBuffer }
+                    resource: { buffer: this.stage.camera.uniformsBuffer }
                 }
             ]
         });
 
-        this.gbufferPipelineLayout = renderer.device.createPipelineLayout({
+        this.gbufferPipelineLayout = device.createPipelineLayout({
             label: "g-buffer pipeline layout",
             bindGroupLayouts: [
                 this.gbufferBindGroupLayout,
@@ -91,7 +91,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             ]
         });
 
-        this.gbufferPipeline = renderer.device.createRenderPipeline({
+        this.gbufferPipeline = device.createRenderPipeline({
             label: "g-buffer render pipeline",
             layout: this.gbufferPipelineLayout,
             depthStencil: {
@@ -100,14 +100,14 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 format: "depth24plus"
             },
             vertex: {
-                module: renderer.device.createShaderModule({
+                module: device.createShaderModule({
                     label: "g-buffer vertex shader",
                     code: shaders.naiveVertSrc
                 }),
                 buffers: [renderer.vertexBufferLayout]
             },
             fragment: {
-                module: renderer.device.createShaderModule({
+                module: device.createShaderModule({
                     label: "g-buffer fragment shader",
                     code: shaders.clusteredDeferredFragSrc,
                 }),
@@ -126,13 +126,11 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         });
     }
 
-    override draw() {
+    draw(encoder: GPUCommandEncoder) {
         // TODO-3: run the Forward+ rendering pass:
         // - run the clustering compute shader
         // - run the G-buffer pass, outputting position, albedo, and normals
         // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
-
-        const encoder = renderer.device.createCommandEncoder();
 
         const gbufferPass = encoder.beginRenderPass({
             label: "g-buffer pass",
@@ -167,7 +165,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         gbufferPass.setPipeline(this.gbufferPipeline);
         gbufferPass.setBindGroup(0, this.gbufferBindGroup);
         
-        this.scene.iterate(node => {
+        this.stage.scene.iterate(node => {
             gbufferPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
         }, material => {
             gbufferPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
@@ -178,6 +176,34 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         });
 
         gbufferPass.end();
-        renderer.device.queue.submit([encoder.finish()]);
+    }
+}
+
+export class ClusteredDeferredRenderer extends renderer.Renderer {
+    // TODO-3: add layouts, pipelines, textures, etc. needed for Forward+ here
+    // you may need extra uniforms such as the camera view matrix and the canvas resolution
+
+    gbuffer: GBuffer;
+
+    constructor(stage: Stage) {
+        super(stage);
+
+        // TODO-3: initialize layouts, pipelines, textures, etc. needed for Forward+ here
+        // you'll need two pipelines: one for the G-buffer pass and one for the fullscreen pass
+
+        this.gbuffer = new GBuffer(stage);
+    }
+
+    override draw() {
+        // TODO-3: run the Forward+ rendering pass:
+        // - run the clustering compute shader
+        // - run the G-buffer pass, outputting position, albedo, and normals
+        // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
+
+        const encoder = device.createCommandEncoder();
+
+        this.gbuffer.draw(encoder);
+
+        device.queue.submit([encoder.finish()]);
     }
 }
