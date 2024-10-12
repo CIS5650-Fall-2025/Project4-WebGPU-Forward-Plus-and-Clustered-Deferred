@@ -16,7 +16,7 @@ struct LightSet {
 
 struct Cluster {
     numLights: u32,
-    lightIndices: array<u32, 32>
+    lightIndices: array<u32, ${maxLightsPerCluster}>,
 };
 
 struct ClusterGridMetadata {
@@ -25,17 +25,13 @@ struct ClusterGridMetadata {
     clusterGridSizeZ: u32,
     padding1: u32,
     
-    canvasWidth: f32,
-    canvasHeight: f32,
+    canvasWidth: u32,
+    canvasHeight: u32,
     padding2: vec2<f32>,
 
     numLights: u32,
     maxLightsPerCluster: u32,
-    padding3: vec2<u32>,
-
-    zNear: f32,
-    zFar: f32,
-    padding4: vec2<f32>
+    padding3: vec2<u32>
 };
 
 struct CameraUniforms {

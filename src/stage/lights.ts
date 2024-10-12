@@ -34,12 +34,6 @@ export class ClusterGridMetadata {
 
     set maxLightsPerCluster(n: number) { this.array[9] = n; }
     get maxLightsPerCluster() { return this.array[9]; }
-
-    set zNear(n: number) { this.array[12] = n; }
-    get zNear() { return this.array[12]; }
-
-    set zFar(n: number) { this.array[13] = n; }
-    get zFar() { return this.array[13]; }
 }
 
 export class Lights {
@@ -84,6 +78,8 @@ export class Lights {
     clusterGridBuffer: GPUBuffer;
 
     workgroupSize: number = 8;
+
+    debug: boolean = false;
 
     constructor(camera: Camera) {
         this.camera = camera;
@@ -260,14 +256,16 @@ export class Lights {
 
         this.numClusters = this.clusterGridDims[0] * this.clusterGridDims[1] * this.clusterGridDims[2];
 
-        this.maxLightsPerCluster = 32;
+        this.maxLightsPerCluster = shaders.constants.maxLightsPerCluster;
         // Size of u32 in bytes.
         const bytesPerLightIndex = 4;
         // Number of lights (u32, 4 bytes) followed by light indices.
         const bytesPerCluster = 4 + (this.maxLightsPerCluster * bytesPerLightIndex);
 
         this.clusterBufferSize = this.numClusters * bytesPerCluster;
-        console.log(`clusterBufferSize: ${this.clusterBufferSize}`);
+        if (this.debug) {
+            console.log(`clusterBufferSize: ${this.clusterBufferSize}`);
+        }
 
         this.clusterGrid = new ClusterGridMetadata();
         this.clusterGrid.clusterGridSizeX = this.clusterGridDims[0];
@@ -278,14 +276,18 @@ export class Lights {
         this.clusterGrid.numLights = this.numLights;
         this.clusterGrid.maxLightsPerCluster = this.maxLightsPerCluster;
         this.clusterGrid.zNear = 0.1;
-        this.clusterGrid.zFar = 1000.0;
+        this.clusterGrid.zFar = 2000.0;
 
         this.clusterGridBufferSize = this.clusterGrid.buffer.byteLength;
-        console.log(`clusterGrid: ${JSON.stringify(this.clusterGrid)}`);
+        if (this.debug) {
+            console.log(`clusterGrid: ${this.clusterGrid}`);
+        }
     }
 
     private populateClusterGridBuffer() {
-        console.log(`clusterGridData: array: ${this.clusterGrid.array} byteLength: ${this.clusterGrid.buffer.byteLength}`);
+        if (this.debug) {
+            console.log(`clusterGridData: array: ${this.clusterGrid.array} byteLength: ${this.clusterGrid.buffer.byteLength}`);
+        }
 
         device.queue.writeBuffer(this.clusterGridBuffer, 0, this.clusterGrid.buffer, 0, this.clusterGrid.buffer.byteLength);
     }
@@ -314,8 +316,10 @@ export class Lights {
 
         const numWorkgroupsX = Math.ceil(this.clusterGridDims[0] / this.workgroupSize);
         const numWorkgroupsY = Math.ceil(this.clusterGridDims[1] / this.workgroupSize);
-        const numWorkgroupsZ = this.clusterGridDims[2]; 
-        console.log(`Dispatching workgroups: x=${numWorkgroupsX}, y=${numWorkgroupsY}, z=${numWorkgroupsZ}`);
+        const numWorkgroupsZ = this.clusterGridDims[2];
+        if (this.debug) {
+            console.log(`Dispatching workgroups: x=${numWorkgroupsX}, y=${numWorkgroupsY}, z=${numWorkgroupsZ}`);
+        }
         computePass.dispatchWorkgroups(numWorkgroupsX, numWorkgroupsY, numWorkgroupsZ);
         computePass.end();
 
@@ -342,14 +346,17 @@ export class Lights {
         console.log(`debugClusterBuffer.byteLength: ${clusterF32Data.byteLength}`);
         console.log(`debugClusterBuffer.length: ${clusterF32Data.byteLength}/4 = ${clusterF32Data.byteLength/4} = ${clusterF32Data.length}`);
         console.log(clusterF32Data);
+        for (let i = 0; i < Math.min(129*this.numClusters, clusterF32Data.length); i++) {
+            console.log(clusterF32Data[i]);
+        }
 
         const clusterUintData = new Uint32Array(arrayBuffer);
     
         console.log(`debugClusterBuffer.byteLength: ${clusterUintData.byteLength}`);
         console.log(`debugClusterBuffer.length: ${clusterUintData.byteLength}/4 = ${clusterUintData.byteLength/4} = ${clusterUintData.length}`);
-        // for (let i = 0; i < clusterUintData.length; i += 129) {
-        //     console.log(clusterUintData.slice(i, i + 10));
-        // }
+        for (let i = 0; i < clusterUintData.length; i += 129) {
+            console.log(clusterUintData.slice(i, i + 10));
+        }
         for (let i = 0; i < Math.min(129*this.numClusters, clusterUintData.length); i++) {
             console.log(clusterUintData[i]);
         }

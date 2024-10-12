@@ -13,6 +13,8 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     depthTexture: GPUTexture;
     depthTextureView: GPUTextureView;
 
+    debug: boolean = false;
+
     constructor(stage: Stage) {
         super(stage);
 
@@ -157,7 +159,9 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         renderPass.end();
         renderer.device.queue.submit([encoder.finish()]);
 
-        await renderer.device.queue.onSubmittedWorkDone();
-        await this.lights.readClusterBuffer();
+        if (this.debug) {
+            await renderer.device.queue.onSubmittedWorkDone();
+            await this.lights.readClusterBuffer();
+        }
     }
 }

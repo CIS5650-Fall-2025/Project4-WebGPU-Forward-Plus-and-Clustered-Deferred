@@ -18,7 +18,7 @@ class CameraUniforms {
         this.floatView.set(pos.subarray(0, 3), 32);
     }
 
-    set zNearFar(zNear: number) {
+    set zNear(zNear: number) {
         this.floatView[36] = zNear;
     }
 
@@ -41,6 +41,7 @@ export class Camera {
     pitch: number = 0;
     moveSpeed: number = 0.004;
     sensitivity: number = 0.15;
+    debug: boolean = false;
 
     static readonly nearPlane = 0.1;
     static readonly farPlane = 1000;
@@ -62,6 +63,11 @@ export class Camera {
 
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
         this.invProjMat = mat4.invert(this.projMat);
+
+        if (this.debug) {
+            console.log(`projMat: ${this.projMat}`);
+            console.log(`invProjMat: ${this.invProjMat}`);
+        }
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
@@ -155,7 +161,7 @@ export class Camera {
         this.uniforms.invViewProjMat = mat4.invert(viewProjMat);
 
         this.uniforms.cameraPos = this.cameraPos;
-        this.uniforms.zNearFar = Camera.nearPlane;
+        this.uniforms.zNear = Camera.nearPlane;
         this.uniforms.zFar = Camera.farPlane;
 
         // TODO-2: write to extra buffers needed for light clustering here

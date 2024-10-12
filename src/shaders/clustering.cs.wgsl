@@ -45,13 +45,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     clusters[clusterIndex].numLights = 0;
 
-    let bounds = calculateClusterScreenBounds(clusterX, clusterY, clusterZ);
+    let bounds = calculateClusterScreenBounds(clusterX, clusterY, clusterZ, clusterIndex);
 
     let aabbMin = bounds.min;
     let aabbMax = bounds.max;
 
     for (var i = 0u; i < lightSet.numLights; i++) {
         let light = lightSet.lights[i];
+        // recordDistanceLightCluster(light, aabbMin, aabbMax, clusterIndex, i);
 
         if (lightIntersectsCluster(light, aabbMin, aabbMax)) {
             if (clusters[clusterIndex].numLights < clusterGrid.maxLightsPerCluster) {
@@ -62,7 +63,15 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 }
 
-fn calculateClusterScreenBounds(clusterX: u32, clusterY: u32, clusterZ: u32) -> AABB {
+fn recordDistanceLightCluster(light: Light, aabbMin: vec3<f32>, aabbMax: vec3<f32>, clusterIndex: u32, index: u32) {
+    let closestPoint = clamp(light.pos, aabbMin, aabbMax);
+    
+    let distance = length(light.pos - closestPoint);
+
+    clusters[clusterIndex].lightIndices[index] = u32(distance);
+}
+
+fn calculateClusterScreenBounds(clusterX: u32, clusterY: u32, clusterZ: u32, clusterIndex: u32) -> AABB {
     let clusterWidthNDC = 2.0 / f32(clusterGrid.canvasWidth);
     let clusterHeightNDC = 2.0 / f32(clusterGrid.canvasHeight);
 
@@ -75,18 +84,19 @@ fn calculateClusterScreenBounds(clusterX: u32, clusterY: u32, clusterZ: u32) -> 
     let ndcMin = vec4<f32>(minXNDC, minYNDC, depthMin, 1.0);
     let ndcMax = vec4<f32>(minXNDC + clusterWidthNDC, minYNDC + clusterHeightNDC, depthMax, 1.0);
 
-    let aabbMin = (cameraData.invViewProjMat * ndcMin).xyz / ndcMin.w;
-    let aabbMax = (cameraData.invViewProjMat * ndcMax).xyz / ndcMax.w;
+    let transformedMin = cameraData.invViewProjMat * ndcMin;
+    let transformedMax = cameraData.invViewProjMat * ndcMax;
 
-    let aabb = AABB(aabbMin, aabbMax);
+    let aabbMin = transformedMin.xyz / transformedMin.w;
+    let aabbMax = transformedMax.xyz / transformedMax.w;
 
-    return aabb;
+    return AABB(aabbMin, aabbMax);
 }
 
 fn calculateDepthFromZIndex(clusterZ: u32) -> f32 {
-    let logZRatio = log2(clusterGrid.zFar / clusterGrid.zNear);
+    let logZRatio = log2(cameraData.zFar / cameraData.zNear);
     let clusterDepthSize = logZRatio / f32(clusterGrid.clusterGridSizeZ);
-    return clusterGrid.zNear * exp2(clusterDepthSize * f32(clusterZ));
+    return cameraData.zNear * exp2(clusterDepthSize * f32(clusterZ));
 }
 
 fn lightIntersectsCluster(light: Light, aabbMin: vec3<f32>, aabbMax: vec3<f32>) -> bool {
@@ -94,5 +104,5 @@ fn lightIntersectsCluster(light: Light, aabbMin: vec3<f32>, aabbMax: vec3<f32>) 
     
     let distance = length(light.pos - closestPoint);
 
-    return distance <= light.radius;
+    return distance <= ${lightRadius};
 }
