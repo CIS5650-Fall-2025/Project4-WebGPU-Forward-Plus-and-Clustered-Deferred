@@ -1,9 +1,10 @@
 import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
+import * as shaders from '../shaders/shaders';
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
+    readonly buffer = new ArrayBuffer(16 * 10);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -12,9 +13,36 @@ class CameraUniforms {
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
-    //set inverseProjMat(mat: Float32Array) {
-     //   this.floatView.set(mat, 16);
-    //}
+    set inverseProjMat(mat: Float32Array) {
+        this.floatView.set(mat, 16);
+    }
+
+    set zNear(value: number) {
+        this.floatView[32] = value;
+    }
+
+    set zFar(value: number) {
+        this.floatView[33] = value;
+    }
+
+    set tileSize(value: number) {
+        this.floatView[34] = value;
+    }
+
+    set tileCountX(value: number) {
+        this.floatView[35] = value;
+    }
+
+    set tileCountY(value: number) {
+        this.floatView[36] = value;
+    }
+
+    set canvasSize(size: [number, number]) {
+        this.floatView[37] = size[0];
+        this.floatView[38] = size[1];
+    }
+
+
 }
 
 export class Camera {
@@ -142,7 +170,14 @@ export class Camera {
         this.uniforms.viewProjMat = viewProjMat;
 
         // TODO-2: write to extra buffers needed for light clustering here
-        //this.uniforms.inverseProjMat = mat4.inverse(this.projMat);
+        this.uniforms.inverseProjMat = mat4.inverse(this.projMat);
+        this.uniforms.zNear = Camera.nearPlane;
+        this.uniforms.zFar = Camera.farPlane;
+        this.uniforms.tileCountX = Math.ceil(canvas.height / shaders.constants.clusterTileSize);
+        this.uniforms.tileCountY = Math.ceil(canvas.width / shaders.constants.clusterTileSize);
+        this.uniforms.tileSize = shaders.constants.clusterTileSize;
+        this.uniforms.canvasSize = [canvas.width, canvas.height];
+        
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
