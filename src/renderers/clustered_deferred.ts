@@ -15,6 +15,9 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     depthVisualBindGroup: GPUBindGroup;
     depthSampler: GPUSampler;
 
+    emptyBindGroupLayout: GPUBindGroupLayout;
+    emptyBindGroup: GPUBindGroup;
+
     depthTexture: GPUTexture;
     depthTextureView: GPUTextureView;
     posTexture: GPUTexture;
@@ -97,6 +100,15 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     }
                 ]
             });
+
+            this.emptyBindGroupLayout = renderer.device.createBindGroupLayout({
+                entries: [] // place holder
+            });
+
+            this.emptyBindGroup = renderer.device.createBindGroup({
+                layout: this.emptyBindGroupLayout,
+                entries: [] // place holder
+            });
         }
 
         // Create depth texture & G-buffer 
@@ -118,21 +130,21 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             this.posTexture = renderer.device.createTexture({
                 size: [renderer.canvas.width, renderer.canvas.height],
                 format: "rgba16float",
-                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
             this.posTextureView = this.posTexture.createView();
 
             this.normalTexture = renderer.device.createTexture({
                 size: [renderer.canvas.width, renderer.canvas.height],
                 format: "rgba16float",
-                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
             this.normalTextureView = this.normalTexture.createView();
 
             this.albedoTexture = renderer.device.createTexture({
                 size: [renderer.canvas.width, renderer.canvas.height],
                 format: "rgba16float",
-                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
             this.albedoTextureView = this.albedoTexture.createView();
 
@@ -164,28 +176,34 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     { // position
                         binding: 1,
                         visibility: GPUShaderStage.FRAGMENT,
-                        storageTexture: {
-                            access: "read-only",
-                            format: "rgba16float",
+                        texture: {
+                            sampleType: "float",
                             viewDimension: '2d'
                         }
                     },
                     { // normal
                         binding: 2,
                         visibility: GPUShaderStage.FRAGMENT,
-                        storageTexture: {
-                            access: "read-only",
-                            format: "rgba16float",
+                        texture: {
+                            sampleType: "float",
                             viewDimension: '2d'
                         }
                     },
                     { // albedo
                         binding: 3,
                         visibility: GPUShaderStage.FRAGMENT,
-                        storageTexture: {
-                            access: "read-only",
-                            format: "rgba16float",
+                        texture: {
+                            sampleType: "float",
                             viewDimension: '2d'
+                        }
+                    },
+                    { 
+                        // depth
+                        binding: 4,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: {
+                            sampleType: 'depth',
+                            viewDimension: '2d',
                         }
                     },
                 ]
@@ -209,6 +227,10 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     {
                         binding: 3,
                         resource: this.albedoTextureView
+                    },
+                    {
+                        binding: 4,
+                        resource: this.depthTextureView
                     }
                 ]
             });
@@ -258,6 +280,37 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     depthCompare: "less"
                 }
             });
+
+            this.renderPipeline = renderer.device.createRenderPipeline({
+                layout: renderer.device.createPipelineLayout({
+                    bindGroupLayouts: [
+                        this.sceneUniformsBindGroupLayout,
+                        this.emptyBindGroupLayout,
+                        this.emptyBindGroupLayout,
+                        this.gbufferBindGroupLayout
+                    ]
+                }),
+                vertex: {
+                    module: renderer.device.createShaderModule({
+                        code: shaders.clusteredDeferredFullscreenVertSrc
+                    }),
+                    entryPoint: "main"
+                },
+                fragment: {
+                    module: renderer.device.createShaderModule({
+                        code: shaders.clusteredDeferredFullscreenFragSrc
+                    }),
+                    entryPoint: "main",
+                    targets: [
+                        {
+                            format: renderer.canvasFormat
+                        }
+                    ]
+                },
+                primitive: {
+                    topology: "triangle-list"
+                }
+            });
         }
     }
 
@@ -268,6 +321,9 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
 
         // - run the clustering compute shader
+        {
+            this.lights.doLightClustering(encoder);
+        }
         // - run the G-buffer pass, outputting position, albedo, and normals
         {
             const gbufferPass = encoder.beginRenderPass({
@@ -313,6 +369,27 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             gbufferPass.end();
         }
         // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
+        {
+            const renderPass = encoder.beginRenderPass({
+                label: "forward plus render pass",
+                colorAttachments: [
+                    {
+                        view: canvasTextureView,
+                        clearValue: [0, 0, 0, 0],
+                        loadOp: "clear",
+                        storeOp: "store"
+                    }
+                ]
+            });
+
+            renderPass.setPipeline(this.renderPipeline);
+            renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+            renderPass.setBindGroup(1, this.emptyBindGroup);
+            renderPass.setBindGroup(2, this.emptyBindGroup);
+            renderPass.setBindGroup(shaders.constants.bindGroup_Gbuffer, this.gbufferBindGroup);
+            renderPass.draw(3);
+            renderPass.end();
+        }
 
         renderer.device.queue.submit([encoder.finish()]);
     }

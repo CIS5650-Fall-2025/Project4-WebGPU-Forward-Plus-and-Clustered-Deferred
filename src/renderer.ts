@@ -3,6 +3,7 @@ import { Lights } from './stage/lights';
 import { Camera } from './stage/camera';
 import { Stage } from './stage/stage';
 import { setComputeBound } from './stage/lights';
+import { GUIController } from 'dat.gui';
 
 export var canvas: HTMLCanvasElement;
 export var canvasFormat: GPUTextureFormat;
@@ -148,7 +149,7 @@ export abstract class Renderer {
     }
 }
 
-export function initResizeObserver(onResizeCallback: (param: any) => void, param: any) {
+export function initResizeObserver(onResizeCallback: (param: any) => void, getRenderMode: () => string) {
     const resizeObserver = new ResizeObserver(entries => {
         for (let entry of entries) {
             const { width, height } = entry.contentRect;
@@ -159,8 +160,7 @@ export function initResizeObserver(onResizeCallback: (param: any) => void, param
     
             aspectRatio = canvas.width / canvas.height;
 
-            setComputeBound(true);
-            onResizeCallback(param);
+            onResizeCallback(getRenderMode());
         }
     });
 

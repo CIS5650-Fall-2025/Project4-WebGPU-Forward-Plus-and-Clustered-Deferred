@@ -91,10 +91,15 @@ fn main(in: Fragmentin) -> @location(0) vec4f {
         discard;
     }
 
+    // let nor = in.nor * 0.5 + 0.5;
+    // return vec4f(nor, 1.0);
+
     var totalLightContrib = vec3f(0, 0, 0);
     let clusterIndex = getClusterIndex(in.fragPos);
     let lightOffset  = clusterLights.lights[clusterIndex].offset;
     let lightCount   = clusterLights.lights[clusterIndex].count;
+
+    //return vec4<f32>(vec3<f32>(f32(lightCount))/10.0, 1.0);
 
     for (var lightIndex = 0u; lightIndex < lightCount; lightIndex = lightIndex + 1u) {
         let i = clusterLights.indices[lightOffset + lightIndex];
@@ -102,9 +107,11 @@ fn main(in: Fragmentin) -> @location(0) vec4f {
         totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
     }
 
+
     var finalColor = diffuseColor.rgb * totalLightContrib;
     return vec4(finalColor, 1);
 
     // var tile : vec3<u32> = getTile(in.fragPos);
+    // return vec4<f32>(in.fragPos.xyz / 1000.0, 1.0);
     // return vec4<f32>(colorSet[tile.z % 9u], 1.0);
 }

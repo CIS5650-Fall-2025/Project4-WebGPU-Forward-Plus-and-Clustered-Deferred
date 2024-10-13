@@ -49,9 +49,13 @@ function setRenderer(mode: string) {
     }
 }
 
+export function getRenderMode() {
+    return renderModeController.getValue();
+}
+
 const renderModes = { naive: 'naive', clusterForward: 'cluster forward', clusteredDeferred: 'clustered deferred' };
 let renderModeController = gui.add({ mode: renderModes.clusterForward }, 'mode', renderModes);
 renderModeController.onChange(setRenderer);
-initResizeObserver(setRenderer, renderModeController.getValue());
+initResizeObserver(setRenderer, getRenderMode);
 
 setRenderer(renderModeController.getValue());
