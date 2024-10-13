@@ -185,6 +185,15 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
 
     gbuffer: GBuffer;
 
+    fullscreenQuadVertexBuffer: GPUBuffer;
+    fullscreenQuadVertexBufferLayout: GPUVertexBufferLayout;
+
+    deferredBindGroupLayout: GPUBindGroupLayout;
+    deferredBindGroup: GPUBindGroup;
+    
+    deferredPipelineLayout: GPUPipelineLayout;
+    deferredPipeline: GPURenderPipeline;
+
     constructor(stage: Stage) {
         super(stage);
 
@@ -192,6 +201,130 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         // you'll need two pipelines: one for the G-buffer pass and one for the fullscreen pass
 
         this.gbuffer = new GBuffer(stage);
+
+        const fullscreenQuadVertices = new Float32Array([
+            -1.0, -1.0,
+             1.0, -1.0,
+            -1.0,  1.0,
+             1.0,  1.0 
+        ]);
+
+        this.fullscreenQuadVertexBuffer = device.createBuffer({
+            label: "fullscreen quad vertex buffer",
+            size: fullscreenQuadVertices.byteLength,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+        });
+        device.queue.writeBuffer(this.fullscreenQuadVertexBuffer, 0, fullscreenQuadVertices);
+
+        this.fullscreenQuadVertexBufferLayout = {
+            arrayStride: 2 * 4,
+            attributes: [
+                {
+                    shaderLocation: 0,
+                    format: "float32x2",
+                    offset: 0
+                }
+            ]
+        };
+
+        this.deferredBindGroupLayout = device.createBindGroupLayout({
+            label: "deferred bind group layout",
+            entries: [
+                {
+                    // Camera.
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "uniform" }
+                },
+                {
+                    // G-buffer albedo texture.
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {
+                        sampleType: "float",
+                        viewDimension: "2d",
+                        multisampled: false
+                    }
+                },
+                {
+                    // G-buffer normal texture.
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {
+                        sampleType: "unfilterable-float",
+                        viewDimension: "2d",
+                        multisampled: false
+                    }
+                },
+                {
+                    // G-buffer position texture.
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {
+                        sampleType: "unfilterable-float",
+                        viewDimension: "2d",
+                        multisampled: false
+                    }
+                }
+            ]
+        });
+
+        this.deferredBindGroup = device.createBindGroup({
+            label: "deferred bind group",
+            layout: this.deferredBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: stage.camera.uniformsBuffer }
+                },
+                {
+                    binding: 1,
+                    resource: this.gbuffer.gbufferAlbedoTextureView
+                },
+                {
+                    binding: 2,
+                    resource: this.gbuffer.gbufferNormalTextureView
+                },
+                {
+                    binding: 3,
+                    resource: this.gbuffer.gbufferPositionTextureView
+                }
+            ]
+        });
+
+        this.deferredPipelineLayout = device.createPipelineLayout({
+            label: "deferred pipeline layout",
+            bindGroupLayouts: [
+                this.deferredBindGroupLayout
+            ]
+        });
+
+        this.deferredPipeline = device.createRenderPipeline({
+            label: "deferred render pipeline",
+            layout: this.deferredPipelineLayout,
+            vertex: {
+                module: device.createShaderModule({
+                    label: "deferred vertex shader",
+                    code: shaders.clusteredDeferredFullscreenVertSrc
+                }),
+                buffers: [this.fullscreenQuadVertexBufferLayout]
+            },
+            fragment: {
+                module: device.createShaderModule({
+                    label: "deferred fragment shader",
+                    code: shaders.clusteredDeferredFullscreenFragSrc
+                }),
+                targets: [
+                    {
+                        format: renderer.canvasFormat,
+                    }
+                ]
+            },
+            primitive: {
+                topology: "triangle-strip",
+                stripIndexFormat: "uint32"
+            }
+        });
     }
 
     override draw() {
@@ -200,9 +333,29 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         // - run the G-buffer pass, outputting position, albedo, and normals
         // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
 
-        const encoder = device.createCommandEncoder();
+        const encoder = device.createCommandEncoder({label: "deferred draw command encoder"});
 
         this.gbuffer.draw(encoder);
+
+        const deferredPass = encoder.beginRenderPass({
+            label: "deferred pass",
+            colorAttachments: [
+                {
+                    view: renderer.context.getCurrentTexture().createView(),
+                    loadOp: "clear",
+                    storeOp: "store",
+                    clearValue: [0, 0, 0, 1]
+                }
+            ]
+        });
+
+        deferredPass.setVertexBuffer(0, this.fullscreenQuadVertexBuffer);
+        deferredPass.setPipeline(this.deferredPipeline);
+        deferredPass.setBindGroup(0, this.deferredBindGroup);
+
+        deferredPass.draw(4, 1, 0, 0);
+
+        deferredPass.end();
 
         device.queue.submit([encoder.finish()]);
     }
