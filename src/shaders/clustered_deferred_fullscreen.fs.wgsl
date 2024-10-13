@@ -6,14 +6,22 @@
 @group(${bindGroup_scene}) @binding(1) var gbufferAlbedoTex: texture_2d<f32>;
 @group(${bindGroup_scene}) @binding(2) var gbufferNormalTex: texture_2d<f32>;
 @group(${bindGroup_scene}) @binding(3) var gbufferPositionTex: texture_2d<f32>;
+@group(${bindGroup_scene}) @binding(4) var gbufferAlbedoSampler: sampler;
+@group(${bindGroup_scene}) @binding(5) var gbufferNormalSampler: sampler;
+@group(${bindGroup_scene}) @binding(6) var gbufferPositionSampler: sampler;
 
 struct FragmentInput {
-    @location(0) texCoord: vec2<f32>,
+    @location(0) uv: vec2<f32>,
     @builtin(position) fragCoord: vec4<f32>
 }
 
 @fragment
 fn main(in: FragmentInput) -> @location(0) vec4f
 {
-    return vec4(1, 0, 0, 1);
+    let flippedUV = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
+    let albedo = textureSample(gbufferAlbedoTex, gbufferAlbedoSampler, flippedUV);
+    let normal = textureSample(gbufferNormalTex, gbufferNormalSampler, flippedUV);
+    let position = textureSample(gbufferPositionTex, gbufferPositionSampler, flippedUV);
+
+    return normal;
 }

@@ -11,10 +11,15 @@ class GBuffer {
 
     gbufferAlbedoTexture: GPUTexture;
     gbufferAlbedoTextureView: GPUTextureView;
+    gbufferAlbedoSampler: GPUSampler;
+
     gbufferNormalTexture: GPUTexture;
     gbufferNormalTextureView: GPUTextureView;
+    gbufferNormalSampler: GPUSampler;
+
     gbufferPositionTexture: GPUTexture;
     gbufferPositionTextureView: GPUTextureView;
+    gbufferPositionSampler: GPUSampler;
 
     gbufferPipeline: GPURenderPipeline;
     gbufferPipelineLayout: GPUPipelineLayout;
@@ -43,6 +48,13 @@ class GBuffer {
         });
         this.gbufferAlbedoTextureView = this.gbufferAlbedoTexture.createView();
 
+        this.gbufferAlbedoSampler = device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear',
+            addressModeU: 'clamp-to-edge',
+            addressModeV: 'clamp-to-edge',
+        });        
+
         this.gbufferNormalTexture = device.createTexture({
             label: "g-buffer normal texture",
             size: [renderer.canvas.width, renderer.canvas.height],
@@ -51,6 +63,13 @@ class GBuffer {
         });
         this.gbufferNormalTextureView = this.gbufferNormalTexture.createView();
 
+        this.gbufferNormalSampler = device.createSampler({
+            magFilter: 'nearest',
+            minFilter: 'nearest',
+            addressModeU: 'clamp-to-edge',
+            addressModeV: 'clamp-to-edge',
+        });
+
         this.gbufferPositionTexture = device.createTexture({
             label: "g-buffer position texture",
             size: [renderer.canvas.width, renderer.canvas.height],
@@ -58,6 +77,13 @@ class GBuffer {
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         });
         this.gbufferPositionTextureView = this.gbufferPositionTexture.createView();
+
+        this.gbufferPositionSampler = device.createSampler({
+            magFilter: 'nearest',
+            minFilter: 'nearest',
+            addressModeU: 'clamp-to-edge',
+            addressModeV: 'clamp-to-edge',
+        });
 
         this.gbufferBindGroupLayout = device.createBindGroupLayout({
             label: "g-buffer bind group layout",
@@ -265,6 +291,24 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                         viewDimension: "2d",
                         multisampled: false
                     }
+                },
+                {
+                    // G-buffer albedo sampler.
+                    binding: 4,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                },
+                {
+                    // G-buffer normal sampler.
+                    binding: 5,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: "non-filtering" }
+                },
+                {
+                    // G-buffer position sampler.
+                    binding: 6,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: "non-filtering" }
                 }
             ]
         });
@@ -288,6 +332,18 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 {
                     binding: 3,
                     resource: this.gbuffer.gbufferPositionTextureView
+                },
+                {
+                    binding: 4,
+                    resource: this.gbuffer.gbufferAlbedoSampler
+                },
+                {
+                    binding: 5,
+                    resource: this.gbuffer.gbufferNormalSampler
+                },
+                {
+                    binding: 6,
+                    resource: this.gbuffer.gbufferPositionSampler
                 }
             ]
         });
