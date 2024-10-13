@@ -6,11 +6,6 @@
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
 @group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
 
-@group(${bindGroupGbuffer}) @binding(0) var defultSampler: sampler;
-@group(${bindGroupGbuffer}) @binding(1) var positionBuffer: texture_storage_2d<rgb32float, write>;
-@group(${bindGroupGbuffer}) @binding(2) var normalBuffer: texture_storage_2d<rgb32float, write>;
-@group(${bindGroupGbuffer}) @binding(3) var albedoBuffer: texture_storage_2d<rgb32float, write>;
-
 struct FragmentInput
 {
     @builtin(position) fragPos: vec4f,
@@ -19,17 +14,24 @@ struct FragmentInput
     @location(2) uv: vec2f
 }
 
+struct FragmentOutput {
+    @location(0) position: vec4<f32>,  // positionBuffer
+    @location(1) normal: vec4<f32>,    // normalBuffer
+    @location(2) albedo: vec4<f32>,    // albedoBuffer
+};
+
 @fragment
-fn main(in: FragmentInput)
+fn main(in: FragmentInput) -> FragmentOutput 
 {
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
         discard;
     }
-    let canvasSize = textureDimensions(positionBuffer);
-    let coords = vec2<i32>(in.fragPos.xy * vec2<f32>(canvasSize) - vec2<f32>(0.5));
+    
     let normalEncoded = normalize(in.nor) * 0.5 + 0.5;
-    textureStore(positionBuffer, coords, vec4<f32>(in.pos, 1.0));
-    textureStore(normalBuffer, coords, vec4<f32>(normalEncoded, 1.0));
-    textureStore(albedoBuffer, coords, vec4<f32>(diffuseColor, 1.0));
+    let positionOut = vec4<f32>(in.pos, 1.0);
+    let normalOut = vec4<f32>(normalEncoded, 1.0);
+    let albedoOut = vec4<f32>(diffuseColor.rgb, 1.0);
+
+    return FragmentOutput(positionOut, normalOut, albedoOut);
 }

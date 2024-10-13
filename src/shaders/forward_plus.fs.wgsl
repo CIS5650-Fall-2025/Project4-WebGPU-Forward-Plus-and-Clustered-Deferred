@@ -81,9 +81,11 @@ var<private> colorSet : array<vec3<f32>, 9> = array<vec3<f32>, 9>(
     vec3<f32>(0.5, 0.0, 1.0),
     vec3<f32>(1.0, 0.0, 0.5)
 );
+
 const tileCount : vec3<u32> = vec3<u32>(32u, 18u, 48u);
 @fragment
 fn main(in: Fragmentin) -> @location(0) vec4f {
+    // return in.fragPos / 100.0;
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
         discard;

@@ -87,7 +87,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             });
         }
 
-        // Create depth texture & depth sampler
+        // Create depth texture & textureView
         {
             this.depthTexture = renderer.device.createTexture({
                 size: [renderer.canvas.width, renderer.canvas.height],

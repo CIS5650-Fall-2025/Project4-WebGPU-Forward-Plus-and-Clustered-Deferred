@@ -2,6 +2,7 @@ import { Scene } from './stage/scene';
 import { Lights } from './stage/lights';
 import { Camera } from './stage/camera';
 import { Stage } from './stage/stage';
+import { setComputeBound } from './stage/lights';
 
 export var canvas: HTMLCanvasElement;
 export var canvasFormat: GPUTextureFormat;
@@ -157,6 +158,8 @@ export function initResizeObserver(onResizeCallback: (param: any) => void, param
             canvas.height = height * devicePixelRatio;
     
             aspectRatio = canvas.width / canvas.height;
+
+            setComputeBound(true);
             onResizeCallback(param);
         }
     });

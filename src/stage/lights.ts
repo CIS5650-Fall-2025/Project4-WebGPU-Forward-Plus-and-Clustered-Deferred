@@ -12,6 +12,10 @@ function hueToRgb(h: number) {
     return vec3.lerp(vec3.create(1, 1, 1), vec3.create(f(5), f(3), f(1)), 0.8);
 }
 
+var computeBound = true;
+export function setComputeBound(flag: boolean) {
+    computeBound = flag;
+}
 export class Lights {
     private camera: Camera;
 
@@ -45,8 +49,6 @@ export class Lights {
         usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
         mappedAtCreation: true,
     });
-
-    computeBound = true;
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
 
@@ -281,9 +283,9 @@ export class Lights {
         // implementing clustering here allows for reusing the code in both Forward+ and Clustered Deferred
 
         // cluster bounds compute
-        if(this.computeBound)
+        if(computeBound)
         {
-            this.computeBound = false;
+            computeBound = false;
             const clusterBoundsComputePass = encoder.beginComputePass();
             clusterBoundsComputePass.setPipeline(this.clusterBoundComputePipeline);
             clusterBoundsComputePass.setBindGroup(0, this.clusterComputeBindGroup);
