@@ -193,7 +193,7 @@ export class Lights {
         const computePass = encoder.beginComputePass();
         computePass.setPipeline(this.clusterLightsComputePipeline);
 
-        computePass.setBindGroup(shaders.constants.bindGroup_clusters, this.clusterLightsComputeBindGroup);
+        computePass.setBindGroup(shaders.constants.bindGroup_scene, this.clusterLightsComputeBindGroup);
 
         const workgroupCountX = Math.ceil(Lights.clusterDimensions[0] / shaders.constants.computeClustersWorkgroupSize);
         const workgroupCountY = Math.ceil(Lights.clusterDimensions[1] / shaders.constants.computeClustersWorkgroupSize);

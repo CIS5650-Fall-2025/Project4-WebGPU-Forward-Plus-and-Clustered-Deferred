@@ -1,6 +1,6 @@
-@group(${bindGroup_clusters}) @binding(0) var<storage, read_write> clusterSet: ClusterSet;
-@group(${bindGroup_clusters}) @binding(1) var<storage, read> lightSet: LightSet;
-@group(${bindGroup_clusters}) @binding(2) var<uniform> camera: CameraUniforms;
+@group(${bindGroup_scene}) @binding(0) var<storage, read_write> clusterSet: ClusterSet;
+@group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(2) var<uniform> camera: CameraUniforms;
 
 fn doesLightIntersectCluster(lightPos: vec3f, clusterMinBounds: vec3f, clusterMaxbounds: vec3f) -> bool {
     let closestPoint = max(clusterMinBounds, min(lightPos, clusterMaxbounds));
