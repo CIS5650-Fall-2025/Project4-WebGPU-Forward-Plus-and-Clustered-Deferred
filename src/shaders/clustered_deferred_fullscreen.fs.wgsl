@@ -9,6 +9,9 @@
 @group(${bindGroup_scene}) @binding(4) var gbufferAlbedoSampler: sampler;
 @group(${bindGroup_scene}) @binding(5) var gbufferNormalSampler: sampler;
 @group(${bindGroup_scene}) @binding(6) var gbufferPositionSampler: sampler;
+@group(${bindGroup_scene}) @binding(7) var<storage, read> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(8) var<storage, read> clusters: array<Cluster>;
+@group(${bindGroup_scene}) @binding(9) var<uniform> clusterGrid: ClusterGridMetadata; 
 
 struct FragmentInput {
     @location(0) uv: vec2<f32>,
@@ -23,5 +26,29 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let normal = textureSample(gbufferNormalTex, gbufferNormalSampler, flippedUV);
     let position = textureSample(gbufferPositionTex, gbufferPositionSampler, flippedUV);
 
-    return normal;
+    let clusterIndex = calculateClusterIndex(in.fragCoord, position.xyz);
+    let currentCluster = clusters[clusterIndex];
+
+    var totalLightContrib = vec3f(0, 0, 0);
+
+    for (var i = 0u; i < currentCluster.numLights; i++) {
+        let lightIdx = currentCluster.lightIndices[i];
+
+        let light = lightSet.lights[lightIdx];
+        totalLightContrib += calculateLightContrib(light, position.xyz, normal.xyz);
+    }
+
+    var finalColor = albedo.rgb * totalLightContrib;
+    return vec4(finalColor, 1);
+}
+
+fn calculateClusterIndex(fragCoord: vec4f, fragPos: vec3f) -> u32 {
+    let clusterX = u32(fragCoord.x / f32(clusterGrid.canvasWidth) * f32(clusterGrid.clusterGridSizeX));
+    let clusterY = u32(fragCoord.y / f32(clusterGrid.canvasHeight) * f32(clusterGrid.clusterGridSizeY));
+
+    let zDepth = length(fragPos - cameraData.cameraPos);
+    let logZRatio = log2(cameraData.zFar / cameraData.zNear);
+    let clusterZ = u32(log2(zDepth / cameraData.zNear) / logZRatio * f32(clusterGrid.clusterGridSizeZ));
+
+    return clusterX + clusterY * clusterGrid.clusterGridSizeX + clusterZ * clusterGrid.clusterGridSizeX * clusterGrid.clusterGridSizeY;
 }

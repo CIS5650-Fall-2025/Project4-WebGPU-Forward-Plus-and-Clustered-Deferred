@@ -309,6 +309,24 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     binding: 6,
                     visibility: GPUShaderStage.FRAGMENT,
                     sampler: { type: "non-filtering" }
+                },
+                {
+                    // Lights.
+                    binding: 7,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "read-only-storage" }
+                },
+                { 
+                    // Clusters.
+                    binding: 8,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "read-only-storage" }
+                },
+                { 
+                    // Cluster grid.  
+                    binding: 9,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "uniform" }
                 }
             ]
         });
@@ -344,6 +362,18 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 {
                     binding: 6,
                     resource: this.gbuffer.gbufferPositionSampler
+                },
+                {
+                    binding: 7,
+                    resource: { buffer: this.lights.lightSetStorageBuffer }
+                },
+                {
+                    binding: 8,
+                    resource: { buffer: this.lights.getClusterBuffer() }
+                },
+                {
+                    binding: 9,
+                    resource: { buffer: this.lights.getClusterGridBuffer() }
                 }
             ]
         });
@@ -392,6 +422,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         const encoder = device.createCommandEncoder({label: "deferred draw command encoder"});
 
         this.gbuffer.draw(encoder);
+
+        this.lights.doLightClustering(encoder);
 
         const deferredPass = encoder.beginRenderPass({
             label: "deferred pass",
