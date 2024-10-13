@@ -10,10 +10,23 @@ struct LightSet {
     lights: array<Light>
 }
 
-// TODO-2: you may want to create a ClusterSet struct similar to LightSet
+// Light indices has to have a fixed array size in order to be nested in ClusterSet
+struct Cluster {
+    minBounds: vec3f,
+    maxBounds: vec3f,
+    lightCount: u32,
+    lightIndices: array<u32, ${maxLightsPerCluster}>
+}
+
+struct ClusterSet {
+    clusterDims: vec3u,
+    clusters: array<Cluster>
+}
 
 struct CameraUniforms {
-    viewProjMat: mat4x4f
+    viewProjMat: mat4x4f,
+    invProjMat: mat4x4f,
+    screenDims: vec2u
 }
 
 // CHECKITOUT: this special attenuation function ensures lights don't affect geometry outside the maximum light radius
