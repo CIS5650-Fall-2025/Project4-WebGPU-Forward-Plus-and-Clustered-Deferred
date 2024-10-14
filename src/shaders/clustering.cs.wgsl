@@ -125,19 +125,9 @@ fn viewZToNDCz(viewZ: f32, projMat: mat4x4<f32>) -> f32 {
     return clipZ / clipW;
 }
 
-fn projectPointToNDC(viewPos: vec3<f32>, projMat: mat4x4<f32>) -> vec4<f32> {
-    let clipPos = projMat * vec4<f32>(viewPos, 1.0);
-    return clipPos / clipPos.w;
-}
-
 fn sphereIntersectsAABB(sphereCenter: vec3<f32>, sphereRadius: f32, aabbMin: vec3<f32>, aabbMax: vec3<f32>) -> bool {
     // For simplicity, assume the frustrum is a cube instead of frustrum
     let closestPoint = clamp(sphereCenter, aabbMin, aabbMax);
     let distance = length(sphereCenter - closestPoint);
     return distance <= sphereRadius;
-}
-
-fn unprojectPoint(point: vec4<f32>, invViewProj: mat4x4<f32>) -> vec3<f32> {
-    let view = invViewProj * point;
-    return view.xyz / view.w;
 }
