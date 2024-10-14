@@ -58,24 +58,25 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // - Convert these screen and depth bounds into view-space coordinates.
     let ndcCorners = array<vec4<f32>, 8>(
         // For minZ
-        projectPointToNDC(vec3<f32>(minX, minY, minZ), cameraUniforms.viewProjMat),
-        projectPointToNDC(vec3<f32>(maxX, minY, minZ), cameraUniforms.viewProjMat),
-        projectPointToNDC(vec3<f32>(minX, maxY, minZ), cameraUniforms.viewProjMat),
-        projectPointToNDC(vec3<f32>(maxX, maxY, minZ), cameraUniforms.viewProjMat),
+        vec4<f32>(minX, minY, -1.0, 1.0),
+        vec4<f32>(maxX, minY, -1.0, 1.0),
+        vec4<f32>(minX, maxY, -1.0, 1.0),
+        vec4<f32>(maxX, maxY, -1.0, 1.0),
         // For maxZ
-        projectPointToNDC(vec3<f32>(minX, minY, maxZ), cameraUniforms.viewProjMat),
-        projectPointToNDC(vec3<f32>(maxX, minY, maxZ), cameraUniforms.viewProjMat),
-        projectPointToNDC(vec3<f32>(minX, maxY, maxZ), cameraUniforms.viewProjMat),
-        projectPointToNDC(vec3<f32>(maxX, maxY, maxZ), cameraUniforms.viewProjMat)
+        vec4<f32>(minX, minY, 1.0, 1.0),
+        vec4<f32>(maxX, minY, 1.0, 1.0),
+        vec4<f32>(minX, maxY, 1.0, 1.0),
+        vec4<f32>(maxX, maxY, 1.0, 1.0)
     );
 
     var viewCorners = array<vec3<f32>, 8>();
     for (var i = 0u; i < 8u; i++) {
-        let viewPos = unprojectPoint(ndcCorners[i], cameraUniforms.invViewProjMat);
-        viewCorners[i] = viewPos;
+        // Unproject from NDC to view space
+        let viewPos = cameraUniforms.invProjMat * ndcCorners[i];
+        viewCorners[i] = viewPos.xyz / viewPos.w;
     }
 
-    // - Store the computed bounding box (AABB) for the cluster.
+    // Calculate AABB in view space
     var minPoint = viewCorners[0];
     var maxPoint = viewCorners[0];
     for (var i = 1u; i < 8u; i++) {
@@ -97,9 +98,9 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // For each light
     for (var i: u32 = 0u; i < lightSet.numLights; i++) {
         let light = lightSet.lights[i];
-        
+        let lightViewSpace = cameraUniforms.viewMat * vec4f(light.pos,1.0);
         // Check if the light intersects with the cluster's bounding box (AABB)
-        if (sphereIntersectsAABB(light.pos, ${lightRadius}, minPoint, maxPoint)) {
+        if (sphereIntersectsAABB(lightViewSpace.xyz, ${lightRadius}, minPoint, maxPoint)) {
             // If it intersects, add it to the cluster's light list
             if (lightCount < ${maxLightPerCluster}) {
                 clusterSet.clusters[clusterIndex].lightIndices[lightCount] = i;

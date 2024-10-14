@@ -26,9 +26,12 @@ struct ClusterSet {
 }
 
 struct CameraUniforms {
-    // TODO-1.3: add an entry for the view proj mat (of type mat4x4f)
     viewProjMat: mat4x4f,
     invViewProjMat: mat4x4<f32>,
+    viewMat: mat4x4<f32>,
+    invViewMat: mat4x4<f32>,
+    projMat: mat4x4<f32>,
+    invProjMat: mat4x4<f32>,
     nearPlane: f32,
     farPlane: f32,
 }

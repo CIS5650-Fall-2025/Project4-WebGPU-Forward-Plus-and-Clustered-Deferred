@@ -1,27 +1,49 @@
 import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
-
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(144);
+    readonly buffer = new ArrayBuffer(400);
     private readonly floatView = new Float32Array(this.buffer);
 
+    private viewProjMatView = new Float32Array(this.buffer, 0, 16);
+    private invViewProjMatView = new Float32Array(this.buffer, 64, 16);
+    private viewMatView = new Float32Array(this.buffer, 128, 16);
+    private invViewMatView = new Float32Array(this.buffer, 192, 16);
+    private projMatView = new Float32Array(this.buffer, 256, 16);
+    private invProjMatView = new Float32Array(this.buffer, 320, 16);
+    private nearPlaneView = new Float32Array(this.buffer, 384, 1);
+    private farPlaneView = new Float32Array(this.buffer, 388, 1);
+
     set viewProjMat(mat: Float32Array) {
-        // TODO-1.1: set the first 16 elements of `this.floatView` to the input `mat`
-        this.floatView.set(mat, 0);
+        this.viewProjMatView.set(mat);
     }
     
     set invViewProjMat(mat: Float32Array) {
-        this.floatView.set(mat, 16);
+        this.invViewProjMatView.set(mat);
     }
-    // TODO-2: add extra functions to set values needed for light clustering here
+
+    set viewMat(mat: Float32Array) {
+        this.viewMatView.set(mat);
+    }
+
+    set invViewMat(mat: Float32Array) {
+        this.invViewMatView.set(mat);
+    }
+
+    set projMat(mat: Float32Array) {
+        this.projMatView.set(mat);
+    }
+
+    set invProjMat(mat: Float32Array) {
+        this.invProjMatView.set(mat);
+    }
 
     set nearPlane(value: number) {
-        this.floatView[32] = value;
+        this.nearPlaneView[0] = value;
     }
 
     set farPlane(value: number) {
-        this.floatView[33] = value;
+        this.farPlaneView[0] = value;
     }
 }
 
@@ -144,20 +166,24 @@ export class Camera {
 
     onFrame(deltaTime: number) {
         this.processInput(deltaTime);
-
+    
         const lookPos = vec3.add(this.cameraPos, vec3.scale(this.cameraFront, 1));
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
-        const viewProjMat = mat4.mul(this.projMat, viewMat);
-        // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
+        const invViewMat = mat4.invert(viewMat);
+        const projMat = this.projMat;
+        const invProjMat = mat4.invert(projMat);
+        const viewProjMat = mat4.mul(projMat, viewMat);
+        const invViewProjMat = mat4.invert(viewProjMat);
+    
         this.uniforms.viewProjMat = viewProjMat;
-        // TODO-2: write to extra buffers needed for light clustering here
+        this.uniforms.invViewProjMat = invViewProjMat;
+        this.uniforms.viewMat = viewMat;
+        this.uniforms.invViewMat = invViewMat;
+        this.uniforms.projMat = projMat;
+        this.uniforms.invProjMat = invProjMat;
         this.uniforms.nearPlane = Camera.nearPlane;
         this.uniforms.farPlane = Camera.farPlane;
-        const invViewProjMat = mat4.invert(viewProjMat);
-        this.uniforms.invViewProjMat = new Float32Array(invViewProjMat);
-
-        // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
-        // check `lights.ts` for examples of using `device.queue.writeBuffer()`
+    
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);
     }
 }
