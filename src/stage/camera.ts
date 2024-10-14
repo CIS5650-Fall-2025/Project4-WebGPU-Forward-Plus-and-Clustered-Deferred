@@ -2,7 +2,7 @@ import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(400);
+    readonly buffer = new ArrayBuffer(416);
     private readonly floatView = new Float32Array(this.buffer);
 
     private viewProjMatView = new Float32Array(this.buffer, 0, 16);
@@ -11,8 +11,11 @@ class CameraUniforms {
     private invViewMatView = new Float32Array(this.buffer, 192, 16);
     private projMatView = new Float32Array(this.buffer, 256, 16);
     private invProjMatView = new Float32Array(this.buffer, 320, 16);
-    private nearPlaneView = new Float32Array(this.buffer, 384, 1);
-    private farPlaneView = new Float32Array(this.buffer, 388, 1);
+    private eyePosView = new Float32Array(this.buffer, 384, 3);
+    private nearPlaneView = new Float32Array(this.buffer, 396, 1);
+    private farPlaneView = new Float32Array(this.buffer, 400, 1);
+    private widthView = new Float32Array(this.buffer, 404, 1);
+    private heightView = new Float32Array(this.buffer, 408, 1);
 
     set viewProjMat(mat: Float32Array) {
         this.viewProjMatView.set(mat);
@@ -38,12 +41,24 @@ class CameraUniforms {
         this.invProjMatView.set(mat);
     }
 
+    set eyePos(pos: Float32Array) {
+        this.eyePosView.set(pos);
+    }
+
     set nearPlane(value: number) {
         this.nearPlaneView[0] = value;
     }
 
     set farPlane(value: number) {
         this.farPlaneView[0] = value;
+    }
+
+    set width(value: number) {
+        this.widthView[0] = value;
+    }
+
+    set height(value: number) {
+        this.heightView[0] = value;
     }
 }
 
@@ -60,6 +75,8 @@ export class Camera {
     pitch: number = 0;
     moveSpeed: number = 0.004;
     sensitivity: number = 0.15;
+    height: number = 1024;
+    width: number = 1024;
 
     static readonly nearPlane = 0.1;
     static readonly farPlane = 30;
@@ -183,6 +200,9 @@ export class Camera {
         this.uniforms.invProjMat = invProjMat;
         this.uniforms.nearPlane = Camera.nearPlane;
         this.uniforms.farPlane = Camera.farPlane;
+        this.uniforms.eyePos = this.cameraPos;
+        this.uniforms.width = this.width;
+        this.uniforms.height = this.height;
     
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);
     }

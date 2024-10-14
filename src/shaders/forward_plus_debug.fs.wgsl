@@ -23,6 +23,7 @@
 
 struct FragmentInput
 {
+    @builtin(position) position : vec4<f32>,
     @location(0) pos: vec3f,
     @location(1) nor: vec3f,
     @location(2) uv: vec2f
@@ -36,42 +37,43 @@ fn main(in: FragmentInput) -> @location(0) vec4f
         discard;
     }
 
-    let clipPos = cameraUniforms.viewProjMat * vec4(in.pos, 1.0);
-    let ndc = clipPos.xyz / clipPos.w;
-    let ndcXY01 = ndc.xy * 0.5 + 0.5;
-    let epsilon = 0.0001;
-    let ndcX = clamp(ndcXY01.x, 0.0, 1.0 - epsilon);
-    let ndcY = clamp(ndcXY01.y, 0.0, 1.0 - epsilon);
-    let clusterX = u32(floor(ndcX * f32(clusterSet.numClustersX)));
-    let clusterY = u32(floor(ndcY * f32(clusterSet.numClustersY)));
+    let tile = getTile(in.position.xyz);
+    
+    var clusterIndex = tile.x +
+         tile.y * clusterSet.numClustersX +
+         tile.z * clusterSet.numClustersX * clusterSet.numClustersY;
 
-    let viewPos = cameraUniforms.viewProjMat * vec4(in.pos, 1.0);
-    let viewZ = -viewPos.z; 
-    let zNear = cameraUniforms.nearPlane;
-    let zFar = cameraUniforms.farPlane;
-    let clusterSizeZ = (zFar - zNear) / f32(clusterSet.numClustersZ);
-    var clusterZ = u32(floor((viewZ - zNear) / clusterSizeZ));
-    clusterZ = clamp(clusterZ, 0u, clusterSet.numClustersZ - 1u);
-
-    var clusterIndex = clusterX + 
-                       clusterY * clusterSet.numClustersX + 
-                       clusterZ * clusterSet.numClustersX * clusterSet.numClustersY;
-
-    let maxClusterIndex = clusterSet.numClustersX * clusterSet.numClustersY * clusterSet.numClustersZ - 1u;
-    clusterIndex = clamp(clusterIndex,0, maxClusterIndex);
     let cluster = clusterSet.clusters[clusterIndex];
-
+    
     let numLightsInCluster = cluster.lightCount;
     var totalLightContrib = vec3f(0.0, 0.0, 0.0);
     for (var i = 0u; i < numLightsInCluster; i++) {
         let lightIndex = cluster.lightIndices[i];
         let light = lightSet.lights[lightIndex];
 
-        let lightContrib = calculateLightContrib(light, in.pos, in.nor);
-        totalLightContrib += lightContrib;
-        //totalLightContrib += vec3f(0.01f);
+        //let lightContrib = calculateLightContrib(light, in.pos, in.nor);
+        //totalLightContrib += lightContrib;
+        totalLightContrib += vec3f(0.05f);
     }
-
+    totalLightContrib += vec3f(0.1f);
     var finalColor = diffuseColor.rgb * totalLightContrib;
+    /*
+    var finalColor = vec3f(f32(tile.x) / f32(clusterSet.numClustersX),
+                           f32(tile.y) / f32(clusterSet.numClustersY),
+                           f32(tile.z) / f32(clusterSet.numClustersZ));*/
     return vec4(finalColor, 1.0);
+}
+
+fn getTile(fragCoord : vec3<f32>) -> vec3<u32> {
+  let sliceScale = f32(clusterSet.numClustersZ) / log2(cameraUniforms.farPlane / cameraUniforms.nearPlane);
+  let sliceBias = -(f32(clusterSet.numClustersZ) * log2(cameraUniforms.nearPlane) / log2(cameraUniforms.farPlane / cameraUniforms.nearPlane));
+  let zTile = u32(max(log2(linearDepth(fragCoord.z)) * sliceScale + sliceBias, 0.0));
+
+  return vec3<u32>(u32(fragCoord.x / (cameraUniforms.width / f32(clusterSet.numClustersX))),
+                   u32(fragCoord.y / (cameraUniforms.height / f32(clusterSet.numClustersY))),
+                   zTile);
+}
+
+fn linearDepth(depthSample : f32) -> f32 {
+  return cameraUniforms.farPlane * cameraUniforms.nearPlane / fma(depthSample, cameraUniforms.nearPlane - cameraUniforms.farPlane, cameraUniforms.farPlane);
 }

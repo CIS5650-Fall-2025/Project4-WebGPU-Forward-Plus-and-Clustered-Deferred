@@ -137,7 +137,7 @@ export class DebugShaderRenderer extends renderer.Renderer {
             }),
             compute: {
                 module: renderer.device.createShaderModule({
-                    code: shaders.clusteringComputeSrc
+                    code: shaders.clusteringDebugComputeSrc
                 }),
                 entryPoint: "main"
             }
