@@ -10,6 +10,11 @@ struct LightSet {
     lights: array<Light>
 }
 
+struct Cluster {
+    numLights: u32,
+    lights: array<u32, ${maxClusterLights}>
+}
+
 // TODO-2: you may want to create a ClusterSet struct similar to LightSet
 
 struct CameraUniforms {
