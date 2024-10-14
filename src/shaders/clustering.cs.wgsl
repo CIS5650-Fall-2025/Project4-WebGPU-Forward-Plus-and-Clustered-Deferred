@@ -47,7 +47,7 @@ fn intersect(c: vec3f, r: f32, minB: vec3f, maxB: vec3f) -> bool {
 }
 
 @compute
-@workgroup_size(1)
+@workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     if (globalIdx.x >= ${clusterX} || globalIdx.y >= ${clusterY} || globalIdx.z > ${clusterZ}) {
         return;

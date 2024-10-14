@@ -110,13 +110,18 @@ export class Lights {
         this.clusterLightsComputeBindGroupLayout = device.createBindGroupLayout({
             label: "cluster lights compute bind group layout",
             entries: [
-                { // light set
+                {
                     binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" }
+                },
+                { // light set
+                    binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {type: "read-only-storage"}
                 },
                 { // cluster set
-                    binding: 1,
+                    binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer : { type : "storage" }
                 }
@@ -129,10 +134,14 @@ export class Lights {
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.lightSetStorageBuffer }
+                    resource: { buffer: this.camera.uniformsBuffer }
                 },
                 {
                     binding: 1,
+                    resource: { buffer: this.lightSetStorageBuffer }
+                },
+                {
+                    binding: 2,
                     resource: { buffer: this.clusterSetStorageBuffer }
                 }
             ]
@@ -194,7 +203,7 @@ export class Lights {
         computePass.dispatchWorkgroups(workgroupCount);
 
         computePass.end();
-        // this.doLightClustering(encoder);
+        this.doLightClustering(encoder);
 
         device.queue.submit([encoder.finish()]);
     }
