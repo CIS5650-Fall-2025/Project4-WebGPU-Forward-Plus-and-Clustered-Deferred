@@ -48,23 +48,27 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let maxX = min(minX + clusterSizeX, 1.0 - epsilon);
     let maxY = min(minY + clusterSizeY, 1.0 - epsilon);
 
-    // - Calculate the depth bounds for this cluster in Z (near and far planes).
     let zNear = cameraUniforms.nearPlane;
     let zFar = cameraUniforms.farPlane;
-    let clusterSizeZ = 1.0 / f32(clusterSet.numClustersZ);
-    let minZ = f32(global_id.z) * clusterSizeZ;
-    let maxZ = minZ + clusterSizeZ;
+    let sliceCount = clusterSet.numClustersZ;
+    let logDepthRatio = log(zFar / zNear);
+
+    let minZ = -zNear * exp(f32(global_id.z) * logDepthRatio / f32(sliceCount));
+    let maxZ = -zNear * exp(f32(global_id.z + 1u) * logDepthRatio / f32(sliceCount));
+
+    let ndcMinZ = viewZToNDCz(minZ, cameraUniforms.projMat);
+    let ndcMaxZ = viewZToNDCz(maxZ, cameraUniforms.projMat);
 
     // - Convert these screen and depth bounds into view-space coordinates.
     let ndcCorners = array<vec4<f32>, 8>(
-        vec4<f32>(minX, minY, minZ, 1.0),
-        vec4<f32>(maxX, minY, minZ, 1.0),
-        vec4<f32>(minX, maxY, minZ, 1.0),
-        vec4<f32>(maxX, maxY, minZ, 1.0),
-        vec4<f32>(minX, minY, maxZ, 1.0),
-        vec4<f32>(maxX, minY, maxZ, 1.0),
-        vec4<f32>(minX, maxY, maxZ, 1.0),
-        vec4<f32>(maxX, maxY, maxZ, 1.0)
+        vec4<f32>(minX, minY, ndcMinZ, 1.0),
+        vec4<f32>(maxX, minY, ndcMinZ, 1.0),
+        vec4<f32>(minX, maxY, ndcMinZ, 1.0),
+        vec4<f32>(maxX, maxY, ndcMinZ, 1.0),
+        vec4<f32>(minX, minY, ndcMaxZ, 1.0),
+        vec4<f32>(maxX, minY, ndcMaxZ, 1.0),
+        vec4<f32>(minX, maxY, ndcMaxZ, 1.0),
+        vec4<f32>(maxX, maxY, ndcMaxZ, 1.0)
     );
 
     var viewCorners = array<vec3<f32>, 8>();
@@ -113,6 +117,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // Store the number of lights assigned to this cluster
     clusterSet.clusters[clusterIndex].lightCount = lightCount;
     
+}
+
+fn viewZToNDCz(viewZ: f32, projMat: mat4x4<f32>) -> f32 {
+    let clipZ = projMat[2][2] * viewZ + projMat[3][2];
+    let clipW = projMat[2][3] * viewZ + projMat[3][3];
+    return clipZ / clipW;
 }
 
 fn projectPointToNDC(viewPos: vec3<f32>, projMat: mat4x4<f32>) -> vec4<f32> {

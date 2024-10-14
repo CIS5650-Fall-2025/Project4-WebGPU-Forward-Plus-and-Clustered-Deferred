@@ -38,15 +38,26 @@ fn main(in: FragmentInput) -> @location(0) vec4f
 
     let clipPos = cameraUniforms.viewProjMat * vec4(in.pos, 1.0);
     let ndc = clipPos.xyz / clipPos.w;
-    let ndcXY01 = ndc.xy * 0.5 + 0.5;
+    let ndcXY01 = ndc * 0.5 + 0.5;
     let epsilon = 0.0001;
     let ndcX = clamp(ndcXY01.x, 0.0, 1.0 - epsilon);
     let ndcY = clamp(ndcXY01.y, 0.0, 1.0 - epsilon);
     let clusterX = u32(floor(ndcX * f32(clusterSet.numClustersX)));
     let clusterY = u32(floor(ndcY * f32(clusterSet.numClustersY)));
 
-    let ndcZ = clamp(ndc.z, 0.0, 1.0 - epsilon);
-    let clusterZ = u32(floor(ndcZ * f32(clusterSet.numClustersZ)));
+    //let ndcZ = clamp(ndc.z, 0.0, 1.0 - epsilon);
+    //let clusterZ = u32(floor(ndc.z * f32(clusterSet.numClustersZ)));
+    let viewPos = cameraUniforms.viewMat * vec4(in.pos, 1.0);
+    let viewZ = viewPos.z; 
+    let zNear = cameraUniforms.nearPlane;
+    let zFar = cameraUniforms.farPlane;
+    let sliceCount = clusterSet.numClustersZ;
+    let logDepthRatio = log(zFar / zNear);
+    let viewZClamped = clamp(-viewZ, zNear, zFar); 
+
+    let clusterZf = (log(viewZClamped / zNear) / logDepthRatio) * f32(sliceCount);
+    var clusterZ = u32(floor(clusterZf));
+    clusterZ = clamp(clusterZ, 0u, clusterSet.numClustersZ - 1u);
 
     var clusterIndex = clusterX + 
                        clusterY * clusterSet.numClustersX + 
