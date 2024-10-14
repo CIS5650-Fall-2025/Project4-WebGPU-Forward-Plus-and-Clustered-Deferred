@@ -104,41 +104,49 @@ export class NaiveRenderer extends renderer.Renderer {
         const encoder = renderer.device.createCommandEncoder();
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
 
-        const renderPass = encoder.beginRenderPass({
-            label: "naive render pass",
-            colorAttachments: [
-                {
-                    view: this.screenTextureView,
-                    clearValue: [0, 0, 0, 0],
-                    loadOp: "clear",
-                    storeOp: "store"
+        // Render pass
+        {
+            const renderPass = encoder.beginRenderPass({
+                label: "naive render pass",
+                colorAttachments: [
+                    {
+                        view: renderer.useBloom ? this.screenTextureView : canvasTextureView,
+                        clearValue: [0, 0, 0, 0],
+                        loadOp: "clear",
+                        storeOp: "store"
+                    }
+                ],
+                depthStencilAttachment: {
+                    view: this.depthTextureView,
+                    depthClearValue: 1.0,
+                    depthLoadOp: "clear",
+                    depthStoreOp: "store"
                 }
-            ],
-            depthStencilAttachment: {
-                view: this.depthTextureView,
-                depthClearValue: 1.0,
-                depthLoadOp: "clear",
-                depthStoreOp: "store"
+            });
+            renderPass.setPipeline(this.pipeline);
+
+            // TODO-1.2: bind `this.sceneUniformsBindGroup` to index `shaders.constants.bindGroup_scene`
+            renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+
+            this.scene.iterate(node => {
+                renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+            }, material => {
+                renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+            }, primitive => {
+                renderPass.setVertexBuffer(0, primitive.vertexBuffer);
+                renderPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
+                renderPass.drawIndexed(primitive.numIndices);
+            });
+            renderPass.end();
+        }
+
+        // Bloom
+        {
+            if (renderer.useBloom)
+            {
+                this.canvasBloom(encoder);
             }
-        });
-        renderPass.setPipeline(this.pipeline);
-
-        // TODO-1.2: bind `this.sceneUniformsBindGroup` to index `shaders.constants.bindGroup_scene`
-        renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
-
-        this.scene.iterate(node => {
-            renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
-        }, material => {
-            renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
-        }, primitive => {
-            renderPass.setVertexBuffer(0, primitive.vertexBuffer);
-            renderPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
-            renderPass.drawIndexed(primitive.numIndices);
-        });
-
-        renderPass.end();
-
-        this.canvasBloom(encoder);
+        }
 
         renderer.device.queue.submit([encoder.finish()]);
     }

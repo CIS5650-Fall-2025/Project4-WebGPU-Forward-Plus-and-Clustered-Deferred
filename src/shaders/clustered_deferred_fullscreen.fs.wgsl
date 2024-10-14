@@ -8,9 +8,9 @@
 @group(0) @binding(4) var<storage, read_write> clusterLights : ClusterLightGroup;
 
 @group(${bindGroup_Gbuffer}) @binding(0) var defultSampler: sampler;
-@group(${bindGroup_Gbuffer}) @binding(1) var positionBuffer: texture_2d<f32>;
-@group(${bindGroup_Gbuffer}) @binding(2) var normalBuffer: texture_2d<f32>;
-@group(${bindGroup_Gbuffer}) @binding(3) var albedoBuffer: texture_2d<f32>;
+@group(${bindGroup_Gbuffer}) @binding(1) var positionTexture: texture_2d<f32>;
+@group(${bindGroup_Gbuffer}) @binding(2) var normalTexture: texture_2d<f32>;
+@group(${bindGroup_Gbuffer}) @binding(3) var albedoTexture: texture_2d<f32>;
 @group(${bindGroup_Gbuffer}) @binding(4) var depthTexture: texture_depth_2d;
 
 fn linearDepth(depthSample : f32) -> f32 {
@@ -57,10 +57,17 @@ const tileCount : vec3<u32> = vec3<u32>(32u, 18u, 48u);
 @fragment
 fn main(in: Fragmentin) -> @location(0) vec4f {
     let texCoords = in.uv;
-    let depth = textureSample(depthTexture, defultSampler, texCoords);
-    let normal = textureSample(normalBuffer, defultSampler, texCoords) * 2.0 - 1.0;
-    let diffuseColor = textureSample(albedoBuffer, defultSampler, texCoords);
-    let worldPos = textureSample(positionBuffer, defultSampler, texCoords);
+    let pixelPos: vec2<u32> = vec2<u32>(in.fragPos.xy);
+
+    let depth = textureLoad(depthTexture, pixelPos, 0);
+    let normal = textureLoad(normalTexture, pixelPos, 0) * 2.0 - 1.0;
+    let diffuseColor = textureLoad(albedoTexture, pixelPos, 0);
+    let worldPos = textureLoad(positionTexture, pixelPos, 0);
+
+    // let depth = textureSample(depthTexture, defultSampler, texCoords);
+    // let normal = textureSample(normalTexture, defultSampler, texCoords) * 2.0 - 1.0;
+    // let diffuseColor = textureSample(albedoTexture, defultSampler, texCoords);
+    // let worldPos = textureSample(positionTexture, defultSampler, texCoords);
 
     let screenPos = vec4<f32>(in.fragPos.xy, depth, 1.0);
 

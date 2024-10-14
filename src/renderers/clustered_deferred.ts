@@ -374,7 +374,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 label: "forward plus render pass",
                 colorAttachments: [
                     {
-                        view: canvasTextureView,
+                        view: renderer.useBloom ? this.screenTextureView : canvasTextureView,
                         clearValue: [0, 0, 0, 0],
                         loadOp: "clear",
                         storeOp: "store"
@@ -389,6 +389,14 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             renderPass.setBindGroup(shaders.constants.bindGroup_Gbuffer, this.gbufferBindGroup);
             renderPass.draw(3);
             renderPass.end();
+        }
+
+        // Bloom
+        {
+            if (renderer.useBloom)
+            {
+                this.canvasBloom(encoder);
+            }
         }
 
         renderer.device.queue.submit([encoder.finish()]);

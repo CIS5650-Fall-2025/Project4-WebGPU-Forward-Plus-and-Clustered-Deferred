@@ -21,6 +21,12 @@ export var materialBindGroupLayout: GPUBindGroupLayout;
 
 export var useBloom: boolean = false;
 
+export function setBloom(value:boolean)
+{
+    useBloom = value;
+    console.log('Bloom is now ' + (useBloom ? 'enabled' : 'disabled'));
+}
+
 // CHECKITOUT: this function initializes WebGPU and also creates some bind group layouts shared by all the renderers
 export async function initWebGPU() {
     canvas = document.getElementById("mainCanvas") as HTMLCanvasElement;
@@ -119,11 +125,13 @@ export abstract class Renderer {
 
     // Post Processing
     protected postProcessBloomBindGroupLayout: GPUBindGroupLayout;
-    protected postProcessBloomBindGroup: GPUBindGroup;
+    protected postProcessBloomBindGroup1: GPUBindGroup;
+    protected postProcessBloomBindGroup2: GPUBindGroup;
     protected postProcessBloomExtractBrightnessPipeline: GPUComputePipeline;
     protected postProcessBloomBlurPipeline: GPUComputePipeline;
-    protected postProcessBloomCompositePipeline: GPUComputePipeline;
+    protected postProcessBloomGaussianBlurPipeline: GPUComputePipeline;
 
+    protected postProcessBloomCompositePipeline: GPURenderPipeline;
     protected debugCopyPipeline: GPURenderPipeline;
 
     protected screenTexture: GPUTexture;
@@ -144,6 +152,8 @@ export abstract class Renderer {
     protected debugCopyTexture2: GPUTexture;
     protected debugCopyTextureView2: GPUTextureView;
 
+    protected blurDirectionBuffer: GPUBuffer;
+
     constructor(stage: Stage) {
         this.scene = stage.scene;
         this.lights = stage.lights;
@@ -153,6 +163,14 @@ export abstract class Renderer {
         this.frameRequestId = requestAnimationFrame((t) => this.onFrame(t));
 
         // Post Processing
+
+        // Create Buffers7
+        {
+            this.blurDirectionBuffer = device.createBuffer({
+                size: 4,  // Size of a u32 is 4 bytes
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+              });
+        }
 
         // Create Textures
         {
@@ -241,11 +259,16 @@ export abstract class Renderer {
                             access: 'read-write',  
                             format: 'r32float'  
                         }
+                    },
+                    {   // blur direction
+                        binding: 4,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: "uniform" }
                     }
                 ]
             });
 
-            this.postProcessBloomBindGroup = device.createBindGroup({
+            this.postProcessBloomBindGroup1 = device.createBindGroup({
                 layout: this.postProcessBloomBindGroupLayout,
                 entries: [
                     {
@@ -263,7 +286,37 @@ export abstract class Renderer {
                     {
                         binding: 3,
                         resource: this.postProcessBloomOutTextureView
-                    }
+                    },
+                    {
+                        binding: 4,
+                        resource: { buffer: this.blurDirectionBuffer }
+                    },
+                ]
+            });
+
+            this.postProcessBloomBindGroup2 = device.createBindGroup({
+                layout: this.postProcessBloomBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: this.screenTextureView
+                    },
+                    {
+                        binding: 1,
+                        resource: this.postProcessBloomBlurTextureView
+                    },
+                    {
+                        binding: 2,
+                        resource: this.postProcessBloomBrightnessTextureView
+                    },
+                    {
+                        binding: 3,
+                        resource: this.postProcessBloomOutTextureView
+                    },
+                    {
+                        binding: 4,
+                        resource: { buffer: this.blurDirectionBuffer }
+                    },
                 ]
             });
         }
@@ -294,9 +347,46 @@ export abstract class Renderer {
                 compute: {
                     module: device.createShaderModule({
                         label: "bloom blur compute shader",
-                        code: shaders.bloomBlurComputeSrc
+                        code: shaders.bloomBlurBoxComputeSrc
                     }),
                     entryPoint: "main"
+                }
+            });
+
+            this.postProcessBloomGaussianBlurPipeline = device.createComputePipeline({
+                label: "bloom gaussian blur compute pipeline",
+                layout: device.createPipelineLayout({
+                    label: "bloom gaussian blur compute pipeline layout",
+                    bindGroupLayouts: [ this.postProcessBloomBindGroupLayout ]
+                }),
+                compute: {
+                    module: device.createShaderModule({
+                        label: "bloom gaussian blur compute shader",
+                        code: shaders.bloomBlurGaussianComputeSrc
+                    }),
+                    entryPoint: "main"
+                }
+            });
+
+            this.postProcessBloomCompositePipeline = device.createRenderPipeline({
+                label: "bloom composite render pipeline",
+                layout: device.createPipelineLayout({
+                    bindGroupLayouts: [ this.postProcessBloomBindGroupLayout ]
+                }),
+                vertex: {
+                    module: device.createShaderModule({
+                        code: shaders.bloomCopyVertSrc
+                    }),
+                },
+                fragment: {
+                    module: device.createShaderModule({
+                        code: shaders.bloomCompositeFragSrc
+                    }),
+                    targets: [
+                        {
+                            format: canvasFormat
+                        }
+                    ]
                 }
             });
 
@@ -335,18 +425,54 @@ export abstract class Renderer {
         {
             const bloomBrightnessExtractionPass = encoder.beginComputePass();
             bloomBrightnessExtractionPass.setPipeline(this.postProcessBloomExtractBrightnessPipeline);
-            bloomBrightnessExtractionPass.setBindGroup(0, this.postProcessBloomBindGroup);
+            bloomBrightnessExtractionPass.setBindGroup(0, this.postProcessBloomBindGroup1);
             bloomBrightnessExtractionPass.dispatchWorkgroups(gridSize[0], gridSize[1]);
             bloomBrightnessExtractionPass.end();
         }
+
         // 2. Blur
         {
-            const bloomBlurPass = encoder.beginComputePass();
-            bloomBlurPass.setPipeline(this.postProcessBloomBlurPipeline);
-            bloomBlurPass.setBindGroup(0, this.postProcessBloomBindGroup);
-            bloomBlurPass.dispatchWorkgroups(gridSize[0], gridSize[1]);
-            bloomBlurPass.end();
+            let blurTimes = shaders.constants.bloomBlurTimes*2;
+            const direction = new Uint32Array(1);
+            for(var i = 0; i < blurTimes; i++)
+            {
+                direction[0] = i % 2;
+                device.queue.writeBuffer(this.blurDirectionBuffer, 0, direction);
+
+                const bloomBlurPass = encoder.beginComputePass();
+                bloomBlurPass.setPipeline(this.postProcessBloomBlurPipeline);
+                if(direction[0] == 0)
+                {
+                    bloomBlurPass.setBindGroup(0, this.postProcessBloomBindGroup1);
+                }
+                else
+                {
+                    bloomBlurPass.setBindGroup(0, this.postProcessBloomBindGroup2);
+                }
+                bloomBlurPass.dispatchWorkgroups(gridSize[0], gridSize[1]);
+                bloomBlurPass.end();
+            }
         }
+
+        // 3. Composite
+        {
+            const bloomCompositeRenderPass = encoder.beginRenderPass({
+                label: "bloom composite render pass",
+                colorAttachments: [
+                    {
+                        view: context.getCurrentTexture().createView(),
+                        clearValue: [0, 0, 0, 0],
+                        loadOp: "clear",
+                        storeOp: "store"
+                    }
+                ]
+            });
+            bloomCompositeRenderPass.setPipeline(this.postProcessBloomCompositePipeline);
+            bloomCompositeRenderPass.setBindGroup(0, this.postProcessBloomBindGroup1);
+            bloomCompositeRenderPass.draw(3);
+            bloomCompositeRenderPass.end();
+        }
+
         // debug
         {
             const textureVisualPass = encoder.beginRenderPass({
@@ -367,7 +493,7 @@ export abstract class Renderer {
                 ]
             });
             textureVisualPass.setPipeline(this.debugCopyPipeline);
-            textureVisualPass.setBindGroup(0, this.postProcessBloomBindGroup);
+            textureVisualPass.setBindGroup(0, this.postProcessBloomBindGroup1);
             textureVisualPass.draw(3);
             textureVisualPass.end();
         }

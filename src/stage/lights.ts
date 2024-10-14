@@ -6,6 +6,16 @@ import { Camera } from "./camera";
 
 import * as renderer from '../renderer';
 
+export var ifStop:boolean = false;
+export var fixedTime:number = 0;
+
+var prevFrameTime: number = 0;
+
+export function stopTime(value: boolean) {
+    ifStop = value;
+    fixedTime = prevFrameTime;
+}
+
 // h in [0, 1]
 function hueToRgb(h: number) {
     let f = (n: number, k = (n + h * 6) % 6) => 1 - Math.max(Math.min(k, 4 - k, 1), 0);
@@ -318,7 +328,8 @@ export class Lights {
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
     onFrame(time: number) {
-        device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
+        prevFrameTime = time;
+        device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([ifStop ? fixedTime : time]));
 
         // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance
         const encoder = device.createCommandEncoder();

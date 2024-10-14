@@ -22,8 +22,10 @@ import depthVisualVertRaw from './visualize_depth.vs.wgsl?raw';
 import depthVisualFragRaw from './visualize_depth.fs.wgsl?raw';
 
 import bloomExtractBrightnessComputeRaw from './bloom/extract_brightness.cs.wgsl?raw';
-import bloomBlurComputeRaw from './bloom/blur.cs.wgsl?raw';
+import bloomBlurBoxComputeRaw from './bloom/box_blur.cs.wgsl?raw';
+import bloomBlurGaussianComputeRaw from './bloom/gaussian_blur.cs.wgsl?raw';
 import bloomCompositeComputeRaw from './bloom/composite.cs.wgsl?raw';
+import bloomCompositeFragRaw from './bloom/composite.fs.wgsl?raw';
 
 import bloomCopyVertRaw from './bloom/bloomCopy.vs.wgsl?raw';
 import bloomCopyFragRaw from './bloom/bloomCopy.fs.wgsl?raw';
@@ -48,8 +50,8 @@ export const constants = {
     clusterBoundByteSize:32,
     clusterLightByteSize: 8,
     moveLightsWorkgroupSize: 128, 
-    lightRadius: 3
-
+    lightRadius: 3,
+    bloomBlurTimes: 1
 };
 
 // =================================
@@ -83,8 +85,10 @@ export const depthVisualVertSrc: string = processShaderRaw(depthVisualVertRaw);
 export const depthVisualFragSrc: string = processShaderRaw(depthVisualFragRaw);
 
 export const bloomExtractBrightnessComputeSrc: string = processShaderRaw(bloomExtractBrightnessComputeRaw);
-export const bloomBlurComputeSrc: string = processShaderRaw(bloomBlurComputeRaw);
+export const bloomBlurBoxComputeSrc: string = processShaderRaw(bloomBlurBoxComputeRaw);
+export const bloomBlurGaussianComputeSrc: string = processShaderRaw(bloomBlurGaussianComputeRaw);
 export const bloomCompositeComputeSrc: string = processShaderRaw(bloomCompositeComputeRaw);
+export const bloomCompositeFragSrc: string = processShaderRaw(bloomCompositeFragRaw);
 
 export const bloomCopyVertSrc: string = processShaderRaw(bloomCopyVertRaw);
 export const bloomCopyFragSrc: string = processShaderRaw(bloomCopyFragRaw);

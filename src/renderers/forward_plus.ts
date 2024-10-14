@@ -311,7 +311,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 label: "forward plus render pass",
                 colorAttachments: [
                     {
-                        view: canvasTextureView,
+                        view: renderer.useBloom ? this.screenTextureView : canvasTextureView,
                         clearValue: [0, 0, 0, 0],
                         loadOp: "clear",
                         storeOp: "store"
@@ -338,6 +338,14 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 renderPass.drawIndexed(primitive.numIndices);
             });
             renderPass.end();
+        }
+
+        // Bloom
+        {
+            if (renderer.useBloom)
+            {
+                this.canvasBloom(encoder);
+            }
         }
 
         //For debug tex visualization pass
