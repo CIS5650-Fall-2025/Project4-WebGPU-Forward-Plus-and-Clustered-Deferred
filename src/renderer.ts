@@ -5,6 +5,8 @@ import { Stage } from './stage/stage';
 import { setComputeBound } from './stage/lights';
 import { GUIController } from 'dat.gui';
 
+import * as shaders from './shaders/shaders';
+
 export var canvas: HTMLCanvasElement;
 export var canvasFormat: GPUTextureFormat;
 export var context: GPUCanvasContext;
@@ -16,6 +18,8 @@ export const fovYDegrees = 45;
 
 export var modelBindGroupLayout: GPUBindGroupLayout;
 export var materialBindGroupLayout: GPUBindGroupLayout;
+
+export var useBloom: boolean = false;
 
 // CHECKITOUT: this function initializes WebGPU and also creates some bind group layouts shared by all the renderers
 export async function initWebGPU() {
@@ -113,6 +117,33 @@ export abstract class Renderer {
     private prevTime: number = 0;
     private frameRequestId: number;
 
+    // Post Processing
+    protected postProcessBloomBindGroupLayout: GPUBindGroupLayout;
+    protected postProcessBloomBindGroup: GPUBindGroup;
+    protected postProcessBloomExtractBrightnessPipeline: GPUComputePipeline;
+    protected postProcessBloomBlurPipeline: GPUComputePipeline;
+    protected postProcessBloomCompositePipeline: GPUComputePipeline;
+
+    protected debugCopyPipeline: GPURenderPipeline;
+
+    protected screenTexture: GPUTexture;
+    protected screenTextureView: GPUTextureView;
+
+    protected postProcessBloomInTexture: GPUTexture;
+    protected postProcessBloomInTextureView: GPUTextureView;
+    protected postProcessBloomBrightnessTexture: GPUTexture;
+    protected postProcessBloomBrightnessTextureView: GPUTextureView;
+    protected postProcessBloomBlurTexture: GPUTexture;
+    protected postProcessBloomBlurTextureView: GPUTextureView;
+    protected postProcessBloomOutTexture: GPUTexture;
+    protected postProcessBloomOutTextureView: GPUTextureView;
+
+    protected debugCopyTexture: GPUTexture;
+    protected debugCopyTextureView: GPUTextureView;
+
+    protected debugCopyTexture2: GPUTexture;
+    protected debugCopyTextureView2: GPUTextureView;
+
     constructor(stage: Stage) {
         this.scene = stage.scene;
         this.lights = stage.lights;
@@ -120,6 +151,226 @@ export abstract class Renderer {
         this.stats = stage.stats;
 
         this.frameRequestId = requestAnimationFrame((t) => this.onFrame(t));
+
+        // Post Processing
+
+        // Create Textures
+        {
+            this.postProcessBloomInTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: "r32float",
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+            });
+            this.postProcessBloomInTextureView = this.postProcessBloomInTexture.createView();
+
+            this.postProcessBloomBrightnessTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: "r32float",
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+            });
+            this.postProcessBloomBrightnessTextureView = this.postProcessBloomBrightnessTexture.createView();
+
+            this.postProcessBloomBlurTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: "r32float",
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+            });
+            this.postProcessBloomBlurTextureView = this.postProcessBloomBlurTexture.createView();
+
+            this.postProcessBloomOutTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: "r32float",
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT
+            });
+            this.postProcessBloomOutTextureView = this.postProcessBloomOutTexture.createView();
+
+            this.screenTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: canvasFormat,
+                usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT
+              });
+            this.screenTextureView = this.screenTexture.createView();
+
+            this.debugCopyTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: canvasFormat,
+                usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+            });
+            this.debugCopyTextureView = this.debugCopyTexture.createView();
+
+            this.debugCopyTexture2 = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: canvasFormat,
+                usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+            });
+            this.debugCopyTextureView2 = this.debugCopyTexture2.createView();
+        }
+
+        // Create Layouts
+        {
+            this.postProcessBloomBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
+                        texture: {
+                            sampleType: "float",
+                            viewDimension: '2d'
+                        }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
+                        storageTexture: {
+                            access: 'read-write',  
+                            format: 'r32float'  
+                        }
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
+                        storageTexture: {
+                            access: 'read-write',  
+                            format: 'r32float'  
+                        }
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.COMPUTE,
+                        storageTexture: {
+                            access: 'read-write',  
+                            format: 'r32float'  
+                        }
+                    }
+                ]
+            });
+
+            this.postProcessBloomBindGroup = device.createBindGroup({
+                layout: this.postProcessBloomBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: this.screenTextureView
+                    },
+                    {
+                        binding: 1,
+                        resource: this.postProcessBloomBrightnessTextureView
+                    },
+                    {
+                        binding: 2,
+                        resource: this.postProcessBloomBlurTextureView
+                    },
+                    {
+                        binding: 3,
+                        resource: this.postProcessBloomOutTextureView
+                    }
+                ]
+            });
+        }
+
+        // Create Pipelines
+        {
+            this.postProcessBloomExtractBrightnessPipeline = device.createComputePipeline({
+                label: "bloom brightness extraction compute pipeline",
+                layout: device.createPipelineLayout({
+                    label: "bloom brightness extraction compute pipeline layout",
+                    bindGroupLayouts: [ this.postProcessBloomBindGroupLayout ]
+                }),
+                compute: {
+                    module: device.createShaderModule({
+                        label: "bloom brightness extraction compute shader",
+                        code: shaders.bloomExtractBrightnessComputeSrc
+                    }),
+                    entryPoint: "main"
+                }
+            });
+
+            this.postProcessBloomBlurPipeline = device.createComputePipeline({
+                label: "bloom blur compute pipeline",
+                layout: device.createPipelineLayout({
+                    label: "bloom blur compute pipeline layout",
+                    bindGroupLayouts: [ this.postProcessBloomBindGroupLayout ]
+                }),
+                compute: {
+                    module: device.createShaderModule({
+                        label: "bloom blur compute shader",
+                        code: shaders.bloomBlurComputeSrc
+                    }),
+                    entryPoint: "main"
+                }
+            });
+
+            this.debugCopyPipeline = device.createRenderPipeline({
+                label: "bloom debug copy pipeline",
+                layout: device.createPipelineLayout({
+                    bindGroupLayouts: [ this.postProcessBloomBindGroupLayout ]
+                }),
+                vertex: {
+                    module: device.createShaderModule({
+                        code: shaders.bloomCopyVertSrc
+                    }),
+                },
+                fragment: {
+                    module: device.createShaderModule({
+                        code: shaders.bloomCopyFragSrc
+                    }),
+                    targets: [
+                        {
+                            format: canvasFormat
+                        },
+                        {
+                            format: canvasFormat
+                        }
+                    ]
+                }
+            });
+        }
+    }
+
+    canvasBloom(encoder: GPUCommandEncoder)
+    {
+        let gridSize = [Math.floor((canvas.width + shaders.constants.bloomKernelSize[0] - 1) / shaders.constants.bloomKernelSize[0]), 
+                        Math.floor((canvas.height + shaders.constants.bloomKernelSize[1] - 1) / shaders.constants.bloomKernelSize[1])];
+        // 1. Brightness Extraction
+        {
+            const bloomBrightnessExtractionPass = encoder.beginComputePass();
+            bloomBrightnessExtractionPass.setPipeline(this.postProcessBloomExtractBrightnessPipeline);
+            bloomBrightnessExtractionPass.setBindGroup(0, this.postProcessBloomBindGroup);
+            bloomBrightnessExtractionPass.dispatchWorkgroups(gridSize[0], gridSize[1]);
+            bloomBrightnessExtractionPass.end();
+        }
+        // 2. Blur
+        {
+            const bloomBlurPass = encoder.beginComputePass();
+            bloomBlurPass.setPipeline(this.postProcessBloomBlurPipeline);
+            bloomBlurPass.setBindGroup(0, this.postProcessBloomBindGroup);
+            bloomBlurPass.dispatchWorkgroups(gridSize[0], gridSize[1]);
+            bloomBlurPass.end();
+        }
+        // debug
+        {
+            const textureVisualPass = encoder.beginRenderPass({
+                label: "bloom debug render pass",
+                colorAttachments: [
+                    {
+                        view: this.debugCopyTextureView,
+                        clearValue: [0, 0, 0, 0],
+                        loadOp: "clear",
+                        storeOp: "store"
+                    },
+                    {
+                        view: this.debugCopyTextureView2,
+                        clearValue: [0, 0, 0, 0],
+                        loadOp: "clear",
+                        storeOp: "store"
+                    }
+                ]
+            });
+            textureVisualPass.setPipeline(this.debugCopyPipeline);
+            textureVisualPass.setBindGroup(0, this.postProcessBloomBindGroup);
+            textureVisualPass.draw(3);
+            textureVisualPass.end();
+        }
     }
 
     stop(): void {

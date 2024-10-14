@@ -108,7 +108,7 @@ export class NaiveRenderer extends renderer.Renderer {
             label: "naive render pass",
             colorAttachments: [
                 {
-                    view: canvasTextureView,
+                    view: this.screenTextureView,
                     clearValue: [0, 0, 0, 0],
                     loadOp: "clear",
                     storeOp: "store"
@@ -137,6 +137,8 @@ export class NaiveRenderer extends renderer.Renderer {
         });
 
         renderPass.end();
+
+        this.canvasBloom(encoder);
 
         renderer.device.queue.submit([encoder.finish()]);
     }

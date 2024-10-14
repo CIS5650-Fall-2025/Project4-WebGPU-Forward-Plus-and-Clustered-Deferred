@@ -192,7 +192,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             });
         }
 
-
         // For debug
         {
             this.depthVisualGroupLayout = renderer.device.createBindGroupLayout({
@@ -322,7 +321,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     view: this.depthTextureView,
                     depthClearValue: 1.0,
                     depthLoadOp: "load",
-                    depthStoreOp: "store"
+                    depthStoreOp: "store",
                 }
             });
 
@@ -358,7 +357,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         //     depthVisualPass.setBindGroup(0, this.depthVisualBindGroup);
         //     depthVisualPass.draw(3);
         //     depthVisualPass.end();
-
         // }
 
         renderer.device.queue.submit([encoder.finish()]);

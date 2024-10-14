@@ -21,6 +21,13 @@ import clusterBoundComputeRaw from './cluster_bounds.cs.wgsl?raw';
 import depthVisualVertRaw from './visualize_depth.vs.wgsl?raw';
 import depthVisualFragRaw from './visualize_depth.fs.wgsl?raw';
 
+import bloomExtractBrightnessComputeRaw from './bloom/extract_brightness.cs.wgsl?raw';
+import bloomBlurComputeRaw from './bloom/blur.cs.wgsl?raw';
+import bloomCompositeComputeRaw from './bloom/composite.cs.wgsl?raw';
+
+import bloomCopyVertRaw from './bloom/bloomCopy.vs.wgsl?raw';
+import bloomCopyFragRaw from './bloom/bloomCopy.fs.wgsl?raw';
+
 // CONSTANTS (for use in shaders)
 // =================================
 
@@ -37,6 +44,7 @@ export const constants = {
 
     clusterMaxLights: 1000,
     clusterSize: [32, 18, 48],
+    bloomKernelSize: [16, 16],
     clusterBoundByteSize:32,
     clusterLightByteSize: 8,
     moveLightsWorkgroupSize: 128, 
@@ -73,3 +81,10 @@ export const clusterBoundComputeSrc: string = processShaderRaw(clusterBoundCompu
 
 export const depthVisualVertSrc: string = processShaderRaw(depthVisualVertRaw);
 export const depthVisualFragSrc: string = processShaderRaw(depthVisualFragRaw);
+
+export const bloomExtractBrightnessComputeSrc: string = processShaderRaw(bloomExtractBrightnessComputeRaw);
+export const bloomBlurComputeSrc: string = processShaderRaw(bloomBlurComputeRaw);
+export const bloomCompositeComputeSrc: string = processShaderRaw(bloomCompositeComputeRaw);
+
+export const bloomCopyVertSrc: string = processShaderRaw(bloomCopyVertRaw);
+export const bloomCopyFragSrc: string = processShaderRaw(bloomCopyFragRaw);
