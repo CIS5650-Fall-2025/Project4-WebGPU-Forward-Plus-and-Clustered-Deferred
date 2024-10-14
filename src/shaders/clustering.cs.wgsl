@@ -43,32 +43,32 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let epsilon = 0.0001;
     let clusterSizeX = 2.0 / f32(clusterSet.numClustersX);
     let clusterSizeY = 2.0 / f32(clusterSet.numClustersY);
-    let minX = -1.0 + f32(global_id.x) * clusterSizeX;
-    let minY = -1.0 + f32(global_id.y) * clusterSizeY;
-    let maxX = min(minX + clusterSizeX, 1.0 - epsilon);
-    let maxY = min(minY + clusterSizeY, 1.0 - epsilon);
+    let ndcMinX = -1.0 + f32(global_id.x) * clusterSizeX;
+    let ndcMinY = -1.0 + f32(global_id.y) * clusterSizeY;
+    let ndcMaxX = min(ndcMinX + clusterSizeX, 1.0 - epsilon);
+    let ndcMaxY = min(ndcMinY + clusterSizeY, 1.0 - epsilon);
 
     let zNear = cameraUniforms.nearPlane;
     let zFar = cameraUniforms.farPlane;
     let sliceCount = clusterSet.numClustersZ;
     let logDepthRatio = log(zFar / zNear);
 
-    let minZ = -zNear * exp(f32(global_id.z) * logDepthRatio / f32(sliceCount));
-    let maxZ = -zNear * exp(f32(global_id.z + 1u) * logDepthRatio / f32(sliceCount));
+    let vieMinZ = -zNear * exp(f32(global_id.z) * logDepthRatio / f32(sliceCount));
+    let viewMaxZ = -zNear * exp(f32(global_id.z + 1u) * logDepthRatio / f32(sliceCount));
 
-    let ndcMinZ = viewZToNDCz(minZ, cameraUniforms.projMat);
-    let ndcMaxZ = viewZToNDCz(maxZ, cameraUniforms.projMat);
+    let ndcMinZ = viewZToNDCz(vieMinZ, cameraUniforms.projMat);
+    let ndcMaxZ = viewZToNDCz(viewMaxZ, cameraUniforms.projMat);
 
     // - Convert these screen and depth bounds into view-space coordinates.
     let ndcCorners = array<vec4<f32>, 8>(
-        vec4<f32>(minX, minY, ndcMinZ, 1.0),
-        vec4<f32>(maxX, minY, ndcMinZ, 1.0),
-        vec4<f32>(minX, maxY, ndcMinZ, 1.0),
-        vec4<f32>(maxX, maxY, ndcMinZ, 1.0),
-        vec4<f32>(minX, minY, ndcMaxZ, 1.0),
-        vec4<f32>(maxX, minY, ndcMaxZ, 1.0),
-        vec4<f32>(minX, maxY, ndcMaxZ, 1.0),
-        vec4<f32>(maxX, maxY, ndcMaxZ, 1.0)
+        vec4<f32>(ndcMinX, ndcMinY, ndcMinZ, 1.0),
+        vec4<f32>(ndcMaxX, ndcMinY, ndcMinZ, 1.0),
+        vec4<f32>(ndcMinX, ndcMaxY, ndcMinZ, 1.0),
+        vec4<f32>(ndcMaxX, ndcMaxY, ndcMinZ, 1.0),
+        vec4<f32>(ndcMinX, ndcMinY, ndcMaxZ, 1.0),
+        vec4<f32>(ndcMaxX, ndcMinY, ndcMaxZ, 1.0),
+        vec4<f32>(ndcMinX, ndcMaxY, ndcMaxZ, 1.0),
+        vec4<f32>(ndcMaxX, ndcMaxY, ndcMaxZ, 1.0)
     );
 
     var viewCorners = array<vec3<f32>, 8>();
