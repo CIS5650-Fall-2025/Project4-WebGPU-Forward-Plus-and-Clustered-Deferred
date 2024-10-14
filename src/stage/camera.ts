@@ -3,11 +3,19 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
+    readonly buffer = new ArrayBuffer(16 * 4 * 3);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
         this.floatView.set(mat);
+    }
+
+    set viewMat(mat: Float32Array) {
+        this.floatView.set(mat, 16);
+    }
+
+    set invProjMat(mat: Float32Array) {
+        this.floatView.set(mat, 16 * 2);
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
@@ -127,8 +135,11 @@ export class Camera {
 
         const lookPos = vec3.add(this.cameraPos, vec3.scale(this.cameraFront, 1));
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
+        this.uniforms.viewMat = viewMat;
         const viewProjMat = mat4.mul(this.projMat, viewMat);
         this.uniforms.viewProjMat = viewProjMat;
+        const invProjMat = mat4.inverse(this.projMat);
+        this.uniforms.invProjMat = invProjMat;
 
         // TODO-2: write to extra buffers needed for light clustering here
 
