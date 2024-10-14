@@ -8,17 +8,23 @@ struct FragmentInput {
 @group(0) @binding(1) var<storage, read> lightSet: LightSet;
 @group(0) @binding(2) var<storage, read> clusterSet: ClusterSet;
 
-@group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
-@group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
-@group(${bindGroup_material}) @binding(2) var gNormalTexture: texture_2d<f32>;
-@group(${bindGroup_material}) @binding(3) var gDepthTexture: texture_2d<f32>;
-@group(${bindGroup_material}) @binding(4) var depthSampler: sampler_comparison;
+@group(1) @binding(0) var diffuseTex: texture_2d<f32>;
+@group(1) @binding(1) var diffuseTexSampler: sampler;
+@group(1) @binding(2) var gNormalTexture: texture_2d<f32>;
+@group(1) @binding(3) var gNormalTextureSampler: sampler;
+@group(1) @binding(4) var gDepthTexture: texture_depth_2d;
+@group(1) @binding(5) var depthSampler: sampler_comparison;
 
 @fragment
 fn main(input: FragmentInput) -> @location(0) vec4<f32> {
-    let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, input.fragUV);
-    let normal = textureSample(gNormalTexture, diffuseTexSampler, input.fragUV).xyz;
-    let depth = textureSample(gDepthTexture, depthSampler, input.fragUV).r;
+    // Flip the Y-coordinate
+    let uv = vec2<f32>(input.fragUV.x, 1.0 - input.fragUV.y);
+
+    // Sample textures using the flipped UV
+    let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, uv);
+    let normal = textureSample(gNormalTexture, gNormalTextureSampler, uv).xyz;
+    // Note: For depth textures, use textureSample instead of textureSampleCompare
+    let depth = textureSampleCompare(gDepthTexture, depthSampler, input.fragUV, 0.5);
 
     // Reconstruct world position from depth
     let clipSpacePosition = vec4<f32>(input.fragUV * 2.0 - 1.0, depth, 1.0);
@@ -54,14 +60,18 @@ fn main(input: FragmentInput) -> @location(0) vec4<f32> {
     let cluster = clusterSet.clusters[clusterIndex];
 
     // Perform lighting calculations
+    var finalColor = vec3(depth);
     var totalLightContrib = vec3f(0.0, 0.0, 0.0);
     for (var i = 0u; i < cluster.lightCount; i++) {
         let lightIndex = cluster.lightIndices[i];
         let light = lightSet.lights[lightIndex];
         totalLightContrib += calculateLightContrib(light, worldPosition, normal);
+        
     }
-
-    let finalColor = diffuseColor.rgb * totalLightContrib;
-    //let finalColor = vec3(0.5);
+        /*finalColor = vec3f(f32(clusterZ) / f32(clusterSet.numClustersZ),
+                           f32(clusterZ) / f32(clusterSet.numClustersZ),
+                           f32(clusterZ) / f32(clusterSet.numClustersZ));*/
+    //let finalColor = diffuseColor.rgb * totalLightContrib;
+    
     return vec4(finalColor, 1.0);
 }

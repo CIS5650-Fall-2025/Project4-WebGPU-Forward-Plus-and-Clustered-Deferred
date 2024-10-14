@@ -14,16 +14,12 @@ struct FragmentOutput {
     @location(1) normal: vec4<f32>,
 };
 
+@group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
+@group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
 @fragment
 fn main(input: VertexOutput) -> FragmentOutput {
     var output: FragmentOutput;
-    
-    // Store the diffuse color (assuming we have a texture sampler for diffuse color)
-    // If you don't have a texture, you can use a constant color or the vertex color
-    output.diffuseColor = vec4<f32>(input.fragPosition, 1.0); // Placeholder, replace with actual diffuse color
-    
-    // Store the normal, converting it to a suitable format
+    output.diffuseColor = textureSample(diffuseTex, diffuseTexSampler, input.fragUV);
     output.normal = vec4<f32>(normalize(input.fragNormal), 1.0);
-    
     return output;
 }

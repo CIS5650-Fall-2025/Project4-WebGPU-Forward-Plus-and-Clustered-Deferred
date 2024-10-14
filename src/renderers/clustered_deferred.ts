@@ -98,6 +98,71 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             ]
         });
 
+        this.gBufferBindGroupLayout = renderer.device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth' }
+                },
+                {
+                    binding: 5,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
+                }
+            ]
+        });
+        
+        this.gBufferBindGroup = renderer.device.createBindGroup({
+            layout: this.gBufferBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: this.gBufferTextureViews.diffuseColor
+                },
+                {
+                    binding: 1,
+                    resource: renderer.device.createSampler()
+                },
+                {
+                    binding: 2,
+                    resource: this.gBufferTextureViews.normal
+                },
+                {
+                    binding: 3,
+                    resource: renderer.device.createSampler()
+                },
+                {
+                    binding: 4,
+                    resource: this.depthTextureView
+                },
+                {
+                    binding: 5,
+                    resource: renderer.device.createSampler({ compare: 'less' })
+                }
+            ]
+        });
+
         // 创建G-buffer渲染管线
         this.gBufferPipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
@@ -131,61 +196,13 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             }
         });
 
-        // 创建G-buffer绑定组布局
-        this.gBufferBindGroupLayout = renderer.device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {}
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {
-                        sampleType: 'unfilterable-float',
-                        viewDimension: '2d'
-                    }
-                },
-                {
-                    binding: 4,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: {
-                        type: 'comparison'
-                    }
-                }
-            ]
-        });
-
-        // 创建G-buffer绑定组
-        const depthSampler = renderer.device.createSampler({
-            compare: 'less',
-        });
-        this.gBufferBindGroup = renderer.device.createBindGroup({
-            layout: this.gBufferBindGroupLayout,
-            entries: [
-                {
-                    binding: 2,
-                    resource: this.gBufferTextureViews.normal
-                },
-                {
-                    binding: 3,
-                    resource: this.depthTextureView
-                },
-                {
-                    binding: 4,
-                    resource: depthSampler
-                }
-            ]
-        });
-
         // 创建全屏渲染管线
         this.fullscreenPipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
+                label: "full screen pipeline layout",
                 bindGroupLayouts: [
-                    this.sceneUniformsBindGroupLayout,
-                    renderer.materialBindGroupLayout,  // 使用原有的 material 布局
-                    this.gBufferBindGroupLayout
+                    this.sceneUniformsBindGroupLayout,  
+                    this.gBufferBindGroupLayout          
                 ]
             }),
             vertex: {
@@ -246,7 +263,6 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             gBufferPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
             gBufferPass.drawIndexed(primitive.numIndices);
         });
-    
         gBufferPass.end();
     
         // 全屏渲染通道
@@ -262,8 +278,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         fullscreenPass.setPipeline(this.fullscreenPipeline);
         fullscreenPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
         fullscreenPass.setBindGroup(1, this.gBufferBindGroup);
-        fullscreenPass.draw(3); // 绘制全屏三角形
-    
+        fullscreenPass.draw(3);
         fullscreenPass.end();
     
         renderer.device.queue.submit([encoder.finish()]);
