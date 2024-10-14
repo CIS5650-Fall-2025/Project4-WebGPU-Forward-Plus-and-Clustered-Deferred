@@ -1,4 +1,4 @@
-import { Mat4, mat4, Vec2, Vec3, vec3 } from "wgpu-matrix";
+import { Mat4, mat4, Vec2, Vec3, vec3, vec4 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
@@ -65,6 +65,8 @@ export class Camera {
         });
 
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
+        this.uniforms.projInvMat = mat4.inverse(this.projMat);
+        this.uniforms.nearFar = vec3.create(Camera.nearPlane, Camera.farPlane, 0);
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
@@ -156,10 +158,12 @@ export class Camera {
         // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
         this.uniforms.viewProjMat = viewProjMat;
 
+        let p = vec4.create(lookPos[0], lookPos[1], lookPos[2] + Camera.nearPlane, 1);
+        let res = mat4.mul(viewProjMat, p);
+        console.log(res[2] / res[3]);
+
         // TODO-2: write to extra buffers needed for light clustering here
         this.uniforms.viewMat = viewMat;
-        this.uniforms.projInvMat = mat4.inverse(this.projMat);
-        this.uniforms.nearFar = vec3.create(Camera.nearPlane, Camera.farPlane, 0);
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`

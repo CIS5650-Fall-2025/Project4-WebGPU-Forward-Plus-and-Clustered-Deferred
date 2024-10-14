@@ -102,7 +102,7 @@ export class Lights {
 
         this.clusterSetStorageBuffer = device.createBuffer({
             label: "clusters",
-            size: 16 + (16 * 2 + Lights.maxNumLights * 4)
+            size: 16 + (16 + shaders.constants.maxNumLightsPerCluster * 4)
                         * shaders.constants.numClusterX * shaders.constants.numClusterY * shaders.constants.numClusterZ,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
@@ -186,7 +186,9 @@ export class Lights {
 
         computePass.setBindGroup(0, this.clusteringComputeBindGroup);
 
-        computePass.dispatchWorkgroups(shaders.constants.numClusterX, shaders.constants.numClusterY, shaders.constants.numClusterZ);
+        computePass.dispatchWorkgroups(Math.ceil(shaders.constants.numClusterX / shaders.constants.workgroupSizeX),
+                                    Math.ceil(shaders.constants.numClusterY / shaders.constants.workgroupSizeY),
+                                    Math.ceil(shaders.constants.numClusterZ / shaders.constants.workgroupSizeZ));
 
         computePass.end();
     }

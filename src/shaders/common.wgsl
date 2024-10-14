@@ -13,8 +13,6 @@ struct LightSet {
 // TODO-2: you may want to create a ClusterSet struct similar to LightSet
 
 struct Cluster {
-    minBB: vec3<f32>,
-    maxBB: vec3<f32>,
     numLights: u32,
     lights: array<u32, ${maxNumLightsPerCluster}>
 }
@@ -53,26 +51,30 @@ fn applyTransform(p: vec4<f32>, transform: mat4x4<f32>) -> vec3<f32> {
 fn intersectionTest(S: vec3<f32>, r: f32, C1: vec3<f32>, C2: vec3<f32>) -> bool {
     var dist_squared = r * r;
     /* assume C1 and C2 are element-wise sorted, if not, do that now */
-    if (S.x < C1.x) {
-        dist_squared -= (S.x - C1.x) * (S.x - C1.x);
-    }
-    else if (S.x > C2.x) {
-        dist_squared -= (S.x - C2.x) * (S.x - C2.x);
-    }
+    // if (S.x < C1.x) {
+    //     dist_squared -= (S.x - C1.x) * (S.x - C1.x);
+    // }
+    // else if (S.x > C2.x) {
+    //     dist_squared -= (S.x - C2.x) * (S.x - C2.x);
+    // }
 
-    if (S.y < C1.y) {
-        dist_squared -= (S.y - C1.y) * (S.y - C1.y);
-    }
-    else if (S.y > C2.y) {
-        dist_squared -= (S.y - C2.y) * (S.y - C2.y);
-    }
+    // if (S.y < C1.y) {
+    //     dist_squared -= (S.y - C1.y) * (S.y - C1.y);
+    // }
+    // else if (S.y > C2.y) {
+    //     dist_squared -= (S.y - C2.y) * (S.y - C2.y);
+    // }
 
-    if (S.z < C1.z) {
-        dist_squared -= (S.z - C1.z) * (S.z - C1.z);
-    }
-    else if (S.z > C2.z) {
-        dist_squared -= (S.z - C2.z) * (S.z - C2.z);
-    }
+    // if (S.z < C1.z) {
+    //     dist_squared -= (S.z - C1.z) * (S.z - C1.z);
+    // }
+    // else if (S.z > C2.z) {
+    //     dist_squared -= (S.z - C2.z) * (S.z - C2.z);
+    // }
     
-    return dist_squared > 0.0;
+    // return dist_squared > 0.0;
+    let closestPoint = clamp(S, C1, C2);
+    let vecToClosestPoint = closestPoint - S;
+    let distanceSquared = dot(vecToClosestPoint, vecToClosestPoint);
+    return distanceSquared < dist_squared;
 }

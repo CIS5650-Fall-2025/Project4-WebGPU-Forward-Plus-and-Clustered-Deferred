@@ -27,7 +27,7 @@
 //     - Store the number of lights assigned to this cluster.
 
 @compute
-@workgroup_size(1,1,1)
+@workgroup_size(${workgroupSizeX}, ${workgroupSizeY}, ${workgroupSizeZ})
 fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     // For each cluster (X, Y, Z):
     let clusterIdx = globalIdx.x +
@@ -37,25 +37,14 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
         return;
     }
     // Calculate the screen-space bounds for this cluster in 2D (XY).
-    let minX = -1.0 + f32(globalIdx.x) * 2.0 / f32(${numClusterX});
-    let maxX = -1.0 + f32(globalIdx.x + 1) * 2.0 / f32(${numClusterX});
-    let minY = -1.0 + f32(globalIdx.y) * 2.0 / f32(${numClusterY});
-    let maxY = -1.0 + f32(globalIdx.y + 1) * 2.0 / f32(${numClusterY});
+    let minX = -1.0 + 2.0 * f32(globalIdx.x) / f32(${numClusterX});
+    let maxX = -1.0 + 2.0 * f32(globalIdx.x + 1) / f32(${numClusterX});
+    let minY = -1.0 + 2.0 * f32(globalIdx.y) / f32(${numClusterY});
+    let maxY = -1.0 + 2.0 * f32(globalIdx.y + 1) / f32(${numClusterY});
 
     // Calculate the depth bounds for this cluster in Z (near and far planes).
     let minZ = f32(globalIdx.z) / f32(${numClusterZ});
     let maxZ = f32(globalIdx.z + 1) / f32(${numClusterZ});
-
-    // let ndcNear = vec4(minX,minY,-1,1);
-    // let worldPosNear4 = cameraUniforms.projInv * ndcNear;
-    // let worldPosNear = worldPosNear4.xyz / worldPosNear4.w;
-    
-    // let ndcFar = vec4(minX,minY,1,1);
-    // let worldPosFar4 = cameraUniforms.projInv * ndcFar;
-    // let worldPosFar = worldPosFar4.xyz / worldPosFar4.w;
-
-    // let minZ = lerp(ndcNear, ndcFar, f32(globalIdx.z) / f32(numClusterZ));
-    // let maxZ = lerp(ndcNear, ndcFar, f32(globalIdx.z + 1) / f32(numClusterZ));
 
     // Convert these screen and depth bounds into view-space coordinates.
     let lbn = applyTransform(vec4(minX, minY, minZ, 1.0), cameraUniforms.projInv);
@@ -68,8 +57,8 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     let rtf = applyTransform(vec4(maxX, maxY, maxZ, 1.0), cameraUniforms.projInv);
 
     // Store the computed bounding box (AABB) for the cluster.
-    clusterSet.clusters[clusterIdx].minBB = min(min(min(min(min(min(min(lbn, lbf), rbn), rbf), ltn), ltf), rtn), rtf);
-    clusterSet.clusters[clusterIdx].maxBB = max(max(max(max(max(max(max(lbn, lbf), rbn), rbf), ltn), ltf), rtn), rtf);
+    let minBB = min(min(min(min(min(min(min(lbn, lbf), rbn), rbf), ltn), ltf), rtn), rtf);
+    let maxBB = max(max(max(max(max(max(max(lbn, lbf), rbn), rbf), ltn), ltf), rtn), rtf);
 
     // Initialize a counter for the number of lights in this cluster.
     var numLights : u32 = 0u;
@@ -79,8 +68,7 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     for (var i: u32 = 0u; i < lightSet.numLights; i++) {
         let light = lightSet.lights[i];
         // Check if the light intersects with the cluster’s bounding box (AABB).
-        if (intersectionTest(applyTransform(vec4(light.pos, 1.0), cameraUniforms.view), r, clusterSet.clusters[clusterIdx].minBB, clusterSet.clusters[clusterIdx].maxBB)) {
-        // if (intersectionTest(light.pos, r, clusterSet.clusters[clusterIdx].minBB, clusterSet.clusters[clusterIdx].maxBB)) {
+        if (intersectionTest(applyTransform(vec4(light.pos, 1.0), cameraUniforms.view), r, minBB, maxBB)) {
             // If it does, add the light to the cluster's light list.
             clusterSet.clusters[clusterIdx].lights[numLights] = i;
             numLights++;
