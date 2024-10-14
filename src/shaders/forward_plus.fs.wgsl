@@ -16,6 +16,11 @@
 // Return the final color, ensuring that the alpha component is set appropriately (typically to 1).
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 
+// debug depth min max
+@group(${bindGroup_scene}) @binding(2) var<storage> tilesMinBuffer: array<f32>;
+@group(${bindGroup_scene}) @binding(3) var<storage> tilesMaxBuffer: array<f32>;
+@group(${bindGroup_scene}) @binding(4) var<uniform> res: Resolution;
+
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
 @group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
 
@@ -26,9 +31,22 @@ struct FragmentInput
     @location(2) uv: vec2f
 }
 
+struct Resolution {
+    width: u32,
+    height: u32
+};
+
 @fragment
 fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f
 {
+    let tileX = u32(fragCoord.x / 16.0);
+    let tileY = u32(fragCoord.y / 16.0);
+    let numTilesX = u32(ceil(f32(res.width) / 16.0));
+    let tileIndex = tileY * numTilesX + tileX;
+    let minDepth = tilesMinBuffer[tileIndex];
+    let maxDepth = tilesMaxBuffer[tileIndex];
+    return vec4(vec3(maxDepth), 1.0);
+
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
         discard;

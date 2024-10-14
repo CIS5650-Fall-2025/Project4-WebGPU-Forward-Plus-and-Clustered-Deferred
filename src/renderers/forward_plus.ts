@@ -3,6 +3,7 @@ import * as shaders from "../shaders/shaders";
 import { Stage } from "../stage/stage";
 
 const tileSize = 16;
+const maxLightsPerTile = 100;
 
 export class ForwardPlusRenderer extends renderer.Renderer {
     // TODO-2: add layouts, pipelines, textures, etc. needed for Forward+ here
@@ -27,15 +28,14 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     pipelinePrez: GPURenderPipeline;
     pipelineBbox: GPUComputePipeline;
 
+    // light culling - light intersection
+    tilesLightsIdxBuffer: GPUBuffer; // light index for each tile
+    tilesLightsGridBuffer: GPUBuffer; // light offset and count for each tile
+
     // debug
-    uniformBuffer: GPUBuffer;
-    xVectorGPUBuffer: GPUBuffer;
-    yVectorGPUBuffer: GPUBuffer;
-    zVectorGPUBuffer: GPUBuffer;
-    saxpyCSBindGroupLayout: GPUBindGroupLayout;
-    saxpyCSBindGroup: GPUBindGroup;
-    saxpyCSPipelineLayout: GPUPipelineLayout;
-    saxpyCSPipeline: GPUComputePipeline;
+    debugBindGroupLayout: GPUBindGroupLayout;
+    debugBindGroup: GPUBindGroup;
+    debugPipeline: GPURenderPipeline;
 
     constructor(stage: Stage) {
         super(stage);
@@ -43,7 +43,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "scene uniforms bind group layout",
             entries: [
-                // TODO-1.2: add an entry for camera uniforms at binding 0, visible to only the vertex shader, and of type "uniform"
                 {
                     binding: 0,
                     visibility: GPUShaderStage.VERTEX,
@@ -62,9 +61,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             label: "scene uniforms bind group",
             layout: this.sceneUniformsBindGroupLayout,
             entries: [
-                // TODO-1.2: add an entry for camera uniforms at binding 0
-                // you can access the camera using `this.camera`
-                // if you run into TypeScript errors, you're probably trying to upload the host buffer instead
                 {
                     binding: 0,
                     resource: { buffer: this.camera.uniformsBuffer },
@@ -158,6 +154,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             size: 2 * Uint32Array.BYTES_PER_ELEMENT,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
+
         const tilesUniformBufferArray = new Uint32Array([renderer.canvas.width, renderer.canvas.height]);
         renderer.device.queue.writeBuffer(this.tilesUniformBuffer, 0, tilesUniformBufferArray);
 
@@ -170,13 +167,27 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         this.tilesMinBuffer = renderer.device.createBuffer({
             label: "tiles min buffer",
             size: bufferSize,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+            usage: GPUBufferUsage.STORAGE,
         });
 
         this.tilesMaxBuffer = renderer.device.createBuffer({
             label: "tiles max buffer",
             size: bufferSize,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+            usage: GPUBufferUsage.STORAGE,
+        });
+
+        // assume each tile accept at most 10 lights
+        this.tilesLightsIdxBuffer = renderer.device.createBuffer({
+            label: "tiles lights idx buffer",
+            size: bufferSize * maxLightsPerTile,
+            usage: GPUBufferUsage.STORAGE,
+        });
+
+        // light index offset and count for each tile
+        this.tilesLightsGridBuffer = renderer.device.createBuffer({
+            label: "tiles lights grid buffer",
+            size: bufferSize * 2,
+            usage: GPUBufferUsage.STORAGE,
         });
 
         this.tileBindGroupLayout = renderer.device.createBindGroupLayout({
@@ -209,6 +220,24 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                         viewDimension: "2d",
                     },
                 },
+                {
+                    // lightSet
+                    binding: 4,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
+                },
+                {
+                    // tiles lights idx
+                    binding: 5,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "storage" },
+                },
+                {
+                    // tiles lights grid
+                    binding: 6,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "storage" },
+                },
             ],
         });
 
@@ -232,6 +261,18 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     binding: 3,
                     resource: this.depthTextureView,
                 },
+                {
+                    binding: 4,
+                    resource: { buffer: this.lights.lightSetStorageBuffer },
+                },
+                {
+                    binding: 5,
+                    resource: { buffer: this.tilesLightsIdxBuffer },
+                },
+                {
+                    binding: 6,
+                    resource: { buffer: this.tilesLightsGridBuffer },
+                },
             ],
         });
 
@@ -253,126 +294,99 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         });
 
         // debug
-        const arrLen = 256;
-        const scalar = 2;
-        this.uniformBuffer = renderer.device.createBuffer({
-            label: "uniform buffer",
-            size: 2 * Float32Array.BYTES_PER_ELEMENT,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
-        const uniformBufferArray = new Float32Array([arrLen, scalar]);
-        renderer.device.queue.writeBuffer(this.uniformBuffer, 0, uniformBufferArray);
-
-        this.xVectorGPUBuffer = renderer.device.createBuffer({
-            label: "x vector buffer",
-            size: arrLen * Float32Array.BYTES_PER_ELEMENT,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        });
-        // create x vector of length arrLen
-        const xVectorArray = new Float32Array(arrLen);
-        for (let i = 0; i < arrLen; i++) {
-            xVectorArray[i] = 1;
-        }
-        renderer.device.queue.writeBuffer(this.xVectorGPUBuffer, 0, xVectorArray);
-
-        this.yVectorGPUBuffer = renderer.device.createBuffer({
-            label: "y vector buffer",
-            size: arrLen * Float32Array.BYTES_PER_ELEMENT,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        });
-        // create y vector of length arrLen
-        const yVectorArray = new Float32Array(arrLen);
-        for (let i = 0; i < arrLen; i++) {
-            yVectorArray[i] = 2;
-        }
-        renderer.device.queue.writeBuffer(this.yVectorGPUBuffer, 0, yVectorArray);
-
-        this.zVectorGPUBuffer = renderer.device.createBuffer({
-            label: "z vector buffer",
-            size: arrLen * Float32Array.BYTES_PER_ELEMENT,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-        });
-
-        this.saxpyCSBindGroupLayout = renderer.device.createBindGroupLayout({
-            label: "saxpy compute bind group layout",
+        this.debugBindGroupLayout = renderer.device.createBindGroupLayout({
+            label: "debug bind group layout",
             entries: [
                 {
-                    // uniform
                     binding: 0,
-                    visibility: GPUShaderStage.COMPUTE,
+                    visibility: GPUShaderStage.VERTEX,
                     buffer: { type: "uniform" },
                 },
                 {
-                    // x vector
+                    // lightSet
                     binding: 1,
-                    visibility: GPUShaderStage.COMPUTE,
+                    visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" },
                 },
                 {
-                    // y vector
+                    // tiles min
                     binding: 2,
-                    visibility: GPUShaderStage.COMPUTE,
+                    visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" },
                 },
                 {
-                    // z vector
+                    // tiles max
                     binding: 3,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "storage" },
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "read-only-storage" },
                 },
                 {
-                    // depth
+                    // resolution
                     binding: 4,
-                    visibility: GPUShaderStage.COMPUTE,
-                    texture: {
-                        sampleType: "depth",
-                        viewDimension: "2d",
-                    },
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "uniform" },
                 },
             ],
         });
 
-        this.saxpyCSBindGroup = renderer.device.createBindGroup({
-            label: "saxpy compute bind group",
-            layout: this.saxpyCSBindGroupLayout,
+        this.debugBindGroup = renderer.device.createBindGroup({
+            label: "debug bind group",
+            layout: this.debugBindGroupLayout,
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.uniformBuffer },
+                    resource: { buffer: this.camera.uniformsBuffer },
                 },
                 {
                     binding: 1,
-                    resource: { buffer: this.xVectorGPUBuffer },
+                    resource: { buffer: this.lights.lightSetStorageBuffer },
                 },
                 {
                     binding: 2,
-                    resource: { buffer: this.yVectorGPUBuffer },
+                    resource: { buffer: this.tilesMinBuffer },
                 },
                 {
                     binding: 3,
-                    resource: { buffer: this.zVectorGPUBuffer },
+                    resource: { buffer: this.tilesMaxBuffer },
                 },
                 {
                     binding: 4,
-                    resource: this.depthTextureView,
+                    resource: { buffer: this.tilesUniformBuffer },
                 },
             ],
         });
 
-        this.saxpyCSPipelineLayout = renderer.device.createPipelineLayout({
-            label: "saxpy compute pipeline layout",
-            bindGroupLayouts: [this.saxpyCSBindGroupLayout],
-        });
-
-        this.saxpyCSPipeline = renderer.device.createComputePipeline({
-            label: "saxpy compute pipeline",
-            layout: this.saxpyCSPipelineLayout,
-            compute: {
+        this.debugPipeline = renderer.device.createRenderPipeline({
+            layout: renderer.device.createPipelineLayout({
+                label: "debug pipeline layout",
+                bindGroupLayouts: [
+                    this.debugBindGroupLayout,
+                    renderer.modelBindGroupLayout,
+                    renderer.materialBindGroupLayout,
+                ],
+            }),
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less",
+                format: "depth24plus",
+            },
+            vertex: {
                 module: renderer.device.createShaderModule({
-                    label: "saxpy compute shader",
-                    code: shaders.debugComputeSrc,
+                    label: "debug vert shader",
+                    code: shaders.forwardPlusVertSrc,
                 }),
-                entryPoint: "computeMain",
+                buffers: [renderer.vertexBufferLayout],
+            },
+            fragment: {
+                module: renderer.device.createShaderModule({
+                    label: "debug frag shader",
+                    code: shaders.forwardPlusFragSrc,
+                }),
+                targets: [
+                    {
+                        format: renderer.canvasFormat,
+                    },
+                ],
             },
         });
     }
@@ -411,15 +425,8 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         bboxPass.end();
 
         // debug
-        // const saxpyPass = encoder.beginComputePass();
-        // saxpyPass.setPipeline(this.saxpyCSPipeline);
-        // saxpyPass.setBindGroup(0, this.saxpyCSBindGroup);
-        // saxpyPass.dispatchWorkgroups(256);
-        // saxpyPass.end();
-
-        // render pass
-        const renderPass = encoder.beginRenderPass({
-            label: "forward plus render pass",
+        const renderPassDebug = encoder.beginRenderPass({
+            label: "debug render pass",
             colorAttachments: [
                 {
                     view: canvasTextureView,
@@ -435,25 +442,72 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 depthStoreOp: "store",
             },
         });
-
-        renderPass.setPipeline(this.pipeline);
-        renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
-
+        renderPassDebug.setPipeline(this.debugPipeline);
+        renderPassDebug.setBindGroup(shaders.constants.bindGroup_scene, this.debugBindGroup);
         this.scene.iterate(
             (node) => {
-                renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+                renderPassDebug.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
             },
             (material) => {
-                renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+                renderPassDebug.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
             },
             (primitive) => {
-                renderPass.setVertexBuffer(0, primitive.vertexBuffer);
-                renderPass.setIndexBuffer(primitive.indexBuffer, "uint32");
-                renderPass.drawIndexed(primitive.numIndices);
+                renderPassDebug.setVertexBuffer(0, primitive.vertexBuffer);
+                renderPassDebug.setIndexBuffer(primitive.indexBuffer, "uint32");
+                renderPassDebug.drawIndexed(primitive.numIndices);
             }
         );
+        renderPassDebug.end();
 
-        renderPass.end();
+        // // load tilesMaxBuffer and print it
+        // const tileMaxReadBuffer = renderer.device.createBuffer({
+        //     size: this.tilesMaxBuffer.size,
+        //     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        // });
+        // encoder.copyBufferToBuffer(this.tilesMaxBuffer, 0, tileMaxReadBuffer, 0, this.tilesMaxBuffer.size);
+        // tileMaxReadBuffer.mapAsync(GPUMapMode.READ);
+        // const tileMaxReadArray = new Float32Array(tileMaxReadBuffer.getMappedRange());
+        // for (let i = 0; i < tileMaxReadArray.length; i++) {
+        //     console.log(`tileMax ${tileMaxReadArray[i]}`);
+        // }
+
+        // // render pass
+        // const renderPass = encoder.beginRenderPass({
+        //     label: "forward plus render pass",
+        //     colorAttachments: [
+        //         {
+        //             view: canvasTextureView,
+        //             clearValue: [0, 0, 0, 0],
+        //             loadOp: "clear",
+        //             storeOp: "store",
+        //         },
+        //     ],
+        //     depthStencilAttachment: {
+        //         view: this.depthTextureView,
+        //         depthClearValue: 1.0,
+        //         depthLoadOp: "load",
+        //         depthStoreOp: "store",
+        //     },
+        // });
+
+        // renderPass.setPipeline(this.pipeline);
+        // renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+
+        // this.scene.iterate(
+        //     (node) => {
+        //         renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+        //     },
+        //     (material) => {
+        //         renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+        //     },
+        //     (primitive) => {
+        //         renderPass.setVertexBuffer(0, primitive.vertexBuffer);
+        //         renderPass.setIndexBuffer(primitive.indexBuffer, "uint32");
+        //         renderPass.drawIndexed(primitive.numIndices);
+        //     }
+        // );
+
+        // renderPass.end();
 
         renderer.device.queue.submit([encoder.finish()]);
     }
