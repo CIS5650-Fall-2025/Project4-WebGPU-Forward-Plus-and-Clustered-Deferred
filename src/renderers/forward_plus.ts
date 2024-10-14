@@ -21,87 +21,55 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     computePipeline: GPUComputePipeline;  
 
     // add buffers
-    // clusterSetStorageBuffer: GPUBuffer;
+    clusterSetStorageBuffer: GPUBuffer;
 
     constructor(stage: Stage) {
         super(stage);
 
         // Set as 32x32x32 clusters
-        // const clusterSize = (16 + 16 + 4 + 100 * 4); 
-        // const numClusters =512;
-        // this.clusterSetStorageBuffer = renderer.device.createBuffer({
-        //     label: "cluster set buffer",
-        //     size: clusterSize * numClusters,
-        //     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        // });
-        // const clusterSetData = new Float32Array(clusterSize * numClusters / 4);
-        // renderer.device.queue.writeBuffer(
-        //     this.clusterSetStorageBuffer,
-        //     0, 
-        //     clusterSetData
-        // );
+        const clusterSize = (16 + 16 + 4 + 100 * 4); 
+        const numClusters =512;
+        const alignedClusterSize = Math.ceil(clusterSize / 256) * 256;
+        const bufferSize = alignedClusterSize * numClusters;
+        this.clusterSetStorageBuffer = renderer.device.createBuffer({
+            label: "cluster set buffer",
+            size: bufferSize,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        });
+        const clusterSetData = new Float32Array(clusterSize * numClusters / 4);
+        renderer.device.queue.writeBuffer(
+            this.clusterSetStorageBuffer,
+            0, 
+            clusterSetData
+        );
 
-        // this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
-        //     label: "scene uniforms bind group layout",
-        //     entries: [
-        //         {
-        //             binding: 0,
-        //             visibility: GPUShaderStage.COMPUTE, 
-        //             buffer: { type: "storage" }  // lightSet 
-        //         },
-        //         {
-        //             binding: 1,
-        //             visibility: GPUShaderStage.COMPUTE, 
-        //             buffer: { type: "storage" }  // clusterSet 
-        //         },
-        //         {
-        //             binding: 2,
-        //             visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE,  // cameraUniforms 
-        //             buffer: { type: "uniform" }
-        //         }
-        //     ]
-        // });
-
-        // this.sceneUniformsBindGroup = renderer.device.createBindGroup({
-        //     label: "scene uniforms bind group",
-        //     layout: this.sceneUniformsBindGroupLayout,
-        //     entries: [
-        //         // TODO-1.2: add an entry for camera uniforms at binding 0
-        //         // you can access the camera using `this.camera`
-        //         // if you run into TypeScript errors, you're probably trying to upload the host buffer instead
-        //         {
-        //             binding: 0,  // lightSet
-        //             resource: { buffer: this.lights.lightSetStorageBuffer }
-        //         },
-        //         {
-        //             binding: 1,  // clusterSet
-        //             resource: { buffer: this.clusterSetStorageBuffer }
-        //         },
-        //         {
-        //             binding: 2,  // cameraUniforms
-        //             resource: { buffer: this.camera.uniformsBuffer }
-        //         }
-        //     ]
-        // });
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
-            label: "scene uniforms bind group layout",
+            label: "forward: scene uniforms bind group layout",
             entries: [
                 // TODO-1.2: add an entry for camera uniforms at binding 0, visible to only the vertex shader, and of type "uniform"
                 {
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
+                    visibility: GPUShaderStage.VERTEX| GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" }
                 },
                 { // lightSet
                     binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
+                    visibility: GPUShaderStage.FRAGMENT| GPUShaderStage.COMPUTE,
                     buffer: { type: "read-only-storage" }
+                    // buffer: { type: "storage" }
+                },
+                {
+                    // clusterSet
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT| GPUShaderStage.COMPUTE,
+                    // buffer: { type: "read-only-storage" }
+                    buffer: { type: "storage" }
                 }
             ]
         });
 
         this.sceneUniformsBindGroup = renderer.device.createBindGroup({
-            label: "scene uniforms bind group",
+            label: "forward: scene uniforms bind group",
             layout: this.sceneUniformsBindGroupLayout,
             entries: [
                 // TODO-1.2: add an entry for camera uniforms at binding 0
@@ -114,6 +82,10 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 {
                     binding: 1,
                     resource: { buffer: this.lights.lightSetStorageBuffer }
+                },
+                {
+                    binding: 2,
+                    resource: { buffer: this.clusterSetStorageBuffer }
                 }
             ]
         });
@@ -121,7 +93,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
 
         this.sceneComputeBindGroupLayout = renderer.device.createBindGroupLayout({
-            label: "scene compute bind group layout",
+            label: "forward: scene compute bind group layout",
             entries: [
                 {
                     binding: 0,
@@ -142,7 +114,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         });
 
         this.sceneComputeBindGroup = renderer.device.createBindGroup({
-            label: "scene compute bind group",
+            label: "forward: scene compute bind group",
             layout: this.sceneComputeBindGroupLayout,
             entries: [
                 {
@@ -165,7 +137,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
         this.pipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
-                label: "naive pipeline layout",
+                label: "forward: naive pipeline layout",
                 bindGroupLayouts: [
                     this.sceneUniformsBindGroupLayout,
                     renderer.modelBindGroupLayout,
@@ -179,14 +151,14 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             },
             vertex: {
                 module: renderer.device.createShaderModule({
-                    label: "naive vert shader",
+                    label: "forward: naive vert shader",
                     code: shaders.naiveVertSrc
                 }),
                 buffers: [ renderer.vertexBufferLayout ]
             },
             fragment: {
                 module: renderer.device.createShaderModule({
-                    label: "naive frag shader",
+                    label: "forward: naive frag shader",
                     code: shaders.forwardPlusFragSrc,
                 }),
                 targets: [
@@ -256,6 +228,18 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         });
 
         renderPass.end();
+
+        // run the compute pass
+        const computePass = encoder.beginComputePass();
+        computePass.setPipeline(this.computePipeline);
+        computePass.setBindGroup(0, this.sceneUniformsBindGroup);
+        computePass.setBindGroup(1, this.sceneComputeBindGroup);
+        computePass.dispatchWorkgroups(
+            Math.ceil(renderer.canvas.width / 32),
+            Math.ceil(renderer.canvas.height / 32),
+            32 
+        );
+        computePass.end();
 
         renderer.device.queue.submit([encoder.finish()]);
     }

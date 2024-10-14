@@ -48,8 +48,8 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     }
 
     var finalColor = diffuseColor.rgb * totalLightContrib;
-    //return vec4(finalColor, 1);
-    return vec4(1.0,1.0,0.0, 1.0);
+    return vec4(finalColor, 1);
+    //return vec4(1.0,1.0,0.0, 1.0);
 }
 
 
