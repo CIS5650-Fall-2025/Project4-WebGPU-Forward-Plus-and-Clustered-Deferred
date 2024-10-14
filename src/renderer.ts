@@ -56,6 +56,7 @@ export async function initWebGPU() {
     });
 
     console.log("WebGPU init successsful");
+    console.log("Cansvas Resolution: %d x %d", canvas.width, canvas.height);
 
     modelBindGroupLayout = device.createBindGroupLayout({
         label: "model bind group layout",
