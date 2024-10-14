@@ -3,8 +3,9 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
+    readonly buffer = new ArrayBuffer(48 * 4 + 4 * 4);
     private readonly floatView = new Float32Array(this.buffer);
+    private readonly uintView = new Uint32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
         // TODO-1.1: set the first 16 elements of `this.floatView` to the input `mat`
@@ -13,7 +14,30 @@ class CameraUniforms {
         }
     }
 
-    // TODO-2: add extra functions to set values needed for light clustering here
+    set viewMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[16 + i] = mat[i];
+        }
+    }
+
+    set projMatInv(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[32 + i] = mat[i];
+        }
+    }
+
+    set screenSize([x, y]: [number, number]) {
+        this.uintView[48] = x;
+        this.uintView[49] = y;
+    }
+
+    set tanHalfFovY(tanHalfFovY: number) {
+        this.floatView[50] = tanHalfFovY;
+    }
+
+    set aspectRatio(aspectRatio: number) {
+        this.floatView[51] = aspectRatio;
+    }
 }
 
 export class Camera {
@@ -31,7 +55,7 @@ export class Camera {
     sensitivity: number = 0.15;
 
     static readonly nearPlane = 0.1;
-    static readonly farPlane = 1000;
+    static readonly farPlane = 20;
 
     keys: { [key: string]: boolean } = {};
 
@@ -138,8 +162,11 @@ export class Camera {
         const viewProjMat = mat4.mul(this.projMat, viewMat);
         // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
         this.uniforms.viewProjMat = viewProjMat;
-
-        // TODO-2: write to extra buffers needed for light clustering here
+        this.uniforms.viewMat = viewMat;
+        this.uniforms.projMatInv = mat4.invert(this.projMat);
+        this.uniforms.screenSize = [canvas.width, canvas.height];
+        this.uniforms.tanHalfFovY = Math.tan(toRadians(fovYDegrees) / 2.0);
+        this.uniforms.aspectRatio = aspectRatio;
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
