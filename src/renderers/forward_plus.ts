@@ -1,6 +1,7 @@
 import * as renderer from '../renderer';
 import * as shaders from '../shaders/shaders';
 import { Stage } from '../stage/stage';
+import { Camera } from "../stage/camera";
 
 export class ForwardPlusRenderer extends renderer.Renderer {
     // TODO-2: add layouts, pipelines, textures, etc. needed for Forward+ here
@@ -23,7 +24,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             entries: [
                 { // camera
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" }
                 },
                 { // lightSet
@@ -47,13 +48,13 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             entries: [
                 { // camera
                     binding:0,
-                    resource:{buffer:this.camera.uniformsBuffer}
+                    resource:{buffer: this.camera.uniformsBuffer}
                 },
-                {
+                {//lightSet
                     binding: 1,
                     resource: { buffer: this.lights.lightSetStorageBuffer }
                 },
-                {
+                { //lightClusters
                     binding: 2,
                     resource: { buffer: this.lights.clustersSetStorageBuffer }
                 }
@@ -69,12 +70,12 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
         this.shadingPipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
-                label: "forward+ shading pipeline layout",
+                label: "f+ pipeline layout",
                 bindGroupLayouts: [
                     this.sceneUniformsBindGroupLayout,
                     renderer.modelBindGroupLayout,
                     renderer.materialBindGroupLayout
-                ]              
+                ]
             }),
             depthStencil: {
                 depthWriteEnabled: true,
@@ -83,14 +84,14 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             },
             vertex: {
                 module: renderer.device.createShaderModule({
-                    label: "naive vert shader for forward+",
+                    label: "naive vert shader for f+",
                     code: shaders.naiveVertSrc
                 }),
                 buffers: [ renderer.vertexBufferLayout ]
             },
             fragment: {
                 module: renderer.device.createShaderModule({
-                    label: "clustering frag shader",
+                    label: "f+ frag shader",
                     code: shaders.forwardPlusFragSrc,
                 }),
                 targets: [
@@ -100,18 +101,22 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 ]
             }
         });
-
     }
 
     override draw() {
         // TODO-2: run the Forward+ rendering pass:
-        const encoder = renderer.device.createCommandEncoder();
+        const encoder = renderer.device.createCommandEncoder({label:"f+ shading encoder"});
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
         // - run the clustering compute shader
-        this.lights.doLightClustering(encoder);
+        const clusteringEncoder = renderer.device.createCommandEncoder({ label: 'compute clustering encoder' });
+        this.lights.doLightClustering(clusteringEncoder);
+        const clusterCmdBuffer = clusteringEncoder.finish({label: 'compute clustering pass finished'});
+        console.log("clusterCmdBuffer: " + clusterCmdBuffer.label);
+        renderer.device.queue.submit([clusterCmdBuffer]);
+
         // - run the main rendering pass, using the computed clusters for efficient lighting
         const renderPass = encoder.beginRenderPass({
-            label: "forward+ render pass",
+            label: "f+ render pass",
             colorAttachments: [
                 {
                     view: canvasTextureView,
@@ -128,7 +133,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             }
         });
         renderPass.setPipeline(this.shadingPipeline);
-        renderPass.setBindGroup(0, this.sceneUniformsBindGroup);
+        renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
 
         this.scene.iterate(node => {
             renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
@@ -142,6 +147,8 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
         renderPass.end();
 
+        
         renderer.device.queue.submit([encoder.finish()]);
+        //renderer.device.queue.submit([encoder.finish()]);
     }
 }

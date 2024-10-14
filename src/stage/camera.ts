@@ -4,7 +4,7 @@ import * as shaders from '../shaders/shaders';
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 10);
+    readonly buffer = new ArrayBuffer(16 * 14);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -17,29 +17,37 @@ class CameraUniforms {
         this.floatView.set(mat, 16);
     }
 
+    set viewMat(mat: Float32Array) {
+        this.floatView.set(mat, 32);
+    }
+
     set zNear(value: number) {
-        this.floatView[32] = value;
+        this.floatView[48] = value;
     }
 
     set zFar(value: number) {
-        this.floatView[33] = value;
+        this.floatView[49] = value;
     }
 
     set tileSize(value: number) {
-        this.floatView[34] = value;
+        this.floatView[50] = value;
     }
 
     set tileCountX(value: number) {
-        this.floatView[35] = value;
+        this.floatView[51] = value;
     }
 
     set tileCountY(value: number) {
-        this.floatView[36] = value;
+        this.floatView[52] = value;
+    }
+
+    set tileCountZ(value: number) {
+        this.floatView[53] = value;
     }
 
     set canvasSize(size: [number, number]) {
-        this.floatView[37] = size[0];
-        this.floatView[38] = size[1];
+        this.floatView[54] = size[0];
+        this.floatView[55] = size[1];
     }
 
 
@@ -171,11 +179,14 @@ export class Camera {
 
         // TODO-2: write to extra buffers needed for light clustering here
         this.uniforms.inverseProjMat = mat4.inverse(this.projMat);
+        this.uniforms.viewMat = viewMat;
         this.uniforms.zNear = Camera.nearPlane;
         this.uniforms.zFar = Camera.farPlane;
-        this.uniforms.tileCountX = Math.ceil(canvas.height / shaders.constants.clusterTileSize);
-        this.uniforms.tileCountY = Math.ceil(canvas.width / shaders.constants.clusterTileSize);
-        this.uniforms.tileSize = shaders.constants.clusterTileSize;
+        this.uniforms.tileCountX = Math.ceil(canvas.height / shaders.constants.clusterTileSize_X);
+        this.uniforms.tileCountY = Math.ceil(canvas.width / shaders.constants.clusterTileSize_Y);
+        this.uniforms.tileCountZ = Math.ceil(Camera.farPlane / shaders.constants.clusterTileSize_Z);
+        this.uniforms.tileSize = this.uniforms.tileCountX * this.uniforms.tileCountY * this.uniforms.tileCountZ;
+        //console.log("tileCountX: " + this.uniforms.tileCountX + " tileCountY: " + this.uniforms.tileCountY + " tileCountZ: " + this.uniforms.tileCountZ);
         this.uniforms.canvasSize = [canvas.width, canvas.height];
         
 
