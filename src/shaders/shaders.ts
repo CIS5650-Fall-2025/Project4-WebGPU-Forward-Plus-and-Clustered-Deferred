@@ -41,7 +41,7 @@ export const constants = {
     zMax: 30.0,
     zBinSize: 64,
     tileSize: 32,
-    maxLightsPerTile: 2048,
+    maxLightsPerTile: 4096,
 };
 
 // =================================
