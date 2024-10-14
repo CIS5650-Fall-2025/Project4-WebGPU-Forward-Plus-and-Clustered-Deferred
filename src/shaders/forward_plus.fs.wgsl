@@ -27,7 +27,7 @@ struct FragmentInput
 }
 
 @fragment
-fn main(in: FragmentInput) -> @location(0) vec4f
+fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f
 {
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
