@@ -45,20 +45,15 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let clusterX = u32(floor(ndcX * f32(clusterSet.numClustersX)));
     let clusterY = u32(floor(ndcY * f32(clusterSet.numClustersY)));
 
-    let viewPos = cameraUniforms.viewProjMat * vec4(in.pos, 1.0);
-    let viewZ = -viewPos.z; 
-    let zNear = cameraUniforms.nearPlane;
-    let zFar = cameraUniforms.farPlane;
-    let clusterSizeZ = (zFar - zNear) / f32(clusterSet.numClustersZ);
-    var clusterZ = u32(floor((viewZ - zNear) / clusterSizeZ));
-    clusterZ = clamp(clusterZ, 0u, clusterSet.numClustersZ - 1u);
+    let ndcZ = clamp(ndc.z, 0.0, 1.0 - epsilon);
+    let clusterZ = u32(floor(ndcZ * f32(clusterSet.numClustersZ)));
 
     var clusterIndex = clusterX + 
                        clusterY * clusterSet.numClustersX + 
                        clusterZ * clusterSet.numClustersX * clusterSet.numClustersY;
 
     let maxClusterIndex = clusterSet.numClustersX * clusterSet.numClustersY * clusterSet.numClustersZ - 1u;
-    clusterIndex = clamp(clusterIndex,0, maxClusterIndex);
+    clusterIndex = clamp(clusterIndex, 0, maxClusterIndex);
     let cluster = clusterSet.clusters[clusterIndex];
 
     let numLightsInCluster = cluster.lightCount;
@@ -72,6 +67,9 @@ fn main(in: FragmentInput) -> @location(0) vec4f
         //totalLightContrib += vec3f(0.01f);
     }
 
+    /*var finalColor = vec3f(f32(clusterZ) / f32(clusterSet.numClustersZ),
+                           f32(clusterZ) / f32(clusterSet.numClustersZ),
+                           f32(clusterZ) / f32(clusterSet.numClustersZ));*/
     var finalColor = diffuseColor.rgb * totalLightContrib;
     return vec4(finalColor, 1.0);
 }

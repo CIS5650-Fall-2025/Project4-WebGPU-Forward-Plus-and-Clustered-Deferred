@@ -56,11 +56,11 @@ fn main(in: FragmentInput) -> @location(0) vec4f
         totalLightContrib += vec3f(0.05f);
     }
     totalLightContrib += vec3f(0.1f);
-    var finalColor = diffuseColor.rgb * totalLightContrib;
-    /*
+    //var finalColor = diffuseColor.rgb * totalLightContrib;
+    
     var finalColor = vec3f(f32(tile.x) / f32(clusterSet.numClustersX),
                            f32(tile.y) / f32(clusterSet.numClustersY),
-                           f32(tile.z) / f32(clusterSet.numClustersZ));*/
+                           f32(tile.z) / f32(clusterSet.numClustersZ));
     return vec4(finalColor, 1.0);
 }
 

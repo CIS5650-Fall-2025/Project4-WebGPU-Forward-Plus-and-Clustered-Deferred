@@ -26,9 +26,7 @@
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         if (global_id.x >= clusterSet.numClustersX ||
         global_id.y >= clusterSet.numClustersY ||
-        global_id.z >= clusterSet.numClustersZ) {
-        return;
-    }
+        global_id.z >= clusterSet.numClustersZ) {return;}
     
     // Calculating cluster index
     let clusterIndex = global_id.x + 
@@ -70,7 +68,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let lightViewPos = cameraUniforms.viewMat * vec4<f32>(light.pos, 1.0);
         let minPoint = clusterSet.clusters[clusterIndex].minBounds;
         let maxPoint = clusterSet.clusters[clusterIndex].maxBounds;
-        if (sphereIntersectsAABB(lightViewPos.xyz,${lightRadius} * 100,minPoint,maxPoint)){
+        let sqDist = sqDistPointAABB(lightViewPos.xyz, minPoint, maxPoint);
+        if (sqDist <= (${lightRadius} * ${lightRadius})){
             if (lightCount < ${maxLightPerCluster}) {
                 clusterSet.clusters[clusterIndex].lightIndices[lightCount] = i;
                 lightCount++;
@@ -83,16 +82,16 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     
 }
 
-  fn clipToView(clip : vec4<f32>) -> vec4<f32> {
-    let view = cameraUniforms.invProjMat * clip;
-    return view / vec4<f32>(view.w, view.w, view.w, view.w);
-  }
+fn clipToView(clip : vec4<f32>) -> vec4<f32> {
+  let view = cameraUniforms.invProjMat * clip;
+  return view / vec4<f32>(view.w, view.w, view.w, view.w);
+}
 
-  fn screen2View(screen : vec4<f32>) -> vec4<f32> {
-    let texCoord = screen.xy / vec2<f32>(cameraUniforms.width, cameraUniforms.height);
-    let clip = vec4<f32>(vec2<f32>(texCoord.x, 1.0 - texCoord.y) * 2.0 - vec2<f32>(1.0, 1.0), screen.z, screen.w);
-    return clipToView(clip);
-  }
+fn screen2View(screen : vec4<f32>) -> vec4<f32> {
+  let texCoord = screen.xy / vec2<f32>(cameraUniforms.width, cameraUniforms.height);
+  let clip = vec4<f32>(vec2<f32>(texCoord.x, 1.0 - texCoord.y) * 2.0 - vec2<f32>(1.0, 1.0), screen.z, screen.w);
+  return clipToView(clip);
+}
 
 fn lineIntersectionToZPlane(a : vec3<f32>, b : vec3<f32>, zDistance : f32) -> vec3<f32> {
     let normal = vec3<f32>(0.0, 0.0, 1.0);

@@ -22,7 +22,7 @@
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
-@compute @workgroup_size(8, 8, 1)
+@compute @workgroup_size(16, 9, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     if (global_id.x >= clusterSet.numClustersX ||
         global_id.y >= clusterSet.numClustersY || 
@@ -51,22 +51,20 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // - Calculate the depth bounds for this cluster in Z (near and far planes).
     let zNear = cameraUniforms.nearPlane;
     let zFar = cameraUniforms.farPlane;
-    let clusterSizeZ = (zFar - zNear) / f32(clusterSet.numClustersZ);
-    let minZ = zNear + f32(global_id.z) * clusterSizeZ;
+    let clusterSizeZ = 1.0 / f32(clusterSet.numClustersZ);
+    let minZ = f32(global_id.z) * clusterSizeZ;
     let maxZ = minZ + clusterSizeZ;
 
     // - Convert these screen and depth bounds into view-space coordinates.
     let ndcCorners = array<vec4<f32>, 8>(
-        // For minZ
-        vec4<f32>(minX, minY, -1.0, 1.0),
-        vec4<f32>(maxX, minY, -1.0, 1.0),
-        vec4<f32>(minX, maxY, -1.0, 1.0),
-        vec4<f32>(maxX, maxY, -1.0, 1.0),
-        // For maxZ
-        vec4<f32>(minX, minY, 1.0, 1.0),
-        vec4<f32>(maxX, minY, 1.0, 1.0),
-        vec4<f32>(minX, maxY, 1.0, 1.0),
-        vec4<f32>(maxX, maxY, 1.0, 1.0)
+        vec4<f32>(minX, minY, minZ, 1.0),
+        vec4<f32>(maxX, minY, minZ, 1.0),
+        vec4<f32>(minX, maxY, minZ, 1.0),
+        vec4<f32>(maxX, maxY, minZ, 1.0),
+        vec4<f32>(minX, minY, maxZ, 1.0),
+        vec4<f32>(maxX, minY, maxZ, 1.0),
+        vec4<f32>(minX, maxY, maxZ, 1.0),
+        vec4<f32>(maxX, maxY, maxZ, 1.0)
     );
 
     var viewCorners = array<vec3<f32>, 8>();
@@ -126,7 +124,7 @@ fn sphereIntersectsAABB(sphereCenter: vec3<f32>, sphereRadius: f32, aabbMin: vec
     // For simplicity, assume the frustrum is a cube instead of frustrum
     let closestPoint = clamp(sphereCenter, aabbMin, aabbMax);
     let distance = length(sphereCenter - closestPoint);
-    return distance <= sphereRadius * 3.0f;
+    return distance <= sphereRadius;
 }
 
 fn unprojectPoint(point: vec4<f32>, invViewProj: mat4x4<f32>) -> vec3<f32> {
