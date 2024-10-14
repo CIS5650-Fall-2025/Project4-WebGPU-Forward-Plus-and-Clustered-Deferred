@@ -45,8 +45,6 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let clusterX = u32(floor(ndcX * f32(clusterSet.numClustersX)));
     let clusterY = u32(floor(ndcY * f32(clusterSet.numClustersY)));
 
-    //let ndcZ = clamp(ndc.z, 0.0, 1.0 - epsilon);
-    //let clusterZ = u32(floor(ndc.z * f32(clusterSet.numClustersZ)));
     let viewPos = cameraUniforms.viewMat * vec4(in.pos, 1.0);
     let viewZ = viewPos.z; 
     let zNear = cameraUniforms.nearPlane;
@@ -75,12 +73,8 @@ fn main(in: FragmentInput) -> @location(0) vec4f
 
         let lightContrib = calculateLightContrib(light, in.pos, in.nor);
         totalLightContrib += lightContrib;
-        //totalLightContrib += vec3f(0.01f);
     }
 
-    /*var finalColor = vec3f(f32(clusterZ) / f32(clusterSet.numClustersZ),
-                           f32(clusterZ) / f32(clusterSet.numClustersZ),
-                           f32(clusterZ) / f32(clusterSet.numClustersZ));*/
     var finalColor = diffuseColor.rgb * totalLightContrib;
     return vec4(finalColor, 1.0);
 }
