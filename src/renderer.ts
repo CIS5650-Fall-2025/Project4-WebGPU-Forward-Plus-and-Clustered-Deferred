@@ -129,6 +129,7 @@ export abstract class Renderer {
 
     protected quadVertexBuffer: GPUBuffer;
     protected quadIndexBuffer: GPUBuffer;
+    bUseRenderBundles: boolean = false;
 
     constructor(stage: Stage) {
         this.scene = stage.scene;
@@ -163,14 +164,14 @@ export abstract class Renderer {
     protected abstract draw(): void;
 
     // CHECKITOUT: this is the main rendering loop
-    private async onFrame(time: number) {
+    private onFrame(time: number) {
         if (this.prevTime == 0) {
             this.prevTime = time;
         }
 
         let deltaTime = time - this.prevTime;
         this.camera.onFrame(deltaTime);
-        await this.lights.onFrame(time);
+        this.lights.onFrame(time);
 
         this.stats.begin();
 

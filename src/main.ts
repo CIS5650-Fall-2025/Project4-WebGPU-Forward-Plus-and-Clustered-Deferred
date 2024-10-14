@@ -1,5 +1,5 @@
 import Stats from 'stats.js';
-import { GUI } from 'dat.gui';
+import { GUI, GUIController } from 'dat.gui';
 
 import { initWebGPU, Renderer } from './renderer';
 import { NaiveRenderer } from './renderers/naive';
@@ -32,6 +32,20 @@ gui.add(lights, 'numLights').min(1).max(Lights.maxNumLights).step(1).onChange(()
 const stage = new Stage(scene, lights, camera, stats);
 
 var renderer: Renderer | undefined;
+
+class guiStatsStruct
+{
+    UseRenderBundle : boolean = false;
+}
+const guiStats = new guiStatsStruct();
+
+function setUseRenderBundle() {
+    if (renderer)
+    {
+        renderer.bUseRenderBundles = guiStats.UseRenderBundle;
+    }
+}
+gui.add(guiStats, "UseRenderBundle").onChange(() => setUseRenderBundle());
 
 function setRenderer(mode: string) {
     renderer?.stop();

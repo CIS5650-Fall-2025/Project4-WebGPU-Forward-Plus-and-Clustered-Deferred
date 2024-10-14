@@ -318,7 +318,7 @@ export class Lights {
     }
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
-    async onFrame(time: number) {
+    onFrame(time: number) {
         device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
 
         // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance

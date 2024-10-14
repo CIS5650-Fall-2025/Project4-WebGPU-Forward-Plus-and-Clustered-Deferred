@@ -32,3 +32,6 @@ to implementation work. Complete the implementation early to leave time!
 - [wgpu-matrix](https://github.com/greggman/wgpu-matrix)
 
 [Cone testing Reference](https://lxjk.github.io/2018/03/25/Improve-Tile-based-Light-Culling-with-Spherical-sliced-Cone.html)
+https://themaister.net/blog/2020/01/10/clustered-shading-evolution-in-granite/
+https://advances.realtimerendering.com/s2017/2017_Sig_Improved_Culling_final.pdf
+https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
