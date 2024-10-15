@@ -41,11 +41,10 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let posNDCSpace = applyTransform(vec4f(in.pos.x ,in.pos.y, in.pos.z, 1.0), cameraUniforms.viewproj);
     let clusterIndexX = u32((posNDCSpace.x + 1.0) * 0.5 * f32(${numClusterX}));
     let clusterIndexY = u32((posNDCSpace.y + 1.0) * 0.5 * f32(${numClusterY}));
-    let clusterIndexZ = u32(posNDCSpace.z * f32(${numClusterZ}));
-    // let posNDCSpace = applyTransform(vec4f(in.pos.x ,in.pos.y, in.pos.z, 1.0), cameraUniforms.viewproj);
-    // let clusterIndexX = u32(posNDCSpace.x * 2.0 / f32(${numClusterX}) - 1.0);
-    // let clusterIndexY = u32(posNDCSpace.y * 2.0 / f32(${numClusterY}) - 1.0);
-    // let clusterIndexZ = u32(posNDCSpace.z / f32(${numClusterZ}));
+    
+    let posViewSpace = cameraUniforms.view * vec4f(in.pos.x ,in.pos.y, in.pos.z, 1.0);
+    let viewZ = clamp(-posViewSpace.z, cameraUniforms.nearFar[0], cameraUniforms.nearFar[1]);
+    let clusterIndexZ = u32(log(viewZ / cameraUniforms.nearFar[0]) / log(cameraUniforms.nearFar[1] / cameraUniforms.nearFar[0]) * f32(${numClusterZ}));
 
     let clusterIndex = clusterIndexX + 
                     clusterIndexY * ${numClusterX} + 
@@ -67,10 +66,6 @@ fn main(in: FragmentInput) -> @location(0) vec4f
 
     // Multiply the fragment’s diffuse color by the accumulated light contribution.
     var finalColor = diffuseColor.rgb * totalLightContrib;
-    // Return the final color, ensuring that the alpha component is set appropriately (typically to 1).
-    // return vec4(f32(clusterIndexZ) / f32(${numClusterZ}), 0, 0, 1);
-    // return vec4(f32(clusterIndexX) / f32(${numClusterX}), f32(clusterIndexY) / f32(${numClusterY}), f32(clusterIndexZ) / f32(${numClusterZ}), 1);
-    // return vec4(0.0, 0.0, posNDCSpace.z, 1.0);
-    //return vec4(totalLightContrib, 1);
-    return vec4(f32(numLights) ,0,0, 1);
+    
+    return vec4(finalColor, 1);
 }

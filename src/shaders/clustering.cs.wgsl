@@ -29,13 +29,15 @@
 @compute
 @workgroup_size(${workgroupSizeX}, ${workgroupSizeY}, ${workgroupSizeZ})
 fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
+    if (globalIdx.x >= ${numClusterX} || globalIdx.y >= ${numClusterY} || globalIdx.z >= ${numClusterZ}) {
+        return;
+    }
+
     // For each cluster (X, Y, Z):
     let clusterIdx = globalIdx.x +
                     globalIdx.y * ${numClusterX} +
                     globalIdx.z * ${numClusterY} * ${numClusterX};
-    if (clusterIdx >= ${numClusterX} * ${numClusterY} * ${numClusterZ}) {
-        return;
-    }
+
     // Calculate the screen-space bounds for this cluster in 2D (XY).
     let minX = -1.0 + 2.0 * f32(globalIdx.x) / f32(${numClusterX});
     let maxX = -1.0 + 2.0 * f32(globalIdx.x + 1) / f32(${numClusterX});
@@ -43,8 +45,11 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     let maxY = -1.0 + 2.0 * f32(globalIdx.y + 1) / f32(${numClusterY});
 
     // Calculate the depth bounds for this cluster in Z (near and far planes).
-    let minZ = f32(globalIdx.z) / f32(${numClusterZ});
-    let maxZ = f32(globalIdx.z + 1) / f32(${numClusterZ});
+    let minZView = -cameraUniforms.nearFar[0] * exp(f32(globalIdx.z) * log(cameraUniforms.nearFar[1] / cameraUniforms.nearFar[0]) / f32(${numClusterZ}));
+    let maxZView = -cameraUniforms.nearFar[0] * exp(f32(globalIdx.z + 1) * log(cameraUniforms.nearFar[1] / cameraUniforms.nearFar[0]) / f32(${numClusterZ}));
+
+    let minZ = (cameraUniforms.proj[2][2] * minZView + cameraUniforms.proj[3][2]) / (cameraUniforms.proj[2][3] * minZView + cameraUniforms.proj[3][3]);
+    let maxZ = (cameraUniforms.proj[2][2] * maxZView + cameraUniforms.proj[3][2]) / (cameraUniforms.proj[2][3] * maxZView + cameraUniforms.proj[3][3]);
 
     // Convert these screen and depth bounds into view-space coordinates.
     let lbn = applyTransform(vec4(minX, minY, minZ, 1.0), cameraUniforms.projInv);
@@ -81,5 +86,5 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     }
 
     // Store the number of lights assigned to this cluster.
-    clusterSet.clusters[clusterIdx].numLights = numLights;
+    ptr.numLights = numLights;
 }

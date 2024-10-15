@@ -1,9 +1,9 @@
-import { Mat4, mat4, Vec2, Vec3, vec3, vec4 } from "wgpu-matrix";
+import { Mat4, mat4, Vec2, Vec3, vec3 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4 * 3 + 16);
+    readonly buffer = new ArrayBuffer(16 * 4 * 4 + 16);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -19,16 +19,22 @@ class CameraUniforms {
             this.floatView[i + 16] = mat[i];
         }
     }
+
+    set projMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[i + 32] = mat[i];
+        }
+    }
     
     set projInvMat(mat: Float32Array) {
         for (let i = 0; i < 16; i++) {
-            this.floatView[i + 32] = mat[i];
+            this.floatView[i + 48] = mat[i];
         }
     }
 
     set nearFar(nearfar: Vec3) {
         for (let i = 0; i < 2; i++) {
-            this.floatView[i + 48] = nearfar[i];
+            this.floatView[i + 64] = nearfar[i];
         }
     }
 }
@@ -65,6 +71,7 @@ export class Camera {
         });
 
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
+        this.uniforms.projMat = this.projMat;
         this.uniforms.projInvMat = mat4.inverse(this.projMat);
         this.uniforms.nearFar = vec3.create(Camera.nearPlane, Camera.farPlane, 0);
 
