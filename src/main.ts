@@ -5,6 +5,7 @@ import { initWebGPU, Renderer } from './renderer';
 import { NaiveRenderer } from './renderers/naive';
 import { ForwardPlusRenderer } from './renderers/forward_plus';
 import { ClusteredDeferredRenderer } from './renderers/clustered_deferred';
+import { ClusteredDeferredPackedRenderer } from './renderers/clustered_deferred_packed';
 import { DebugShaderRenderer } from './renderers/debug_shader';
 
 import { setupLoaders, Scene } from './stage/scene';
@@ -50,10 +51,13 @@ function setRenderer(mode: string) {
         case renderModes.debugShader:
             renderer = new DebugShaderRenderer(stage);
             break;
+        case renderModes.packedClusteredDeferred:
+            renderer = new ClusteredDeferredPackedRenderer(stage);
+            break;
     }
 }
 
-const renderModes = { naive: 'naive', forwardPlus: 'forward+', clusteredDeferred: 'clustered deferred', debugShader: 'debug shader'};
+const renderModes = { naive: 'naive', forwardPlus: 'forward+', clusteredDeferred: 'clustered deferred', packedClusteredDeferred: 'packed clustered deferred', debugShader: 'debug shader'};
 let renderModeController = gui.add({ mode: renderModes.naive }, 'mode', renderModes);
 renderModeController.onChange(setRenderer);
 
