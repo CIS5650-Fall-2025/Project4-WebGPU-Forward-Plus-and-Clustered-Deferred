@@ -20,7 +20,11 @@ struct FragmentOutput {
 @fragment
 fn main(input: VertexOutput) -> FragmentOutput {
     var output: FragmentOutput;
-    output.diffuseColor = textureSample(diffuseTex, diffuseTexSampler, input.fragUV);
+    let diffColor = textureSample(diffuseTex, diffuseTexSampler, input.fragUV);
+    if (diffColor.a < 0.5f) {
+        discard;
+    }
+    output.diffuseColor = diffColor;
     output.normal = vec4<f32>(normalize(input.fragNormal), 1.0);
     output.depth = input.position.z;
     return output;

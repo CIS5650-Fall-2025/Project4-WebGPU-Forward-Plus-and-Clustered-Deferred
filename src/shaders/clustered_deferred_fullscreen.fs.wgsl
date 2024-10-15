@@ -26,10 +26,6 @@ fn main(input: FragmentInput) -> @location(0) vec4<f32> {
     // Note: For depth textures, use textureSample instead of textureSampleCompare
     let depth = textureSample(gDepthTexture, depthSampler, uv);
 
-    if (diffuseColor.a < 0.5f) {
-        discard;
-    }
-
     var clusterX = u32(floor(input.fragUV.x * f32(clusterSet.numClustersX)));
     var clusterY = u32(floor(input.fragUV.y * f32(clusterSet.numClustersY)));
     clusterX = clamp(clusterX, 0u, clusterSet.numClustersX - 1u);
