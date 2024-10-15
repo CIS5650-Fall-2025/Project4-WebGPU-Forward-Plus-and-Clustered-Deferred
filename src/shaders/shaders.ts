@@ -35,7 +35,7 @@ export const constants = {
     bindGroup_material: 2,
     bindGroup_lightcull: 3,
     moveLightsWorkgroupSize: 128,
-
+    maxLightsPerTile: 1000,
     lightRadius: 2,
 };
 

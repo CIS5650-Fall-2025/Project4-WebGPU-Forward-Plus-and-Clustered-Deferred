@@ -50,26 +50,24 @@ fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> @location
     //     totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
     // }
 
-    let numTilesX = u32(ceil(f32(res.width ) / tileSize));
-    let numTilesY = u32(ceil(f32(res.height) / tileSize));
-    let numTilesZ = 10;
-    let tileXidx = u32(fragCoord.x / tileSize);
-    let tileYidx = u32(fragCoord.y / tileSize);
+    // let numTilesX = u32(ceil(f32(res.width ) / tileSize));
+    // let numTilesY = u32(ceil(f32(res.height) / tileSize));
+    // let numTilesZ = 10;
+    // let tileXidx = u32(fragCoord.x / tileSize);
+    // let tileYidx = u32(fragCoord.y / tileSize);
 
-    var lightCount = 0u;
-    for (var z: u32 = 0; z < 10; z++) {
-        let tileZidx = u32(z);
-        let tileIdx = tileZidx * numTilesX * numTilesY + tileYidx * numTilesX + tileXidx;
-        let startIdx = tileIdx * maxLightPerTile;
-        let endIdx = startIdx + tilesLightGridBuffer[tileIdx];
-        lightCount += endIdx - startIdx;
-        for (var lightIdx = startIdx; lightIdx < endIdx; lightIdx++) {
-            let light = lightSet.lights[tilesLightIdxBuffer[lightIdx]];
-            totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
-        }
-    }
+    // var lightCount = 0u;
+    // let tileZidx = u32(fragCoord.z);
+    // let tileIdx = tileZidx * numTilesX * numTilesY + tileYidx * numTilesX + tileXidx;
+    // let startIdx = tileIdx * maxLightPerTile;
+    // let endIdx = startIdx + tilesLightGridBuffer[tileIdx];
+    // lightCount += endIdx - startIdx;
+    // for (var lightIdx = startIdx; lightIdx < endIdx; lightIdx++) {
+    //     let light = lightSet.lights[tilesLightIdxBuffer[lightIdx]];
+    //     totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
+    // }
 
-    // return vec4(vec3(f32(2)  / 10.0), 1.0);
+    return vec4(vec3(fragCoord.z), 1.0);
     var finalColor = diffuseColor.rgb * totalLightContrib;
     return vec4(finalColor, 1);
 }

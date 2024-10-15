@@ -58,12 +58,14 @@ fn computeMain(@builtin(global_invocation_id) global_id: vec3u,
 
     // traverse lights
     var lightCount = 0u;
-    for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
+    for (var lightIdx = 0u; lightIdx < lightSet.numLights && lightCount < ${maxLightsPerTile}; lightIdx++) {
         let light = lightSet.lights[lightIdx];
-        if (calculateLightIntersection(light, aabbMin, aabbMax)) {
-            tilesLightBuffer[tileIndex] = lightIdx;
-            lightCount = lightCount + 1u;
-        }
+        // if (calculateLightIntersection(light, aabbMin, aabbMax)) {
+        //     tilesLightBuffer[tileIndex + lightCount] = lightIdx;
+        //     lightCount = lightCount + 1u;
+        // }
+        tilesLightBuffer[tileIndex + lightCount] = lightIdx;
+        lightCount = lightCount + 1u;
     }
     tilesLightGridBuffer[tileIndex] = lightCount;
 
