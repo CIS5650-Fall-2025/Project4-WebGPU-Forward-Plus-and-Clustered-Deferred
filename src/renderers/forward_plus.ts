@@ -24,18 +24,18 @@ export class ForwardPlusRenderer extends renderer.Renderer {
               
                 {
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" }
                 },
                 { // lightSet
                     binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" }
                 },
                 { // clusterSet
                     binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-                    buffer: { type: "storage" }
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "read-only-storage" }
                 }
             ]
         });
@@ -111,6 +111,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         // - run the main rendering pass, using the computed clusters for efficient lighting
 
         const encoder = renderer.device.createCommandEncoder();
+       
         this.lights.doLightClustering(encoder);
 
         const canvasTextureView = renderer.context.getCurrentTexture().createView();

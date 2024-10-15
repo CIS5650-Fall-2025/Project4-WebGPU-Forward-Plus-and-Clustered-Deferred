@@ -29,6 +29,7 @@ struct ClusterSet {
 struct CameraUniforms {
     viewProjMat: mat4x4<f32>,
     invProjMat: mat4x4<f32>,
+    invProjMat: mat4x4<f32>,
     clusterGridSize: vec3<u32>,
     canvasResolution: vec2<f32>,
     nearPlane: f32,

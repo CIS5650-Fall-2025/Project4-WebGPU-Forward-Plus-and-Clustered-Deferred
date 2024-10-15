@@ -16,7 +16,7 @@
 // Return the final color, ensuring that the alpha component is set appropriately (typically to 1).
 @group(${bindGroup_scene}) @binding(0) var<uniform> camera: CameraUniforms;
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
-@group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
+@group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
 
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
 @group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
@@ -35,59 +35,46 @@ fn main(in: FragmentInput) -> @location(0) vec4<f32> {
     }
 
     let clusterGridSize = camera.clusterGridSize;
-    let clipPos = camera.viewProjMat * vec4<f32>(in.pos, 1.0);
-
- 
-    if (clipPos.w == 0.0) {
-        discard;
-    }
-
-
-    let ndcPos = clipPos.xyz / clipPos.w;
-
-    let ndcPos01 = ndcPos * 0.5 + vec3<f32>(0.5);
-
- 
-    //let ndcPosClamped = clamp(ndcPos01, vec3<f32>(0.0), vec3<f32>(1.0));
+    let viewPosH = camera.viewMat * vec4<f32>(in.pos, 1.0);
+    let viewPos = viewPosH.xyz / viewPosH.w; 
+    let viewZ = -viewPos.z; 
 
   
-    let clusterX = u32(ndcPos01.x * f32(clusterGridSize.x));
-    let clusterY = u32(ndcPos01.y * f32(clusterGridSize.y));
-    let clusterZ = u32(ndcPos01.z * f32(clusterGridSize.z));
-    // let viewZ = (in.pos.z - camera.nearPlane)/(camera.farPlane - camera.nearPlane);
-    // let clusterZ = u32(viewZ * f32(clusterGridSize.z));
+    let clusterX = u32((viewPos.x / camera.canvasResolution.x + 0.5) * f32(clusterGridSize.x));
+    let clusterY = u32((viewPos.y / camera.canvasResolution.y + 0.5) * f32(clusterGridSize.y));
+    let clusterZ = u32((viewZ - camera.nearPlane) / (camera.farPlane - camera.nearPlane) * f32(clusterGridSize.z));
+
    
     let clusterXClamped = min(clusterX, clusterGridSize.x - 1u);
     let clusterYClamped = min(clusterY, clusterGridSize.y - 1u);
     let clusterZClamped = min(clusterZ, clusterGridSize.z - 1u);
 
-    
+   
     let clusterIndex = clusterZClamped * clusterGridSize.x * clusterGridSize.y +
                        clusterYClamped * clusterGridSize.x +
                        clusterXClamped;
-
     
-    
-
-    
-    
-
-    var totalLightContrib = vec3<f32>(0.0, 0.0, 0.0);
-    var finalColor = vec3<f32>(1.0, 1.0, 1.0);
-    if (clusterSet.clusters[clusterIndex].numLights > 0){
-        finalColor = vec3<f32>(1.0, 0.0, 1.0);
-        return vec4<f32>(finalColor, 1.0);
+ 
+    if (clusterSet.clusters[0].numLights){
+        return vec4<f32>(1.0,0.0,1.0, 1.0);
     }
+    else{
+        return vec4<f32>(0.0,0.0,0.0, 1.0);
+    }
+    // var totalLightContrib = vec3<f32>(0.0, 0.0, 0.0);
+    // // let numLights = clusterSet.clusters[clusterIndex].numLights;
+    // // let colorValue = f32(numLights) / 255.0;
     
+    // var finalColor = vec3<f32>(0.0,0.0,0.0);
     // for (var i = 0u; i < clusterSet.clusters[clusterIndex].numLights; i++) {
         
     //     let lightIdx = clusterSet.clusters[clusterIndex].lightIndices[i];
         
     //     let light = lightSet.lights[lightIdx];
     //     totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
-        
+    //     let finalColor = diffuseColor;
     // }
     
-    return vec4<f32>(finalColor, 1.0);
+    // return vec4<f32>(finalColor, 1.0);
     
 }
