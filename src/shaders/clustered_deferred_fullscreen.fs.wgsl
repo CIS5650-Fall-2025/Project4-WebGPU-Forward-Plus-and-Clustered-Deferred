@@ -13,7 +13,7 @@ struct FragmentInput {
 @group(1) @binding(2) var gNormalTexture: texture_2d<f32>;
 @group(1) @binding(3) var gNormalTextureSampler: sampler;
 @group(1) @binding(4) var gDepthTexture: texture_depth_2d;
-@group(1) @binding(5) var depthSampler: sampler_comparison;
+@group(1) @binding(5) var depthSampler: sampler;
 
 @fragment
 fn main(input: FragmentInput) -> @location(0) vec4<f32> {
@@ -24,29 +24,28 @@ fn main(input: FragmentInput) -> @location(0) vec4<f32> {
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, uv);
     let normal = textureSample(gNormalTexture, gNormalTextureSampler, uv).xyz;
     // Note: For depth textures, use textureSample instead of textureSampleCompare
-    let depth = textureSampleCompare(gDepthTexture, depthSampler, input.fragUV, 0.5);
+    let depth = textureSample(gDepthTexture, depthSampler, uv);
 
-    // Reconstruct world position from depth
-    let clipSpacePosition = vec4<f32>(input.fragUV * 2.0 - 1.0, depth, 1.0);
-    let worldPosition = (cameraUniforms.invViewProjMat * clipSpacePosition).xyz;
+    if (diffuseColor.a < 0.5f) {
+        discard;
+    }
 
-    // Determine which cluster this fragment belongs to
-    let ndc = clipSpacePosition.xyz / clipSpacePosition.w;
-    let ndcXY01 = ndc.xy * 0.5 + 0.5;
-    let epsilon = 0.0001;
-    let ndcX = clamp(ndcXY01.x, 0.0, 1.0 - epsilon);
-    let ndcY = clamp(ndcXY01.y, 0.0, 1.0 - epsilon);
-    let clusterX = u32(floor(ndcX * f32(clusterSet.numClustersX)));
-    let clusterY = u32(floor(ndcY * f32(clusterSet.numClustersY)));
+    var clusterX = u32(floor(input.fragUV.x * f32(clusterSet.numClustersX)));
+    var clusterY = u32(floor(input.fragUV.y * f32(clusterSet.numClustersY)));
+    clusterX = clamp(clusterX, 0u, clusterSet.numClustersX - 1u);
+    clusterY = clamp(clusterY, 0u, clusterSet.numClustersY - 1u);
 
-    let viewPos = cameraUniforms.viewMat * vec4(worldPosition, 1.0);
-    let viewZ = viewPos.z; 
+    let ndcPos = vec3<f32>(input.fragUV * 2.0 - 1.0, depth);
+    let clipSpacePosition = vec4<f32>(ndcPos, 1.0);
+    let worldPosH = cameraUniforms.invViewProjMat * clipSpacePosition;
+    let worldPos = worldPosH.xyz / worldPosH.w;
+    let viewPos = (cameraUniforms.viewMat * vec4(worldPos, 1.0)).xyz;
     let zNear = cameraUniforms.nearPlane;
     let zFar = cameraUniforms.farPlane;
     let sliceCount = clusterSet.numClustersZ;
+    let viewZ = -viewPos.z;
+    let viewZClamped = clamp(viewZ, zNear, zFar);
     let logDepthRatio = log(zFar / zNear);
-    let viewZClamped = clamp(-viewZ, zNear, zFar); 
-
     let clusterZf = (log(viewZClamped / zNear) / logDepthRatio) * f32(sliceCount);
     var clusterZ = u32(floor(clusterZf));
     clusterZ = clamp(clusterZ, 0u, clusterSet.numClustersZ - 1u);
@@ -59,19 +58,27 @@ fn main(input: FragmentInput) -> @location(0) vec4<f32> {
     clusterIndex = clamp(clusterIndex, 0, maxClusterIndex);
     let cluster = clusterSet.clusters[clusterIndex];
 
-    // Perform lighting calculations
-    var finalColor = vec3(depth);
+    let numLightsInCluster = cluster.lightCount;
     var totalLightContrib = vec3f(0.0, 0.0, 0.0);
-    for (var i = 0u; i < cluster.lightCount; i++) {
+    for (var i = 0u; i < numLightsInCluster; i++) {
         let lightIndex = cluster.lightIndices[i];
         let light = lightSet.lights[lightIndex];
-        totalLightContrib += calculateLightContrib(light, worldPosition, normal);
-        
+        let lightContrib = calculateLightContrib_Deferred(light, worldPos, normal);
+        totalLightContrib += lightContrib;
     }
-        /*finalColor = vec3f(f32(clusterZ) / f32(clusterSet.numClustersZ),
-                           f32(clusterZ) / f32(clusterSet.numClustersZ),
-                           f32(clusterZ) / f32(clusterSet.numClustersZ));*/
-    //let finalColor = diffuseColor.rgb * totalLightContrib;
-    
+
+    var finalColor = diffuseColor.rgb * totalLightContrib;
     return vec4(finalColor, 1.0);
+}
+
+fn rangeAttenuation_Deferred(distance: f32) -> f32 {
+    return clamp(1.f - pow(distance / ${lightRadius}, 4.f), 0.f, 1.f) / (distance * distance);
+}
+
+fn calculateLightContrib_Deferred(light: Light, posWorld: vec3f, nor: vec3f) -> vec3f {
+    let vecToLight = light.pos - posWorld;
+    let distToLight = length(vecToLight);
+
+    let lambert = max(dot(nor, normalize(vecToLight)), 0.f);
+    return light.color * lambert * rangeAttenuation_Deferred(distToLight);
 }

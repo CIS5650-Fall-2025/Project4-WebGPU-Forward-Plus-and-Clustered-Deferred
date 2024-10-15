@@ -12,6 +12,7 @@ struct VertexOutput {
 struct FragmentOutput {
     @location(0) diffuseColor: vec4<f32>,
     @location(1) normal: vec4<f32>,
+    @location(2) depth: f32,
 };
 
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
@@ -21,5 +22,6 @@ fn main(input: VertexOutput) -> FragmentOutput {
     var output: FragmentOutput;
     output.diffuseColor = textureSample(diffuseTex, diffuseTexSampler, input.fragUV);
     output.normal = vec4<f32>(normalize(input.fragNormal), 1.0);
+    output.depth = input.position.z;
     return output;
 }

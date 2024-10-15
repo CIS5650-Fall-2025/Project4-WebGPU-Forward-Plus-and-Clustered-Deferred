@@ -42,7 +42,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 size: [renderer.canvas.width, renderer.canvas.height],
                 format: 'rgba16float',
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
-            })
+            }),
         };
 
         this.gBufferTextureViews = {
@@ -128,8 +128,9 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 {
                     binding: 5,
                     visibility: GPUShaderStage.FRAGMENT,
-                    sampler: { type: 'comparison' }
-                }
+                    sampler: {}
+                },
+                
             ]
         });
         
@@ -158,7 +159,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 },
                 {
                     binding: 5,
-                    resource: renderer.device.createSampler({ compare: 'less' })
+                    resource: renderer.device.createSampler()
                 }
             ]
         });
