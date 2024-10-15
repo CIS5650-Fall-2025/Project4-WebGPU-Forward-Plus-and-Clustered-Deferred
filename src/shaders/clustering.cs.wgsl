@@ -63,6 +63,7 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     // Initialize a counter for the number of lights in this cluster.
     var numLights : u32 = 0u;
 
+    let ptr = &clusterSet.clusters[clusterIdx];
     // For each light:
     let r = f32(${lightRadius});
     for (var i: u32 = 0u; i < lightSet.numLights; i++) {
@@ -70,7 +71,7 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
         // Check if the light intersects with the cluster’s bounding box (AABB).
         if (intersectionTest(applyTransform(vec4(light.pos, 1.0), cameraUniforms.view), r, minBB, maxBB)) {
             // If it does, add the light to the cluster's light list.
-            clusterSet.clusters[clusterIdx].lights[numLights] = i;
+            ptr.lights[numLights] = i;
             numLights++;
         }
         // Stop adding lights if the maximum number of lights is reached.

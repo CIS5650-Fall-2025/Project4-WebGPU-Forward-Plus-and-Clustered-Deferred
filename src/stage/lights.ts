@@ -102,8 +102,8 @@ export class Lights {
 
         this.clusterSetStorageBuffer = device.createBuffer({
             label: "clusters",
-            size: 16 + (16 + shaders.constants.maxNumLightsPerCluster * 4)
-                        * shaders.constants.numClusterX * shaders.constants.numClusterY * shaders.constants.numClusterZ,
+            size: (16 + shaders.constants.maxNumLightsPerCluster * 4)
+                    * shaders.constants.numClusterX * shaders.constants.numClusterY * shaders.constants.numClusterZ,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
 

@@ -158,10 +158,6 @@ export class Camera {
         // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
         this.uniforms.viewProjMat = viewProjMat;
 
-        let p = vec4.create(lookPos[0], lookPos[1], lookPos[2] + Camera.nearPlane, 1);
-        let res = mat4.mul(viewProjMat, p);
-        console.log(res[2] / res[3]);
-
         // TODO-2: write to extra buffers needed for light clustering here
         this.uniforms.viewMat = viewMat;
 

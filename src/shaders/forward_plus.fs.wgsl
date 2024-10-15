@@ -42,9 +42,10 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let clusterIndexX = u32((posNDCSpace.x + 1.0) * 0.5 * f32(${numClusterX}));
     let clusterIndexY = u32((posNDCSpace.y + 1.0) * 0.5 * f32(${numClusterY}));
     let clusterIndexZ = u32(posNDCSpace.z * f32(${numClusterZ}));
-    // let clusterIndexX = u32((in.fragPos.x / in.fragPos.w + 1.0) * 0.5 * f32(${numClusterX}));
-    // let clusterIndexY = u32((in.fragPos.y / in.fragPos.w + 1.0) * 0.5 * f32(${numClusterY}));
-    // let clusterIndexZ = u32(in.fragPos.z / in.fragPos.w * f32(${numClusterZ}));
+    // let posNDCSpace = applyTransform(vec4f(in.pos.x ,in.pos.y, in.pos.z, 1.0), cameraUniforms.viewproj);
+    // let clusterIndexX = u32(posNDCSpace.x * 2.0 / f32(${numClusterX}) - 1.0);
+    // let clusterIndexY = u32(posNDCSpace.y * 2.0 / f32(${numClusterY}) - 1.0);
+    // let clusterIndexZ = u32(posNDCSpace.z / f32(${numClusterZ}));
 
     let clusterIndex = clusterIndexX + 
                     clusterIndexY * ${numClusterX} + 
@@ -70,5 +71,6 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     // return vec4(f32(clusterIndexZ) / f32(${numClusterZ}), 0, 0, 1);
     // return vec4(f32(clusterIndexX) / f32(${numClusterX}), f32(clusterIndexY) / f32(${numClusterY}), f32(clusterIndexZ) / f32(${numClusterZ}), 1);
     // return vec4(0.0, 0.0, posNDCSpace.z, 1.0);
-    return vec4(finalColor, 1);
+    //return vec4(totalLightContrib, 1);
+    return vec4(f32(numLights) ,0,0, 1);
 }

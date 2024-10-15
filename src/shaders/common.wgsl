@@ -18,7 +18,7 @@ struct Cluster {
 }
 
 struct ClusterSet {
-    clusters: array<Cluster>
+    clusters: array<Cluster, ${numClusterX} * ${numClusterY} * ${numClusterZ}>
 }
 
 struct CameraUniforms {
@@ -31,7 +31,12 @@ struct CameraUniforms {
 
 // CHECKITOUT: this special attenuation function ensures lights don't affect geometry outside the maximum light radius
 fn rangeAttenuation(distance: f32) -> f32 {
-    return clamp(1.f - pow(distance / ${lightRadius}, 4.f), 0.f, 1.f) / (distance * distance);
+    // return clamp(1.f - pow(distance / ${lightRadius}, 4.f), 0.f, 1.f) / (distance * distance);
+    let val = clamp(1.f - pow(distance / ${lightRadius}, 4.f), 0.f, 1.f) / (distance * distance);
+    if (val > 0.0) {
+        return 1.0;
+    }
+    return 0.0;
 }
 
 fn calculateLightContrib(light: Light, posWorld: vec3f, nor: vec3f) -> vec3f {
