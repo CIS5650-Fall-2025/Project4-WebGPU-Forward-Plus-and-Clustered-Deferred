@@ -3,17 +3,25 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
+    readonly buffer = new ArrayBuffer(16 * 9);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
-        // TODO-1.1: set the first 16 elements of `this.floatView` to the input `mat`
+        // naive: set the first 16 elements of `this.floatView` to the input `mat`
         for (let i = 0; i < 16; ++i) {
             this.floatView[i] = mat[i];
         }
     }
-
-    // TODO-2: add extra functions to set values needed for light clustering here
+    // Extra functions to set values needed for light clustering here
+    set inverseViewProjMat(mat: Float32Array) {
+        for (let i = 0; i < 16; ++i) {
+            this.floatView[i + 16] = mat[i];
+        }
+    }
+    setNearFarPlanes(near: number, far: number) {
+        this.floatView[32] = near;
+        this.floatView[33] = far;
+    }
 }
 
 export class Camera {
@@ -134,11 +142,15 @@ export class Camera {
 
         const lookPos = vec3.add(this.cameraPos, vec3.scale(this.cameraFront, 1));
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
+        // Calculate view-projection matrix
         const viewProjMat = mat4.mul(this.projMat, viewMat);
-        // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
+        const inverseViewProjMat = mat4.invert(viewProjMat);
+        
+        // set `this.uniforms.viewProjMat` to the newly calculated view proj mat
         this.uniforms.viewProjMat = new Float32Array(viewProjMat);
         // TODO-2: write to extra buffers needed for light clustering here
-
+        this.uniforms.inverseViewProjMat = new Float32Array(inverseViewProjMat);
+        this.uniforms.setNearFarPlanes(Camera.nearPlane, Camera.farPlane);
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);

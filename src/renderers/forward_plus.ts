@@ -13,11 +13,13 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     depthTexture: GPUTexture;
     depthTextureView: GPUTextureView;
 
+    clusterBindGroupLayout: GPUBindGroupLayout;
+    clusterBindGroup: GPUBindGroup;
+
     pipeline: GPURenderPipeline;
     clusterPipeline: GPUComputePipeline;
     clusterBuffer: GPUBuffer;
-    clusterBindGroupLayout: GPUBindGroupLayout;
-    clusterBindGroup: GPUBindGroup;
+    
 
     constructor(stage: Stage) {
         super(stage);
@@ -69,17 +71,12 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 {
                     binding: 0, // Cluster data buffer
                     visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-                    buffer: { type: "storage" }
+                    buffer: { type: "read-only-storage" }
                 }
             ]
         });
-        // Create the buffer to store clusters
-        this.clusterBuffer = renderer.device.createBuffer({
-            size: this.calculateClusterBufferSize(),
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        });
-
         this.clusterBindGroup = renderer.device.createBindGroup({
+            label: "cluster bind group",
             layout: this.clusterBindGroupLayout,
             entries: [
                 {
@@ -88,6 +85,14 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 }
             ]
         });
+
+        // Create the buffer to store clusters
+        this.clusterBuffer = renderer.device.createBuffer({
+            size: this.calculateClusterBufferSize(),
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        });
+
+        
         // Forward+ pipeline
         this.pipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
