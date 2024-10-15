@@ -1,9 +1,9 @@
-import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
+import { Mat4, mat4, Vec3, vec3, vec4 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4 * 3);
+    readonly buffer = new ArrayBuffer((16 * 3 + 4) * 4);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -16,6 +16,14 @@ class CameraUniforms {
 
     set invProjMat(mat: Float32Array) {
         this.floatView.set(mat, 16 * 2);
+    }
+
+    set near(n: number) {
+        this.floatView[16 * 3] = n;
+    }
+
+    set logfarovernear(n: number) {
+        this.floatView[16 * 3 + 1] = n;
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
@@ -141,7 +149,10 @@ export class Camera {
         const invProjMat = mat4.inverse(this.projMat);
         this.uniforms.invProjMat = invProjMat;
 
+        this.uniforms.near = Camera.nearPlane;
+        this.uniforms.logfarovernear = Math.log(Camera.farPlane / Camera.nearPlane);
         // TODO-2: write to extra buffers needed for light clustering here
+        
 
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);
     }

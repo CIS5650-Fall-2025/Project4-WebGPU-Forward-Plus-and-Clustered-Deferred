@@ -99,11 +99,12 @@ export class Lights {
         });
 
         // TODO-2: initialize layouts, pipelines, textures, etc. needed for light clustering here
+        const numClusters = shaders.constants.clusterX * shaders.constants.clusterY * shaders.constants.clusterZ;
+        const clusterStructSize = shaders.constants.maxClusterLights * 4;
+
         this.clusterSetStorageBuffer = device.createBuffer({
             label: "clusters",
-            size: (shaders.constants.clusterX * shaders.constants.clusterY * shaders.constants.clusterZ)
-                    * ((4 * 4 * 2) + (shaders.constants.maxClusterLights * 4))
-            ,
+            size: numClusters * clusterStructSize,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
 
@@ -183,7 +184,12 @@ export class Lights {
         const computePass = encoder.beginComputePass();
         computePass.setPipeline(this.clusterLightsComputePipeline);
         computePass.setBindGroup(0, this.clusterLightsComputeBindGroup);
-        computePass.dispatchWorkgroups(shaders.constants.clusterX, shaders.constants.clusterY, shaders.constants.clusterZ);
+
+        // FIXME: Maybe don't hardcode this
+        computePass.dispatchWorkgroups(
+            1,
+            1,
+            16);
         computePass.end();
     }
 
@@ -203,8 +209,6 @@ export class Lights {
         computePass.dispatchWorkgroups(workgroupCount);
 
         computePass.end();
-        this.doLightClustering(encoder);
-
         device.queue.submit([encoder.finish()]);
     }
 }

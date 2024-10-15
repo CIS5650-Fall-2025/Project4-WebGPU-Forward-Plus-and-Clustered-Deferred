@@ -20,7 +20,9 @@ struct Cluster {
 struct CameraUniforms {
     viewProj : mat4x4f,
     view: mat4x4f,
-    invProj: mat4x4f
+    invProj: mat4x4f,
+    near: f32,
+    logfarovernear: f32
 }
 
 // CHECKITOUT: this special attenuation function ensures lights don't affect geometry outside the maximum light radius
