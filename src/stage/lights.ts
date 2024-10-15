@@ -102,7 +102,7 @@ export class Lights {
         const numClustersX = 16; 
         const numClustersY = 9;
         const numClustersZ = 24;
-        const maxLightsPerCluster = 256;
+        const maxLightsPerCluster = shaders.constants.maxLightPerCluster;
         const clusterSize = 
             3 * 4 + // minBounds (vec3<f32>)
             3 * 4 + // maxBounds (vec3<f32>)
