@@ -84,7 +84,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             vertex: {
                 module: renderer.device.createShaderModule({
                     label: "naive vert shader",
-                    code: shaders.forwardPlusVertSrc,
+                    code: shaders.naiveVertSrc,
                 }),
                 buffers: [ renderer.vertexBufferLayout ]
             },

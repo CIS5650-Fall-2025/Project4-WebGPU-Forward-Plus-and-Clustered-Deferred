@@ -48,13 +48,14 @@ fn main(in: FragmentInput) -> @location(0) vec4<f32> {
     let ndcPos01 = ndcPos * 0.5 + vec3<f32>(0.5);
 
  
-    let ndcPosClamped = clamp(ndcPos01, vec3<f32>(0.0), vec3<f32>(1.0));
+    //let ndcPosClamped = clamp(ndcPos01, vec3<f32>(0.0), vec3<f32>(1.0));
 
   
-    let clusterX = u32(ndcPosClamped.x * f32(clusterGridSize.x));
-    let clusterY = u32(ndcPosClamped.y * f32(clusterGridSize.y));
-    let clusterZ = u32(ndcPosClamped.z * f32(clusterGridSize.z));
-
+    let clusterX = u32(ndcPos01.x * f32(clusterGridSize.x));
+    let clusterY = u32(ndcPos01.y * f32(clusterGridSize.y));
+    let clusterZ = u32(ndcPos01.z * f32(clusterGridSize.z));
+    // let viewZ = (in.pos.z - camera.nearPlane)/(camera.farPlane - camera.nearPlane);
+    // let clusterZ = u32(viewZ * f32(clusterGridSize.z));
    
     let clusterXClamped = min(clusterX, clusterGridSize.x - 1u);
     let clusterYClamped = min(clusterY, clusterGridSize.y - 1u);
@@ -75,16 +76,17 @@ fn main(in: FragmentInput) -> @location(0) vec4<f32> {
     var finalColor = vec3<f32>(1.0, 1.0, 1.0);
     if (clusterSet.clusters[clusterIndex].numLights > 0){
         finalColor = vec3<f32>(1.0, 0.0, 1.0);
+        return vec4<f32>(finalColor, 1.0);
     }
     
-    for (var i = 0u; i < clusterSet.clusters[clusterIndex].numLights; i++) {
+    // for (var i = 0u; i < clusterSet.clusters[clusterIndex].numLights; i++) {
         
-        let lightIdx = clusterSet.clusters[clusterIndex].lightIndices[i];
+    //     let lightIdx = clusterSet.clusters[clusterIndex].lightIndices[i];
         
-        let light = lightSet.lights[lightIdx];
-        totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
+    //     let light = lightSet.lights[lightIdx];
+    //     totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
         
-    }
+    // }
     
     return vec4<f32>(finalColor, 1.0);
     
