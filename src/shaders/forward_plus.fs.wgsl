@@ -51,6 +51,10 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     }
 
     var finalColor = diffuseColor.rgb * totalLightContrib;
+
+    finalColor = generateClusterColor(clusterIndex);
+    // finalColor = generateClusterNumColor(currentCluster.numLights);
+
     return vec4(finalColor, 1);
 }
 
@@ -63,4 +67,51 @@ fn calculateClusterIndex(fragCoord: vec4f, fragPos: vec3f) -> u32 {
     let clusterZ = u32(log2(zDepth / cameraData.zNear) / logZRatio * f32(clusterGrid.clusterGridSizeZ));
 
     return clusterX + clusterY * clusterGrid.clusterGridSizeX + clusterZ * clusterGrid.clusterGridSizeX * clusterGrid.clusterGridSizeY;
+}
+
+fn hueToRgbComponent(n: f32, hue: f32) -> f32 {
+    return 1.0 - abs(fract(n + hue * 6.0) * 2.0 - 1.0);
+}
+
+fn generateClusterGrayscale(clusterIndex: u32) -> vec3<f32> {
+    let hue = f32(clusterIndex % 360u) / 360.0;
+
+    return vec3<f32>(
+        hueToRgbComponent(5.0, hue),
+        hueToRgbComponent(3.0, hue),
+        hueToRgbComponent(1.0, hue)
+    );
+}
+
+fn generateClusterColor(clusterIndex: u32) -> vec3<f32> {
+    let hue = f32(clusterIndex % 360u) / 360.0;
+
+    let c = 1.0;
+    let x = c * (1.0 - abs(fract(hue * 6.0) * 2.0 - 1.0));
+    let m = 0.0;
+
+    var r: f32;
+    var g: f32;
+    var b: f32;
+
+    if (0.0 <= hue && hue < 1.0 / 6.0) {
+        r = c; g = x; b = m;
+    } else if (1.0 / 6.0 <= hue && hue < 2.0 / 6.0) {
+        r = x; g = c; b = m;
+    } else if (2.0 / 6.0 <= hue && hue < 3.0 / 6.0) {
+        r = m; g = c; b = x;
+    } else if (3.0 / 6.0 <= hue && hue < 4.0 / 6.0) {
+        r = m; g = x; b = c;
+    } else if (4.0 / 6.0 <= hue && hue < 5.0 / 6.0) {
+        r = x; g = m; b = c;
+    } else {
+        r = c; g = m; b = x;
+    }
+
+    return vec3<f32>(r, g, b);
+}
+
+fn generateClusterNumColor(numLights: u32) -> vec3<f32> {
+    let lightFactor = clamp(f32(numLights) / 256.0, 0.0, 1.0);
+    return vec3<f32>(lightFactor, lightFactor, lightFactor);
 }
