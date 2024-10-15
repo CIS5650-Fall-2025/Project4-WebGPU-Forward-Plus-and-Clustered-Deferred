@@ -20,11 +20,18 @@ export var modelBindGroupLayout: GPUBindGroupLayout;
 export var materialBindGroupLayout: GPUBindGroupLayout;
 
 export var useBloom: boolean = false;
+export var useRenderBundles: boolean = false;
 
 export function setBloom(value:boolean)
 {
     useBloom = value;
-    console.log('Bloom is now ' + (useBloom ? 'enabled' : 'disabled'));
+    // console.log('Bloom is now ' + (useBloom ? 'enabled' : 'disabled'));
+}
+
+export function setRenderBundles(value:boolean)
+{
+    useRenderBundles = value;
+    console.log('Render Bundles is now ' + (useRenderBundles ? 'enabled' : 'disabled'));
 }
 
 // CHECKITOUT: this function initializes WebGPU and also creates some bind group layouts shared by all the renderers
@@ -164,7 +171,7 @@ export abstract class Renderer {
 
         // Post Processing
 
-        // Create Buffers7
+        // Create Buffers
         {
             this.blurDirectionBuffer = device.createBuffer({
                 size: 4,  // Size of a u32 is 4 bytes

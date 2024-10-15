@@ -1,7 +1,7 @@
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 
-import { initWebGPU, Renderer, initResizeObserver, setBloom } from './renderer';
+import { initWebGPU, Renderer, initResizeObserver, setBloom, setRenderBundles } from './renderer';
 import { NaiveRenderer } from './renderers/naive';
 import { ForwardPlusRenderer } from './renderers/forward_plus';
 import { ClusteredDeferredRenderer } from './renderers/clustered_deferred';
@@ -58,7 +58,8 @@ let renderModeController = gui.add({ mode: renderModes.clusterForward }, 'mode',
 
 let globalSettings = {
     enableBloom: false,
-    stopTime: false
+    stopTime: false,
+    useRenderBundles: false
 };
 let bloomController = gui.add(globalSettings, 'enableBloom').name('Enable Bloom');
 bloomController.onChange(function(value) {
@@ -72,6 +73,11 @@ stopTimeController.onChange(function(value) {
     stopTime(value);
 });
 
+let useRenderBundlesController = gui.add(globalSettings, 'useRenderBundles').name('RenderBundles');
+useRenderBundlesController.onChange(function(value) {
+    //console.log('Render Bundles are now ' + (value ? 'enabled' : 'disabled'));
+    setRenderBundles(value);
+});
 
 renderModeController.onChange(setRenderer);
 initResizeObserver(setRenderer, getRenderMode);

@@ -11,6 +11,8 @@ export class NaiveRenderer extends renderer.Renderer {
 
     pipeline: GPURenderPipeline;
 
+    renderBundle: GPURenderBundle;
+
     constructor(stage: Stage) {
         super(stage);
 
@@ -98,6 +100,27 @@ export class NaiveRenderer extends renderer.Renderer {
                 ]
             }
         });
+
+        // Render bundle
+        {
+            const renderBundleEncoder = renderer.device.createRenderBundleEncoder({
+                colorFormats: [renderer.canvasFormat],
+                depthStencilFormat: 'depth24plus',
+            });
+
+            renderBundleEncoder.setPipeline(this.pipeline);
+            renderBundleEncoder.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+            this.scene.iterate(node => {
+                renderBundleEncoder.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+            }, material => {
+                renderBundleEncoder.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+            }, primitive => {
+                renderBundleEncoder.setVertexBuffer(0, primitive.vertexBuffer);
+                renderBundleEncoder.setIndexBuffer(primitive.indexBuffer, 'uint32');
+                renderBundleEncoder.drawIndexed(primitive.numIndices);
+            });
+            this.renderBundle = renderBundleEncoder.finish();
+        }
     }
 
     override draw() {
@@ -123,20 +146,31 @@ export class NaiveRenderer extends renderer.Renderer {
                     depthStoreOp: "store"
                 }
             });
+
             renderPass.setPipeline(this.pipeline);
 
             // TODO-1.2: bind `this.sceneUniformsBindGroup` to index `shaders.constants.bindGroup_scene`
-            renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+            if(renderer.useRenderBundles)
+            {
+                renderPass.executeBundles([this.renderBundle]);
+                // console.log('11111');
+            }
+            else
+            {
+                renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
 
-            this.scene.iterate(node => {
-                renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
-            }, material => {
-                renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
-            }, primitive => {
-                renderPass.setVertexBuffer(0, primitive.vertexBuffer);
-                renderPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
-                renderPass.drawIndexed(primitive.numIndices);
-            });
+                this.scene.iterate(node => {
+                    renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+                }, material => {
+                    renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+                }, primitive => {
+                    renderPass.setVertexBuffer(0, primitive.vertexBuffer);
+                    renderPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
+                    renderPass.drawIndexed(primitive.numIndices);
+                });
+                // console.log('22222');
+            }
+
             renderPass.end();
         }
 

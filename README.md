@@ -26,7 +26,9 @@ to implementation work. Complete the implementation early to leave time!
 - Naive Renderer
   In naive forward rendering, the light contribution calculation needs to be performed fn * ln times, where fn is the number of fragments and ln is the number of lights.
 
-- Forward+
+- Cluster Forward
+  
+- Bloom
 
 ### Naive Renderer
 

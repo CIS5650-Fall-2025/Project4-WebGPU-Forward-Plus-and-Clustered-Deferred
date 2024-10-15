@@ -35,6 +35,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     renderPipeline: GPURenderPipeline;
     gbufferPipeline: GPURenderPipeline;
 
+    gbufferBundle: GPURenderBundle;
+
     constructor(stage: Stage) {
         super(stage);
 
@@ -312,6 +314,28 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 }
             });
         }
+
+        // Create the render bundle
+        {
+            // render pass bundles
+            const renderBundleEncoder = renderer.device.createRenderBundleEncoder({
+                colorFormats: ["rgba16float", "rgba16float", "rgba16float"],
+                depthStencilFormat: 'depth24plus',
+            });
+
+            renderBundleEncoder.setPipeline(this.gbufferPipeline);
+            renderBundleEncoder.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+            this.scene.iterate(node => {
+                renderBundleEncoder.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+            }, material => {
+                renderBundleEncoder.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+            }, primitive => {
+                renderBundleEncoder.setVertexBuffer(0, primitive.vertexBuffer);
+                renderBundleEncoder.setIndexBuffer(primitive.indexBuffer, 'uint32');
+                renderBundleEncoder.drawIndexed(primitive.numIndices);
+            });
+            this.gbufferBundle = renderBundleEncoder.finish();
+        }
     }
 
     override draw() {
@@ -355,17 +379,24 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     depthClearValue: 1.0
                 }
             });
-            gbufferPass.setPipeline(this.gbufferPipeline);
-            gbufferPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
-            this.scene.iterate(node => {
-                gbufferPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
-            }, material => {
-                gbufferPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
-            }, primitive => {
-                gbufferPass.setVertexBuffer(0, primitive.vertexBuffer);
-                gbufferPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
-                gbufferPass.drawIndexed(primitive.numIndices);
-            });
+            if(renderer.useRenderBundles)
+            {
+                gbufferPass.executeBundles([this.gbufferBundle]);
+            }
+            else
+            {
+                gbufferPass.setPipeline(this.gbufferPipeline);
+                gbufferPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+                this.scene.iterate(node => {
+                    gbufferPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+                }, material => {
+                    gbufferPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+                }, primitive => {
+                    gbufferPass.setVertexBuffer(0, primitive.vertexBuffer);
+                    gbufferPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
+                    gbufferPass.drawIndexed(primitive.numIndices);
+                });
+            }
             gbufferPass.end();
         }
         // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
