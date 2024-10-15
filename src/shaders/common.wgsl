@@ -23,6 +23,7 @@ struct CameraUniforms {
 
 struct ViewUniforms {
     matrix : mat4x4<f32>,
+    invViewMatrix : mat4x4<f32>,
     position : vec3<f32>
 };
 
@@ -152,4 +153,25 @@ fn unpack32bitToRGB32(value: u32) -> vec3<f32> {
     let b: f32 = unpack10BitToFloat(value & 0x3FF);
 
     return vec3<f32>(r, g, b);
+}
+
+// ref: https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
+// octahedron normal vector encoding
+fn octWrap(v : vec2f) -> vec2f {
+    return (1.0 - abs(v.yx)) * vec2f(select(-1.0, 1.0, v.x >= 0.0), select(-1.0, 1.0, v.y >= 0.0));
+}
+
+fn encodeNormal(n: vec3f) -> vec2f {
+    var nor = n.xy / (abs(n.x) + abs(n.y) + abs(n.z));
+    nor = select(octWrap(nor), nor, n.z >= 0.0);
+    return nor * 0.5 + 0.5;
+}
+
+fn decodeNormal(v: vec2f) -> vec3f {
+    let f = v * 2.0 - 1.0;
+    var n = vec3f(f.xy, 1.0 - abs(f.x) - abs(f.y));
+    let t = saturate(-n.z);
+    n.x += select(t, -t, n.x >= 0.0);
+    n.y += select(t, -t, n.y >= 0.0);
+    return normalize(n);
 }

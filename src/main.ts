@@ -1,7 +1,7 @@
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 
-import { initWebGPU, Renderer, initResizeObserver, setBloom, setRenderBundles } from './renderer';
+import { initWebGPU, Renderer, initResizeObserver, setBloom, setRenderBundles, setGbufferCompression, useGbufferCompression } from './renderer';
 import { NaiveRenderer } from './renderers/naive';
 import { ForwardPlusRenderer } from './renderers/forward_plus';
 import { ClusteredDeferredRenderer } from './renderers/clustered_deferred';
@@ -59,7 +59,8 @@ let renderModeController = gui.add({ mode: renderModes.clusterForward }, 'mode',
 let globalSettings = {
     enableBloom: false,
     stopTime: false,
-    useRenderBundles: false
+    useRenderBundles: false,
+    useGbufferCompression: false
 };
 let bloomController = gui.add(globalSettings, 'enableBloom').name('Enable Bloom');
 bloomController.onChange(function(value) {
@@ -77,6 +78,12 @@ let useRenderBundlesController = gui.add(globalSettings, 'useRenderBundles').nam
 useRenderBundlesController.onChange(function(value) {
     //console.log('Render Bundles are now ' + (value ? 'enabled' : 'disabled'));
     setRenderBundles(value);
+});
+
+let useGbufferCompressionController = gui.add(globalSettings, 'useGbufferCompression').name('Gbuffer Compress');
+useGbufferCompressionController.onChange(function(value) {
+    //console.log('Gbuffer Compression is now ' + (value ? 'enabled' : 'disabled'));
+    setGbufferCompression(value);
 });
 
 renderModeController.onChange(setRenderer);

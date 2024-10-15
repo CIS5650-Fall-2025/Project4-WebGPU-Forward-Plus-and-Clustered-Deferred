@@ -45,6 +45,9 @@ WebGL Forward+ and Clustered Deferred Shading
   There is no improvement in performance, probably because the scene being drawn is not complex enough.
 
 ## Analysis
+Maximum number of lights per cluster: 1000
+Lights' Radius: 3
+You can configure these parameters in the `shaders/shader.ts` file under the constants section.
   ![](./img/performance.png)
 
 ## Credits

@@ -35,7 +35,7 @@ class CameraUniforms {
 
 class ViewUniforms
 {
-    readonly buffer = new ArrayBuffer(80);
+    readonly buffer = new ArrayBuffer(144);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewMat(mat: Float32Array) {
@@ -44,9 +44,15 @@ class ViewUniforms
         }
     }
 
+    set invViewMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[i + 16] = mat[i];
+        }
+    }
+
     set viewPos(pos: Vec3) {
         for (let i = 0; i < 3; i++) {
-            this.floatView[i + 16] = pos[i];
+            this.floatView[i + 32] = pos[i];
         }
     }
 }
@@ -183,6 +189,10 @@ export class Camera {
         var invProjMat = mat4.clone(this.projMat);
         mat4.invert(invProjMat, invProjMat);
         let invProjMatMatArray = new Float32Array(invProjMat);
+
+        var invViewMat = mat4.clone(viewMat);
+        mat4.invert(invViewMat, invViewMat);
+        let invViewMatMatArray = new Float32Array(invViewMat);
         // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
         this.uniforms.viewProjMat = new Float32Array(viewProjMat);  
         this.uniforms.canvasSize = [canvas.width, canvas.height];
@@ -193,6 +203,7 @@ export class Camera {
         // TODO-2: write to extra buffers needed for light clustering here
         this.viewUniforms.viewMat = new Float32Array(viewMat);
         this.viewUniforms.viewPos = this.cameraPos;
+        this.viewUniforms.invViewMat = invViewMatMatArray;
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`

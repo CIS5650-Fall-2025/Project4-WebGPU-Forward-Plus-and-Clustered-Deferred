@@ -381,7 +381,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             if(renderer.useRenderBundles)
             {
                 renderPass.executeBundles([this.renderBundle]);
-                console.log('11111');
+                // console.log('11111');
             }
             else
             {

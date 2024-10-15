@@ -21,6 +21,7 @@ export var materialBindGroupLayout: GPUBindGroupLayout;
 
 export var useBloom: boolean = false;
 export var useRenderBundles: boolean = false;
+export var useGbufferCompression: boolean = false;
 
 export function setBloom(value:boolean)
 {
@@ -32,6 +33,12 @@ export function setRenderBundles(value:boolean)
 {
     useRenderBundles = value;
     console.log('Render Bundles is now ' + (useRenderBundles ? 'enabled' : 'disabled'));
+}
+
+export function setGbufferCompression(value:boolean)
+{
+    useGbufferCompression = value;
+    console.log('Gbuffer Compression is now ' + (useGbufferCompression ? 'enabled' : 'disabled'));
 }
 
 // CHECKITOUT: this function initializes WebGPU and also creates some bind group layouts shared by all the renderers

@@ -14,9 +14,12 @@ import clusteredDeferredFragRaw from './clustered_deferred.fs.wgsl?raw';
 import clusteredDeferredFullscreenVertRaw from './clustered_deferred_fullscreen.vs.wgsl?raw';
 import clusteredDeferredFullscreenFragRaw from './clustered_deferred_fullscreen.fs.wgsl?raw';
 
+import clusteredDeferredOptimFrag from './clustered_deferred_opim.fs.wgsl?raw';
+import clusteredDeferredOptimFullscreenFrag from './clustered_deferred_optim_fullscreen.fs.wgsl?raw';
+
 import moveLightsComputeRaw from './move_lights.cs.wgsl?raw';
 import clusteringComputeRaw from './clustering.cs.wgsl?raw';
-import clusterBoundComputeRaw from './cluster_bounds.cs.wgsl?raw';
+import clusterBoundComputeRaw from './clustered_bounds.cs.wgsl?raw';
 
 import depthVisualVertRaw from './visualize_depth.vs.wgsl?raw';
 import depthVisualFragRaw from './visualize_depth.fs.wgsl?raw';
@@ -76,6 +79,9 @@ export const forwardPlusFragSrc: string = processShaderRaw(forwardPlusFragRaw);
 export const clusteredDeferredFragSrc: string = processShaderRaw(clusteredDeferredFragRaw);
 export const clusteredDeferredFullscreenVertSrc: string = processShaderRaw(clusteredDeferredFullscreenVertRaw);
 export const clusteredDeferredFullscreenFragSrc: string = processShaderRaw(clusteredDeferredFullscreenFragRaw);
+
+export const clusteredDeferredOptimFragSrc: string = processShaderRaw(clusteredDeferredOptimFrag);
+export const clusteredDeferredOptimFullscreenFragSrc: string = processShaderRaw(clusteredDeferredOptimFullscreenFrag);
 
 export const moveLightsComputeSrc: string = processShaderRaw(moveLightsComputeRaw);
 export const clusteringComputeSrc: string = processShaderRaw(clusteringComputeRaw);

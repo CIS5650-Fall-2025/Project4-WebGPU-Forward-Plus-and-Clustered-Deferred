@@ -10,6 +10,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
 
     gbufferBindGroupLayout: GPUBindGroupLayout;
     gbufferBindGroup: GPUBindGroup;
+    gbufferOptimBindGroupLayout: GPUBindGroupLayout;
+    gbufferOptimBindGroup: GPUBindGroup;
 
     depthVisualGroupLayout: GPUBindGroupLayout;
     depthVisualBindGroup: GPUBindGroup;
@@ -26,14 +28,18 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     normalTextureView: GPUTextureView;
     albedoTexture: GPUTexture;
     albedoTextureView: GPUTextureView;
+    gbufferTexture: GPUTexture;
+    gbufferTextureView: GPUTextureView;
     testTexture: GPUTexture;
     testTextureView: GPUTextureView;
     defaultSampler: GPUSampler;
 
-    depthbufferPipeline: GPURenderPipeline;
-    depthbufferVisualPipeline: GPURenderPipeline;
+    // depthbufferPipeline: GPURenderPipeline;
+    // depthbufferVisualPipeline: GPURenderPipeline;
     renderPipeline: GPURenderPipeline;
+    renderOptimPipeline: GPURenderPipeline;
     gbufferPipeline: GPURenderPipeline;
+    gbufferOptimPipeline: GPURenderPipeline;
 
     gbufferBundle: GPURenderBundle;
 
@@ -163,6 +169,13 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
             });
             this.testTextureView = this.testTexture.createView();
+
+            this.gbufferTexture = renderer.device.createTexture({
+                size: [renderer.canvas.width, renderer.canvas.height],
+                format: "rgba32uint",
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+            });
+            this.gbufferTextureView = this.gbufferTexture.createView();
         }
 
         // Create the gbuffer bind group layout
@@ -236,13 +249,46 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     }
                 ]
             });
+
+            this.gbufferOptimBindGroupLayout = renderer.device.createBindGroupLayout({
+                label: "cluster forward defferred optimized gbuffer bind group layout",
+                entries: [
+                    { // sampler
+                        binding: 0,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: {}
+                    },
+                    { // packed gbuffer
+                        binding: 1,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: {
+                            sampleType: "uint",
+                            viewDimension: '2d'
+                        }
+                    },
+                ]
+            });
+
+            this.gbufferOptimBindGroup = renderer.device.createBindGroup({
+                layout: this.gbufferOptimBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: this.defaultSampler
+                    },
+                    {
+                        binding: 1,
+                        resource: this.gbufferTextureView
+                    },
+                ]
+            });
         }
 
         // Create the pipelines
         {
             this.gbufferPipeline = renderer.device.createRenderPipeline({
                 layout: renderer.device.createPipelineLayout({
-                    label: "cluster forward defferred pipeline layout",
+                    label: "cluster forward defferred gbuffer pipeline layout",
                     bindGroupLayouts: [
                         this.sceneUniformsBindGroupLayout,
                         renderer.modelBindGroupLayout,
@@ -283,8 +329,46 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 }
             });
 
+            this.gbufferOptimPipeline = renderer.device.createRenderPipeline({
+                layout: renderer.device.createPipelineLayout({
+                    label: "cluster forward defferred gbuffer optimization pipeline layout",
+                    bindGroupLayouts: [
+                        this.sceneUniformsBindGroupLayout,
+                        renderer.modelBindGroupLayout,
+                        renderer.materialBindGroupLayout,
+                    ]
+                }),
+                vertex: {
+                    module: renderer.device.createShaderModule({
+                        code: shaders.naiveVertSrc
+                    }),
+                    buffers: [ renderer.vertexBufferLayout ],
+                    entryPoint: "main"
+                },
+                fragment: {
+                    module: renderer.device.createShaderModule({
+                        code: shaders.clusteredDeferredOptimFragSrc
+                    }),
+                    entryPoint: "main",
+                    targets: [
+                        {
+                            format: "rgba32uint"
+                        },
+                    ]
+                },
+                primitive: {
+                    topology: "triangle-list"
+                },
+                depthStencil: {
+                    format: "depth24plus",
+                    depthWriteEnabled: true,
+                    depthCompare: "less"
+                }
+            });
+
             this.renderPipeline = renderer.device.createRenderPipeline({
                 layout: renderer.device.createPipelineLayout({
+                    label: "cluster forward defferred render pipeline layout",
                     bindGroupLayouts: [
                         this.sceneUniformsBindGroupLayout,
                         this.emptyBindGroupLayout,
@@ -301,6 +385,38 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 fragment: {
                     module: renderer.device.createShaderModule({
                         code: shaders.clusteredDeferredFullscreenFragSrc
+                    }),
+                    entryPoint: "main",
+                    targets: [
+                        {
+                            format: renderer.canvasFormat
+                        }
+                    ]
+                },
+                primitive: {
+                    topology: "triangle-list"
+                }
+            });
+
+            this.renderOptimPipeline = renderer.device.createRenderPipeline({
+                layout: renderer.device.createPipelineLayout({
+                    label: "cluster forward defferred optimized render pipeline layout",
+                    bindGroupLayouts: [
+                        this.sceneUniformsBindGroupLayout,
+                        this.emptyBindGroupLayout,
+                        this.emptyBindGroupLayout,
+                        this.gbufferOptimBindGroupLayout
+                    ]
+                }),
+                vertex: {
+                    module: renderer.device.createShaderModule({
+                        code: shaders.clusteredDeferredFullscreenVertSrc
+                    }),
+                    entryPoint: "main"
+                },
+                fragment: {
+                    module: renderer.device.createShaderModule({
+                        code: shaders.clusteredDeferredOptimFullscreenFragSrc
                     }),
                     entryPoint: "main",
                     targets: [
@@ -350,42 +466,74 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         }
         // - run the G-buffer pass, outputting position, albedo, and normals
         {
-            const gbufferPass = encoder.beginRenderPass({
-                label: "cluster forward defferred gbuffer render pass",
-                colorAttachments: [
-                    {
-                        view: this.posTextureView,
-                        loadOp: "clear",
-                        storeOp: "store",
-                        clearValue: { r: 0, g: 0, b: 0, a: 0 }
-                    },
-                    {
-                        view: this.normalTextureView,
-                        loadOp: "clear",
-                        storeOp: "store",
-                        clearValue: { r: 0, g: 0, b: 0, a: 0 }
-                    },
-                    {
-                        view: this.albedoTextureView,
-                        loadOp: "clear",
-                        storeOp: "store",
-                        clearValue: { r: 0, g: 0, b: 0, a: 0 }
+            var gbufferPass: GPURenderPassEncoder;
+            if(renderer.useGbufferCompression)
+            {
+                gbufferPass = encoder.beginRenderPass({
+                    label: "cluster forward defferred optimized gbuffer render pass",
+                    colorAttachments: [
+                        {
+                            view: this.gbufferTextureView,
+                            loadOp: "clear",
+                            storeOp: "store",
+                            clearValue: { r: 0, g: 0, b: 0, a: 0 }
+                        }
+                    ],
+                    depthStencilAttachment: {
+                        view: this.depthTextureView,
+                        depthLoadOp: "clear",
+                        depthStoreOp: "store",
+                        depthClearValue: 1.0
                     }
-                ],
-                depthStencilAttachment: {
-                    view: this.depthTextureView,
-                    depthLoadOp: "clear",
-                    depthStoreOp: "store",
-                    depthClearValue: 1.0
-                }
-            });
+                });
+            }
+            else
+            {
+                gbufferPass = encoder.beginRenderPass({
+                    label: "cluster forward defferred gbuffer render pass",
+                    colorAttachments: [
+                        {
+                            view: this.posTextureView,
+                            loadOp: "clear",
+                            storeOp: "store",
+                            clearValue: { r: 0, g: 0, b: 0, a: 0 }
+                        },
+                        {
+                            view: this.normalTextureView,
+                            loadOp: "clear",
+                            storeOp: "store",
+                            clearValue: { r: 0, g: 0, b: 0, a: 0 }
+                        },
+                        {
+                            view: this.albedoTextureView,
+                            loadOp: "clear",
+                            storeOp: "store",
+                            clearValue: { r: 0, g: 0, b: 0, a: 0 }
+                        }
+                    ],
+                    depthStencilAttachment: {
+                        view: this.depthTextureView,
+                        depthLoadOp: "clear",
+                        depthStoreOp: "store",
+                        depthClearValue: 1.0
+                    }
+                });
+            }
+
             if(renderer.useRenderBundles)
             {
                 gbufferPass.executeBundles([this.gbufferBundle]);
             }
             else
             {
-                gbufferPass.setPipeline(this.gbufferPipeline);
+                if(renderer.useGbufferCompression)
+                {
+                    gbufferPass.setPipeline(this.gbufferOptimPipeline);
+                }
+                else
+                {
+                    gbufferPass.setPipeline(this.gbufferPipeline);
+                }
                 gbufferPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
                 this.scene.iterate(node => {
                     gbufferPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
@@ -402,7 +550,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
         {
             const renderPass = encoder.beginRenderPass({
-                label: "forward plus render pass",
+                label: "cluster deferred render pass",
                 colorAttachments: [
                     {
                         view: renderer.useBloom ? this.screenTextureView : canvasTextureView,
@@ -413,11 +561,11 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 ]
             });
 
-            renderPass.setPipeline(this.renderPipeline);
+            renderPass.setPipeline(renderer.useGbufferCompression ? this.renderOptimPipeline : this.renderPipeline);
             renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
             renderPass.setBindGroup(1, this.emptyBindGroup);
             renderPass.setBindGroup(2, this.emptyBindGroup);
-            renderPass.setBindGroup(shaders.constants.bindGroup_Gbuffer, this.gbufferBindGroup);
+            renderPass.setBindGroup(shaders.constants.bindGroup_Gbuffer, renderer.useGbufferCompression ? this.gbufferOptimBindGroup : this.gbufferBindGroup);
             renderPass.draw(3);
             renderPass.end();
         }
