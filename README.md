@@ -8,7 +8,7 @@ WebGL Forward+ and Clustered Deferred Shading
   Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
 
 ### Live Demo
-
+[Link](https://jichumao.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 [![](img/thumb.png)](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
 ### Demo Video/GIF
