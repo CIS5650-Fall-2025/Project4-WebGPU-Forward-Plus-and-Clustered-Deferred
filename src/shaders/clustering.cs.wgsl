@@ -72,8 +72,8 @@ fn recordDistanceLightCluster(light: Light, aabbMin: vec3<f32>, aabbMax: vec3<f3
 }
 
 fn calculateClusterScreenBounds(clusterX: u32, clusterY: u32, clusterZ: u32, clusterIndex: u32) -> AABB {
-    let clusterWidthNDC = 2.0 / f32(clusterGrid.canvasWidth);
-    let clusterHeightNDC = 2.0 / f32(clusterGrid.canvasHeight);
+    let clusterWidthNDC = 2.0 / f32(clusterGrid.clusterGridSizeX);
+    let clusterHeightNDC = 2.0 / f32(clusterGrid.clusterGridSizeY);
 
     let minXNDC = -1.0 + clusterWidthNDC * f32(clusterX);
     let minYNDC = -1.0 + clusterHeightNDC * f32(clusterY);
