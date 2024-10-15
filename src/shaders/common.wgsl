@@ -13,7 +13,8 @@ struct LightSet {
 
 struct CameraUniforms {
     // TODO-1.3: add an entry for the view proj mat (of type mat4x4f)
-    viewProj: mat4x4<f32>
+    viewProj: mat4x4<f32>,
+    invViewProj: mat4x4<f32>
 }
 
 fn square(x: f32) -> f32 {
@@ -43,5 +44,11 @@ fn calculateLightIntersection(light: Light, minb: vec3f, maxb: vec3f) -> bool {
         lightDist += square(min(abs(light.pos[i] - maxb[i]), abs(light.pos[i] - minb[i])));
     }
 
-    return lightDist < square(0.1); // assume light radius is 0.1 in ndc
+    return lightDist < square(${lightRadius}); // assume light radius is 0.1 in ndc
 }
+
+
+const INFINITE: f32 = 3.40282346638528859812e+38f;
+const tileSize: f32 = 128.0;
+const invTileZSize: f32 = 0.1; // split the z axis into 10 slices
+const maxLightPerTile: u32 = 100;

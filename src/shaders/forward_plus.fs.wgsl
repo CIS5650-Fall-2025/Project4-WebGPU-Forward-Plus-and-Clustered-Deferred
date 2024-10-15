@@ -15,14 +15,13 @@
 // Multiply the fragment’s diffuse color by the accumulated light contribution.
 // Return the final color, ensuring that the alpha component is set appropriately (typically to 1).
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
-
-// debug depth min max
-@group(${bindGroup_scene}) @binding(2) var<storage> tilesMinBuffer: array<f32>;
-@group(${bindGroup_scene}) @binding(3) var<storage> tilesMaxBuffer: array<f32>;
-@group(${bindGroup_scene}) @binding(4) var<uniform> res: Resolution;
-
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
 @group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
+
+@group(${bindGroup_lightcull}) @binding(0) var<uniform> res: Resolution;
+@group(${bindGroup_lightcull}) @binding(1) var<storage> tilesLightIdxBuffer: array<u32>;
+@group(${bindGroup_lightcull}) @binding(2) var<storage> tilesLightGridBuffer: array<u32>;
+
 
 struct FragmentInput
 {
@@ -39,13 +38,6 @@ struct Resolution {
 @fragment
 fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f
 {
-    let tileX = u32(fragCoord.x / 16.0);
-    let tileY = u32(fragCoord.y / 16.0);
-    let numTilesX = u32(ceil(f32(res.width) / 16.0));
-    let tileIndex = tileY * numTilesX + tileX;
-    let minDepth = tilesMinBuffer[tileIndex];
-    let maxDepth = tilesMaxBuffer[tileIndex];
-    return vec4(vec3(maxDepth), 1.0);
 
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
@@ -53,11 +45,31 @@ fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> @location
     }
 
     var totalLightContrib = vec3f(0, 0, 0);
-    for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
-        let light = lightSet.lights[lightIdx];
-        totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
+    // for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
+    //     let light = lightSet.lights[lightIdx];
+    //     totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
+    // }
+
+    let numTilesX = u32(ceil(f32(res.width ) / tileSize));
+    let numTilesY = u32(ceil(f32(res.height) / tileSize));
+    let numTilesZ = 10;
+    let tileXidx = u32(fragCoord.x / tileSize);
+    let tileYidx = u32(fragCoord.y / tileSize);
+
+    var lightCount = 0u;
+    for (var z: u32 = 0; z < 10; z++) {
+        let tileZidx = u32(z);
+        let tileIdx = tileZidx * numTilesX * numTilesY + tileYidx * numTilesX + tileXidx;
+        let startIdx = tileIdx * maxLightPerTile;
+        let endIdx = startIdx + tilesLightGridBuffer[tileIdx];
+        lightCount += endIdx - startIdx;
+        for (var lightIdx = startIdx; lightIdx < endIdx; lightIdx++) {
+            let light = lightSet.lights[tilesLightIdxBuffer[lightIdx]];
+            totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
+        }
     }
 
+    // return vec4(vec3(f32(2)  / 10.0), 1.0);
     var finalColor = diffuseColor.rgb * totalLightContrib;
     return vec4(finalColor, 1);
 }

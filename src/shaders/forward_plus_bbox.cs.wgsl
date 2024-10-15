@@ -13,6 +13,7 @@ var<workgroup> localMax: atomic<u32>;
 @group(0) @binding(4) var<storage> lightSet: LightSet;
 @group(0) @binding(5) var<storage, read_write> tilesLightBuffer: array<u32>;
 @group(0) @binding(6) var<storage, read_write> tilesLightGridBuffer: array<u32>;
+@group(0) @binding(7) var<uniform> cameraUniforms: CameraUniforms;
 
 const scalar: f32 = 1 << 24;
 const maxLightPerTile: u32 = 100;
@@ -56,25 +57,25 @@ fn computeMain(@builtin(global_invocation_id) global_id: vec3u,
 
         tilesMinBuffer[tileIndex] = f32(tilesMin) / scalar;
         tilesMaxBuffer[tileIndex] = f32(tilesMax) / scalar;
-
-        tilesMinBuffer[tileIndex] = textureLoad(depthTexture, pixelCoord, 0);
-        tilesMaxBuffer[tileIndex] = f32(workgroup_id.x) / f32(numTilesX);
     }
 
     workgroupBarrier();
 
     // light culling
-    var lightCount = 0u;
-    for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
-        let light = lightSet.lights[lightIdx];
-        let minb = vec3f(tilesMinBuffer[tileIndex], tilesMinBuffer[tileIndex], tilesMinBuffer[tileIndex]);
-        let maxb = vec3f(tilesMaxBuffer[tileIndex], tilesMaxBuffer[tileIndex], tilesMaxBuffer[tileIndex]);
-        let isIntersect = calculateLightIntersection(light, minb, maxb);
-        if (isIntersect) {
-            tilesLightBuffer[tileIndex * maxLightPerTile + lightCount] = lightIdx;
-            lightCount = lightCount + 1u;
+    if (isValid && local_id.x == 0 && local_id.y == 0) {
+        var lightCount = 0u;
+        for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
+            let light = lightSet.lights[lightIdx];
+            let minb = vec3f(f32(workgroup_id.x) * 16 / f32(res.width), f32(workgroup_id.y) * 16 / f32(res.height), tilesMinBuffer[tileIndex]);
+            let maxb = vec3f(f32(workgroup_id.x + 1) * 16 / f32(res.width), f32(workgroup_id.y + 1) * 16 / f32(res.height), tilesMaxBuffer[tileIndex]);
+
+            let isIntersect = calculateLightIntersection(light, minb, maxb);
+            if (isIntersect) {
+                tilesLightBuffer[tileIndex * maxLightPerTile + lightCount] = lightIdx;
+                lightCount = lightCount + 1u;
+            }
         }
+        tilesLightGridBuffer[tileIndex * 2] = lightCount;
+        tilesLightGridBuffer[tileIndex * 2 + 1] = tileIndex * maxLightPerTile;
     }
-    tilesLightGridBuffer[tileIndex * 2] = lightCount;
-    tilesLightGridBuffer[tileIndex * 2 + 1] = tileIndex * maxLightPerTile;
 }
