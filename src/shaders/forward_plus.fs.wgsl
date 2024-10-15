@@ -18,6 +18,10 @@
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
 
+const NUM_CLUSTERS_X: u32 = 16;
+const NUM_CLUSTERS_Y: u32 = 9;
+const NUM_CLUSTERS_Z: u32 = 24;
+
 // Fragment Inputs
 struct FragmentInput {
     @builtin(position) fragCoord: vec4f,
@@ -32,11 +36,31 @@ struct FragmentOutput {
 };
 
 fn getClusterIndex(fragPos: vec3f) -> u32 {
-
+    let screenPos = cameraUniforms.viewProjMat * vec4f(fragPos, 1.0);
+    // convert fragPos to normalized device coord
+    let ndcPos = screenPos.xyz / screenPos.w;
+    // Map NDC (-1 to 1) to screen coordinates (0 to 1)
+    let screenX = (ndcPos.x * 0.5 + 0.5) * cameraUniforms.screenSize.x;
+    let screenY = (ndcPos.y * 0.5 + 0.5) * cameraUniforms.screenSize.y;
+    // Cluster X and Y calculation
+    let clusterX = u32(screenX * f32(NUM_CLUSTERS_X));
+    let clusterY = u32(screenY * f32(NUM_CLUSTERS_Y));
+    // Cluster Z calculation based on depth
+    let fragDepth = -fragPos.z;
+    let logDepth = log2(fragDepth / cameraUniforms.near) / log2(cameraUniforms.far / cameraUniforms.near);
+    let clusterZ = u32(logDepth * f32(NUM_CLUSTERS_Z));
+    // Ensure cluster indices are within bounds
+    let clampedX = clamp(clusterX, 0u, NUM_CLUSTERS_X - 1);
+    let clampedY = clamp(clusterY, 0u, NUM_CLUSTERS_Y - 1);
+    let clampedZ = clamp(clusterZ, 0u, NUM_CLUSTERS_Z - 1);
+    // Compute the final cluster index
+    return clampedZ * NUM_CLUSTERS_X * NUM_CLUSTERS_Y + clampedY * NUM_CLUSTERS_X + clampedX;
 }
 
 fn calculateLightContribution(light: Light, fragPos: vec3f, normal: vec3f) -> vec3f {
-
+    let lightDir = normalize(light.pos - fragPos);
+    let diffuse = max(dot(normal, lightDir), 0.0);
+    return light.color * light.intensity * diffuse;
 }
 
 @fragment
