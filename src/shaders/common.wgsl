@@ -13,15 +13,16 @@ struct LightSet {
 
 // TODO-2: you may want to create a ClusterSet struct similar to LightSet
 struct Cluster {
-    minPos: vec4f, //Avoid using vec3f to avoid padding
-    maxPos: vec4f,
-    numLights: u32,
-    lightIndices: array<u32,100> //I need to know the maximum number of lights per cluster
+    minPos: vec4f, //16 bytes
+    maxPos: vec4f, //16 bytes
+    numLights: u32, //4 bytes
+    lightIndices: array<u32,103> //412 bytes
+    // total 448 bytes per cluster
 }
 
 struct ClusterSet {
-    //numClusters: u32,
-    clusters: array<Cluster,512> //I need to know the maximum number of clusters
+    // numClusters: u32, //4 bytes
+    clusters: array<Cluster,512> // 229376 bytes
 }
 
 struct CameraUniforms {
@@ -32,7 +33,12 @@ struct CameraUniforms {
     screenHeight: f32,
     zNear: f32,
     zFar: f32,
-    gridSize: vec3<u32>, // Number of cluster
+    //gridSize: vec3<u32>,
+    clusterX: f32,
+    clusterY: f32,
+    clusterZ: f32,
+     // Padding to make the size 160 bytes
+    padding: vec4<f32>,
 }
 
 // CHECKITOUT: this special attenuation function ensures lights don't affect geometry outside the maximum light radius

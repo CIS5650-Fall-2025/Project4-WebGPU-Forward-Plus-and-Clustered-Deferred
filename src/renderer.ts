@@ -22,6 +22,8 @@ export async function initWebGPU() {
     const devicePixelRatio = window.devicePixelRatio;
     canvas.width = canvas.clientWidth * devicePixelRatio;
     canvas.height = canvas.clientHeight * devicePixelRatio;
+    console.log("InitWebGPU: The canvas width is: ", canvas.width);
+    console.log("InitWebGPU: The canvas height is: ", canvas.height);
 
     aspectRatio = canvas.width / canvas.height;
 

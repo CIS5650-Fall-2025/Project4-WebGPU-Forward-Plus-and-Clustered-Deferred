@@ -20,35 +20,47 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     pipeline: GPURenderPipeline;
     computePipeline: GPUComputePipeline;  
 
-    // add buffers
+    // add buffers for clusterSet
+    static readonly numClusters = 512;
+    static readonly numFloatsPerCluster = 112;
+    clusterArray = new Float32Array(ForwardPlusRenderer.numClusters * ForwardPlusRenderer.numFloatsPerCluster);
     clusterSetStorageBuffer: GPUBuffer;
+
+    private populateClusterBuffer() {
+        renderer.device.queue.writeBuffer(this.clusterSetStorageBuffer, 0, this.clusterArray);
+    }
 
     constructor(stage: Stage) {
         super(stage);
 
-        // Set as 32x32x32 clusters
-        const clusterSize = (16 + 16 + 4 + 100 * 4); 
-        const numClusters =512;
-        const alignedClusterSize = Math.ceil(clusterSize / 256) * 256;
-        const bufferSize = alignedClusterSize * numClusters;
+        // const clusterSize = (16 + 16 + 4 + 100 * 4); 
+        // Set as tile size 32x32 and exponential depth range
+        // const numClusters = renderer.canvas.width/64 * renderer.canvas.height/64 * 16;
+        // console.log("The canvas width is: ", renderer.canvas.width);
+        // console.log("The canvas height is: ", renderer.canvas.height);
+        // console.log("The total number of cluster is: ", numClusters); 
+        // const numClusters = 512;
+        // const alignedClusterSize = Math.ceil(clusterSize / 256) * 256;
+        // const bufferSize = alignedClusterSize * numClusters;
+        // this.clusterSetStorageBuffer = renderer.device.createBuffer({
+        //     label: "cluster set buffer",
+        //     size: bufferSize,
+        //     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        // });
+                // const clusterSetData = new Float32Array(clusterSize * numClusters / 4);        
+        // renderer.device.queue.writeBuffer(this.clusterSetStorageBuffer,0, clusterSetData);
+        
         this.clusterSetStorageBuffer = renderer.device.createBuffer({
-            label: "cluster set buffer",
-            size: bufferSize,
+            label: "cluster set buffer in light class",
+            size: this.clusterArray.byteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
-        const clusterSetData = new Float32Array(clusterSize * numClusters / 4);
-        renderer.device.queue.writeBuffer(
-            this.clusterSetStorageBuffer,
-            0, 
-            clusterSetData
-        );
+        this.populateClusterBuffer();
 
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "forward: scene uniforms bind group layout",
             entries: [
-                // TODO-1.2: add an entry for camera uniforms at binding 0, visible to only the vertex shader, and of type "uniform"
-                {
-                    // camera uniforms
+                {// camera uniforms
                     binding: 0,
                     visibility: GPUShaderStage.VERTEX| GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" }
@@ -57,13 +69,10 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT| GPUShaderStage.COMPUTE,
                     buffer: { type: "storage" }
-                    // buffer: { type: "storage" }
                 },
-                {
-                    // clusterSet
+                {// clusterSet
                     binding: 2,
                     visibility: GPUShaderStage.FRAGMENT| GPUShaderStage.COMPUTE,
-                    // buffer: { type: "read-only-storage" }
                     buffer: { type: "storage" }
                 }
             ]
@@ -180,6 +189,8 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     // ,this.sceneComputeBindGroupLayout
                 ]
             }),
+            //createShaderModule create the compute shader.
+            //Pass the compute shader string to the code property
             compute: {
                 module: renderer.device.createShaderModule({
                     label: "Forward+ compute shader",
@@ -196,11 +207,13 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         // - run the clustering compute shader
         // - run the main rendering pass, using the computed clusters for efficient lighting
         
-        const encoder = renderer.device.createCommandEncoder();
+        const computeEncoder = renderer.device.createCommandEncoder();
+        const renderEncoder = renderer.device.createCommandEncoder();
         
         // run the compute pass
-        const computePass = encoder.beginComputePass();
+        const computePass = computeEncoder.beginComputePass({label: "Forward+ compute pass begin"}); 
         computePass.setPipeline(this.computePipeline);
+        // group 0 only
         computePass.setBindGroup(0, this.sceneUniformsBindGroup);
        // computePass.setBindGroup(1, this.sceneComputeBindGroup);
         computePass.dispatchWorkgroups(
@@ -209,10 +222,11 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             32 
         );
         computePass.end();
+        renderer.device.queue.submit([computeEncoder.finish()]);
 
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
 
-        const renderPass = encoder.beginRenderPass({
+        const renderPass = renderEncoder.beginRenderPass({
             label: "naive render pass",
             colorAttachments: [
                 {
@@ -231,12 +245,14 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         });
         renderPass.setPipeline(this.pipeline);
 
-        // TODO-1.2: bind `this.sceneUniformsBindGroup` to index `shaders.constants.bindGroup_scene`
+        // group 0
         renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
 
         this.scene.iterate(node => {
+            // group 1
             renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
         }, material => {
+            // group 2
             renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
         }, primitive => {
             renderPass.setVertexBuffer(0, primitive.vertexBuffer);
@@ -246,6 +262,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
         renderPass.end();
 
-        renderer.device.queue.submit([encoder.finish()]);
+        renderer.device.queue.submit([renderEncoder.finish()]);
     }
 }

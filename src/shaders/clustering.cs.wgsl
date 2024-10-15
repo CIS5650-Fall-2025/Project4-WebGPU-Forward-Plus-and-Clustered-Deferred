@@ -1,4 +1,7 @@
 // TODO-2: implement the light clustering compute shader
+// bindGroup_scene is 0
+// bindGroup_model is 1
+// bindGroup_material is 2
 @group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(1) var<storage, read_write> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
@@ -26,9 +29,9 @@ fn sphereIntersectsAABB(center: vec3f, radius: f32, aabbMin: vec3f, aabbMax: vec
 }
 
 @compute
-//@workgroup_size(16, 16, 1)
-//@workgroup_size(${moveLightsWorkgroupSize})
+//CUDA block size. Specify the size in the shader.
 @workgroup_size(16, 16, 1)
+//global_invocation_id is equivalent to blockIdx * blockdim + threadIdx
 fn main(@builtin(global_invocation_id) globalIdx: vec3u){
 // ------------------------------------
 // Calculating cluster bounds:
@@ -40,8 +43,9 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u){
 //     - Store the computed bounding box (AABB) for the cluster.
 
 // Basic setup
-let gridSize = cameraUniforms.gridSize;
-let tileIdx = globalIdx.x + (globalIdx.y * gridSize.x) + (globalIdx.z * gridSize.x * gridSize.y);
+// let gridSize = cameraUniforms.gridSize;
+let gridSize = vec3f(cameraUniforms.clusterX, cameraUniforms.clusterY, cameraUniforms.clusterZ);
+let tileIdx = globalIdx.x + (globalIdx.y * u32(gridSize.x)) + (globalIdx.z * u32(gridSize.x) * u32(gridSize.y));
 
 let zNear = cameraUniforms.zNear;
 let zFar = cameraUniforms.zFar;
@@ -66,7 +70,7 @@ let maxTile_Screenspace = vec2f(f32(tileIdxX + 1) * tileSize.x, f32(tileIdxY + 1
 let minTile_Viewspace = screenToView(minTile_Screenspace);
 let maxTile_Viewspace = screenToView(maxTile_Screenspace);
 
-// Calculate the depth bounds for this cluster in Z (near and far planes).
+// Calculate the depth bounds for this cluster in Z (near and far planes
 let planeNear = zNear * pow(zFar/zNear, f32(tileIdxZ)/ f32(gridSize.z));
 let planeFar = zNear * pow(zFar/zNear, f32(tileIdxZ + 1)/ f32(gridSize.z));
 
@@ -76,21 +80,10 @@ let minPointFar = lineIntersectionWithZPlane(vec3f(0.0,0.0,0.0), minTile_Viewspa
 let maxPointNear = lineIntersectionWithZPlane(vec3f(0.0,0.0,0.0), maxTile_Viewspace, planeNear);
 let maxPointFar = lineIntersectionWithZPlane(vec3f(0.0,0.0,0.0), maxTile_Viewspace, planeFar);
 
-// Store the computed bounding box (AABB) for the cluster.
-// var cluster: Cluster = Cluster(
-//     vec4(min(minPointNear, minPointFar), 0.0), // minPos
-//     vec4(max(maxPointNear, maxPointFar), 0.0), // maxPos
-//     0u, // numLights
-//     array<u32, 100>() // lightIndices
-// );
-
 var minPos = vec4f(min(minPointNear, minPointFar), 0.0);
 var maxPos = vec4f(max(maxPointNear, maxPointFar), 0.0);
 clusterSet.clusters[tileIdx].minPos = minPos;
 clusterSet.clusters[tileIdx].maxPos = maxPos;
-
-
-//clusterSet.clusters[tileIdx] = cluster;
 
 // ------------------------------------
 // Assigning lights to clusters:
