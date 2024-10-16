@@ -14,3 +14,52 @@
 //     Add the calculated contribution to the total light accumulation.
 // Multiply the fragment’s diffuse color by the accumulated light contribution.
 // Return the final color, ensuring that the alpha component is set appropriately (typically to 1).
+
+@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
+@group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
+
+@group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
+@group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
+
+struct FragmentInput
+{
+    @location(0) pos: vec3f,
+    @location(1) nor: vec3f,
+    @location(2) uv: vec2f
+}
+
+@fragment
+fn main(in: FragmentInput, @builtin(position) fragPos: vec4<f32>) -> @location(0) vec4f
+{
+    let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
+    if (diffuseColor.a < 0.5f) {
+        discard;
+    }
+
+    let tileX: u32 = u32(fragPos.x / ${tileSize});
+    let tileY: u32 = u32(fragPos.y / ${tileSize});
+    // let zView: f32 = in.fragCoord.z * 999.9 + 0.1;
+    // let logZ: f32 = log(zView / 0.1) / log(10000);
+    // let tileZ = u32(logZ * f32(${depthSlice}));
+    let tileZ: u32 = u32(fragPos.z * ${depthSlice});
+    // let pos_ndc: vec4f = cameraUniforms.viewProj * vec4(in.pos.x, in.pos.y, in.pos.z, 1.0);
+    // let normalized_z: f32 = pos_ndc.z / pos_ndc.w;
+    // let tileZ: u32 = u32(normalized_z * ${depthSlice});
+
+    let clusterIdx = tileX + clusterSet.numTileX * tileY + clusterSet.numTileX * clusterSet.numTileY * tileZ;
+    let cluster = clusterSet.clusters[clusterIdx];
+
+    var totalLightContrib = vec3f(0, 0, 0);
+    for (var idx = 0u; idx < cluster.numLights; idx++) {
+        let lightIdx = cluster.lightInx[idx];
+        let light = lightSet.lights[lightIdx];
+        totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
+    }
+
+    var finalColor = diffuseColor.rgb * totalLightContrib;
+    // return vec4(finalColor, 1);
+    // return vec4(f32(tileX) / f32(clusterSet.numTileX), f32(tileY) / f32(clusterSet.numTileY), f32(tileZ) / f32(${depthSlice}), 1.0);
+    // return vec4(f32(cluster.numLights) / 16.0, 0, 0, 1);
+    return vec4(fragPos.z, 0, 0, 1);
+}
