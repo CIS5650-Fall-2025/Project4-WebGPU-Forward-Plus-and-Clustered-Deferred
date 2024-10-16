@@ -34,7 +34,7 @@ class GBuffer {
 
         this.depthTexture = device.createTexture({
             label: "depth texture",
-            size: [renderer.canvas.width, renderer.canvas.height],
+            size: {width: renderer.canvas.width, height: renderer.canvas.height},
             format: "depth24plus",
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         });
@@ -42,7 +42,7 @@ class GBuffer {
 
         this.gbufferAlbedoTexture = device.createTexture({
             label: "g-buffer albedo texture",
-            size: [renderer.canvas.width, renderer.canvas.height],
+            size: {width: renderer.canvas.width, height: renderer.canvas.height},
             format: "rgba8unorm",
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         });
@@ -57,7 +57,7 @@ class GBuffer {
 
         this.gbufferNormalTexture = device.createTexture({
             label: "g-buffer normal texture",
-            size: [renderer.canvas.width, renderer.canvas.height],
+            size: {width: renderer.canvas.width, height: renderer.canvas.height},
             format: "rgba16float",
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         });
@@ -72,7 +72,7 @@ class GBuffer {
 
         this.gbufferPositionTexture = device.createTexture({
             label: "g-buffer position texture",
-            size: [renderer.canvas.width, renderer.canvas.height],
+            size: {width: renderer.canvas.width, height: renderer.canvas.height},
             format: "rgba16float",
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         });

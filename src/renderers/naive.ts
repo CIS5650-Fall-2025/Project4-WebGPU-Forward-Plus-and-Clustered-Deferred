@@ -50,7 +50,7 @@ export class NaiveRenderer extends renderer.Renderer {
         });
 
         this.depthTexture = renderer.device.createTexture({
-            size: [renderer.canvas.width, renderer.canvas.height],
+            size: {width: renderer.canvas.width, height: renderer.canvas.height},
             format: "depth24plus",
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         });

@@ -21,7 +21,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         // TODO-2: initialize layouts, pipelines, textures, etc. needed for Forward+ here
 
         this.depthTexture = renderer.device.createTexture({
-            size: [renderer.canvas.width, renderer.canvas.height],
+            size: {width: renderer.canvas.width, height: renderer.canvas.height},
             format: "depth24plus",
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         });
