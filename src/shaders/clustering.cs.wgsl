@@ -27,21 +27,14 @@
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
-fn sqDistPointAABB(_point: vec3<f32>, minAABB: vec3<f32>, maxAABB: vec3<f32>) -> f32 {
-    var sqDist = 0.0;
-
-    // Iterate over each dimension to calculate squared distance
-    for (var i = 0; i < 3; i = i + 1) {
-        let v = _point[i];
-        if (v < minAABB[i]) {
-            sqDist = sqDist + (minAABB[i] - v) * (minAABB[i] - v);
-        }
-        if (v > maxAABB[i]) {
-            sqDist = sqDist + (v - maxAABB[i]) * (v - maxAABB[i]);
-        }
-    }
-
-    return sqDist;
+fn isLightInAABB(_point: vec3<f32>, minAABB: vec3<f32>, maxAABB: vec3<f32>, radius: f32) -> bool {
+    var closestPoint = vec3<f32>(
+        clamp(_point.x, minAABB.x, maxAABB.x),
+        clamp(_point.y, minAABB.y, maxAABB.y),
+        clamp(_point.z, minAABB.z, maxAABB.z)
+    );
+    let distanceSquared = dot(_point - closestPoint, _point - closestPoint);
+    return distanceSquared <= radius * radius;
 }
 
 
@@ -50,25 +43,34 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let clusterX = global_id.x;
     let clusterY = global_id.y;
     let clusterZ = global_id.z;
+    
 
-    let clusterIndex = clusterZ * clusterGridSize.x * clusterGridSize.y + clusterY * clusterGridSize.x + clusterX;
+    let clusterGridSizeX = ${clusterXsize };
+    let clusterGridSizeY = ${clusterYsize };
+    let clusterGridSizeZ = ${clusterZsize };
+    
+    let clusterIndex = clusterZ * u32(${clusterXsize}) * u32(${clusterYsize}) + clusterY *  ${clusterXsize } + clusterX;
 
-    if (clusterIndex >= (clusterGridSize.x * clusterGridSize.y *  clusterGridSize.z)) {
+   
+    if (clusterIndex >= u32(${clusterXsize } * ${clusterYsize } *  ${clusterZsize })) {
         return;
     }
-    let clusterGridSize = camera.clusterGridSize;
+    
+    var cluster:Cluster;
+
+
     let canvasResolution = camera.canvasResolution;
     
-    var cluster: Cluster;
+    
 
     let screenMin = vec2<f32>(
-        f32(clusterX) * (canvasResolution.x / f32(clusterGridSize.x)),
-        f32(clusterY) * (canvasResolution.y / f32(clusterGridSize.y))
+        f32(clusterX) * (canvasResolution.x / f32(${clusterXsize })),
+        f32(clusterY) * (canvasResolution.y / f32(${clusterYsize }))
     );
 
     let screenMax = vec2<f32>(
-        (f32(clusterX) + 1.0) * (canvasResolution.x / f32(clusterGridSize.x)),
-        (f32(clusterY) + 1.0) * (canvasResolution.y / f32(clusterGridSize.y))
+        (f32(clusterX) + 1.0) * (canvasResolution.x / f32(${clusterXsize })),
+        (f32(clusterY) + 1.0) * (canvasResolution.y / f32(${clusterYsize }))
     );
 
     let ndcMin = vec2<f32>(
@@ -81,49 +83,54 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     );
 
 
-    let Zstep = (camera.farPlane - camera.nearPlane) / f32(clusterGridSize.z);
+    let Zstep = (camera.farPlane - camera.nearPlane) / f32(${clusterZsize });
 
-    let clusterMinZ = -(camera.nearPlane + f32(clusterZ) * Zstep);
-    let clusterMaxZ = clusterMinZ - Zstep;
+    
+   let clusterMinZView = (camera.nearPlane + f32(clusterZ) * Zstep);
+   let clusterMaxZView = clusterMinZView + Zstep;
 
 
 
 
-    let clusterMinZNDC = -1.0 + 2.0 * (f32(clusterZ) / f32(clusterGridSize.z));
-    let clusterMaxZNDC = -1.0 + 2.0 * (f32(clusterZ + 1u) / f32(clusterGridSize.z));
+    let clusterMinZNDC = (clusterMinZView - camera.nearPlane) / (camera.farPlane - camera.nearPlane) * 2.0 - 1.0;
+    let clusterMaxZNDC = (clusterMaxZView - camera.nearPlane) / (camera.farPlane - camera.nearPlane) * 2.0 - 1.0;
 
+   
     var viewMin = camera.invProjMat * vec4<f32>(ndcMin.x, ndcMin.y, clusterMinZNDC, 1.0);
-    var viewMax = camera.invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, clusterMaxZNDC, 1.0);
+    var viewMax = camera.invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, clusterMinZNDC, 1.0);
+
+    var viewMin2 = camera.invProjMat * vec4<f32>(ndcMin.x, ndcMin.y, clusterMaxZNDC, 1.0);
+    var viewMax2 = camera.invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, clusterMaxZNDC, 1.0);
 
     let viewMinCart = viewMin.xyz / viewMin.w;
     let viewMaxCart = viewMax.xyz / viewMax.w;
 
+    let viewMinCart2 = viewMin2.xyz / viewMin2.w;
+    let viewMaxCart2 = viewMax2.xyz / viewMax2.w;
 
-
+   
+    cluster.minDepth = min(min(viewMinCart2, viewMinCart),min(viewMaxCart2, viewMaxCart));
+    
+    cluster.maxDepth = max(max(viewMinCart2, viewMinCart),max(viewMaxCart2, viewMaxCart));
     
     
-    cluster.minDepth = vec3<f32>(viewMinCart.x, viewMinCart.y, clusterMinZ);
-    cluster.maxDepth = vec3<f32>(viewMaxCart.x, viewMaxCart.y, clusterMaxZ);
-
-
-    
-    let maxLightsPerCluster = 1032u;
+    let maxLightsPerCluster = 1500u;
     var lightCount = 0u;
     let lightRadius = f32(${lightRadius}); 
 
     for (var i = 0u; i < lightSet.numLights; i++) {
         
         let light = lightSet.lights[i];
-        //let lightPos = camera.viewMat * vec4<f32>(light.pos, 1.0);
+        let lightPos = camera.viewMat * vec4<f32>(light.pos, 1.0);
         
-        //let sqdis = sqDistPointAABB(lightPos.xyz, cluster.minDepth, cluster.maxDepth);
-        
-            if (lightCount < maxLightsPerCluster) {
+        if(isLightInAABB(lightPos.xyz, cluster.minDepth, cluster.maxDepth, lightRadius)){
+            if (lightCount <= maxLightsPerCluster){
                 cluster.lightIndices[lightCount] = i;
                 lightCount++;
             }
+        }
         
     }
-    cluster.numLights = 3;
+    cluster.numLights = lightCount;
     clusterSet.clusters[clusterIndex] = cluster;
 }

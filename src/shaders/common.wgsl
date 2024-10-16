@@ -28,7 +28,7 @@ struct ClusterSet {
 
 struct CameraUniforms {
     viewProjMat: mat4x4<f32>,
-    invProjMat: mat4x4<f32>,
+    viewMat:  mat4x4<f32>,
     invProjMat: mat4x4<f32>,
     clusterGridSize: vec3<u32>,
     canvasResolution: vec2<f32>,
@@ -47,4 +47,28 @@ fn calculateLightContrib(light: Light, posWorld: vec3f, nor: vec3f) -> vec3f {
 
     let lambert = max(dot(nor, normalize(vecToLight)), 0.f);
     return light.color * lambert * rangeAttenuation(distToLight);
+}
+
+fn sqDistPointAABB(_point : vec3<f32>, minAABB : vec3<f32>, maxAABB : vec3<f32>) -> f32 {
+    var sqDist = 0.0;
+    
+    for(var i = 0; i < 3; i = i + 1) {
+      let v = _point[i];
+      if(v < minAABB[i]){
+        sqDist = sqDist + (minAABB[i] - v) * (minAABB[i] - v);
+      }
+      if(v > maxAABB[i]){
+        sqDist = sqDist + (v - maxAABB[i]) * (v - maxAABB[i]);
+      }
+    }
+
+    return sqDist;
+}
+
+
+fn lineIntersectionToZPlane(a: vec3<f32>, b: vec3<f32>, zDistance: f32) -> vec3<f32> {
+    let normal = vec3<f32>(0.0, 0.0, 1.0);
+    let ab = b - a;
+    let t = (zDistance - dot(normal, a)) / dot(normal, ab);
+    return a + t * ab;
 }

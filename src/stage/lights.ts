@@ -108,7 +108,7 @@ export class Lights {
         const clusterDims = this.camera.clusterDims;
         const numClusters = clusterDims[0] * clusterDims[1] * clusterDims[2];
 
-        const clusterStride = 1040; // 7 for AABB  + 1 for numLights + 1031 for lightIndices
+        const clusterStride = 1508; // 7 for AABB  + 1 for numLights + 1032 for lightIndices
         this.clustersArray = new Float32Array(numClusters * clusterStride);
 
         this.clusterSetStorageBuffer = device.createBuffer({
