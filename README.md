@@ -104,6 +104,12 @@ I only tested render bundle on clustered deferred rendering since the improvemen
 
 From the graph, we can see that the improvement of render bundle is less than 9%. Render bundle can reduce CPU time. Since the draw calls in this project is not large, the improvement of runder bundle is also limited.
 
+## Possible Optimizations
+
+- Better sorting algorithm, like radix sort. [Interesting reading](https://linebender.org/wiki/gpu/sorting/)
+- Use uint16 to store light lists. This can halve the light list size.
+- Better sphere-frustum intersection algorithms.
+
 ## References
 
 [Cone testing Reference](https://lxjk.github.io/2018/03/25/Improve-Tile-based-Light-Culling-with-Spherical-sliced-Cone.html)
