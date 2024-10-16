@@ -12,7 +12,7 @@ fn doesLightIntersectCluster(lightPos: vec3f, clusterMinBounds: vec3f, clusterMa
 }
 
 fn zFromZIndex(zIndex: f32) -> f32 {
-    // Slice up Z logarithmically in **view space**
+    // Slice up Z exponential in **view space**
     // Equation derived from eq. 3 in http://www.aortiz.me/2018/12/21/CG.html#forward-shading, solving for Z (with a lot of log manipulation).
     // Negative sign accounts for the fact that the camera looks down the negative Z axis.
     return -camera.near * pow((camera.far / camera.near), zIndex / clusterUniforms.clusterDims.z);
@@ -49,8 +49,9 @@ fn main(@builtin(global_invocation_id) global_idx: vec3u) {
     minBoundsXY = min(minBoundsXY * -minBoundsZ, minBoundsXY * -maxBoundsZ);
     maxBoundsXY = max(maxBoundsXY * -minBoundsZ, maxBoundsXY * -maxBoundsZ);
 
-    let minViewBounds = vec3f(minBoundsXY, minBoundsZ);
-    let maxViewBounds = vec3f(maxBoundsXY, maxBoundsZ);
+    // Note: since Z bounds are negative, maxBoundsZ is actually the "min" bound here, and vice versa for minBoundsZ.
+    let minViewBounds = vec3f(minBoundsXY, maxBoundsZ);
+    let maxViewBounds = vec3f(maxBoundsXY, minBoundsZ);
 
     /* Assigning lights to clusters */
     var lightCount = 0u ;

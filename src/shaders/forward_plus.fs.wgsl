@@ -32,7 +32,9 @@ fn main(
 
     let viewPos = camera.viewMat * vec4(in.pos, 1.0);
     let clusterX = u32((fragCoord.x / camera.screenDims.x) * clusterUniforms.clusterDims.x);
-    let clusterY = u32((fragCoord.y / camera.screenDims.y) * clusterUniforms.clusterDims.y);
+    // Note: WebGPU convention is that the origin is at the top-left corner of the screen
+    // https://gpuweb.github.io/gpuweb/wgsl/#position-builtin-value
+    let clusterY = u32(((camera.screenDims.y - fragCoord.y) / camera.screenDims.y) * clusterUniforms.clusterDims.y);
     let clusterZ = zIndexFromZ(-viewPos.z);
 
     let globalClusterIndex = clusterX
