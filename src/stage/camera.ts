@@ -59,7 +59,7 @@ export class Camera {
 
     keys: { [key: string]: boolean } = {};
 
-    clusterDims: [number, number, number] = [16, 8, 24];
+    
 
 
     constructor () {
@@ -75,7 +75,7 @@ export class Camera {
 
         })
         
-        this.uniforms.clusterGridSize = this.clusterDims;
+        
         console.log(this.uniforms.clusterGridSize);
         this.uniforms.farPlane = Camera.farPlane;
         this.uniforms.nearPlane = Camera.nearPlane;

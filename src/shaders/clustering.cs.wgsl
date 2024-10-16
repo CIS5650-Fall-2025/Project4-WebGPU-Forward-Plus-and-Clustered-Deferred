@@ -52,7 +52,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let clusterIndex = clusterZ * u32(${clusterXsize}) * u32(${clusterYsize}) + clusterY *  ${clusterXsize } + clusterX;
 
    
-    if (clusterIndex >= u32(${clusterXsize } * ${clusterYsize } *  ${clusterZsize })) {
+    if (clusterX >= u32(${clusterXsize }) || clusterY >=  (${clusterYsize })|| clusterZ >= (${clusterZsize })) {
         return;
     }
     
@@ -114,7 +114,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     cluster.maxDepth = max(max(viewMinCart2, viewMinCart),max(viewMaxCart2, viewMaxCart));
     
     
-    let maxLightsPerCluster = 1500u;
+    let maxLightsPerCluster = u32(${MAX_LIGHTS_PER_CLUSTER});
     var lightCount = 0u;
     let lightRadius = f32(${lightRadius}); 
 

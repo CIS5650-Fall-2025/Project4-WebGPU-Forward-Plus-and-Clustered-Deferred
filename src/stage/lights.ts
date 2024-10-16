@@ -30,7 +30,7 @@ export class Lights {
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
 
-    clustersArray: Float32Array;
+    
     clusterSetStorageBuffer: GPUBuffer;
     
     
@@ -105,16 +105,16 @@ export class Lights {
 
         // TODO-2: initialize layouts, pipelines, textures, etc. needed for light clustering here
         
-        const clusterDims = this.camera.clusterDims;
-        const numClusters = clusterDims[0] * clusterDims[1] * clusterDims[2];
+        
+        const numClusters = shaders.constants.clusterXsize * shaders.constants.clusterYsize * shaders.constants.clusterZsize;
 
-        const clusterStride = 1508; // 7 for AABB  + 1 for numLights + 1032 for lightIndices
-        this.clustersArray = new Float32Array(numClusters * clusterStride);
+        const clusterStride = 7 + 1 + shaders.constants.MAX_LIGHTS_PER_CLUSTER; // 7 for AABB  + 1 for numLights + 1032 for lightIndices
+        
 
         this.clusterSetStorageBuffer = device.createBuffer({
             label: "cluster set",
-            size: 16 + this.clustersArray.byteLength, // Add 16 bytes for numClusters and padding
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+            size: 16 + numClusters* clusterStride * 4, 
+            usage: GPUBufferUsage.STORAGE ,
         });
         
         
@@ -189,7 +189,7 @@ export class Lights {
         computePass.setPipeline(this.clusterLightsComputePipeline);
         computePass.setBindGroup(0, this.clusterLightsComputeBindGroup);
 
-        const [clusterCountX, clusterCountY, clusterCountZ] = this.camera.clusterDims;
+        const [clusterCountX, clusterCountY, clusterCountZ] = [shaders.constants.clusterXsize, shaders.constants.clusterYsize, shaders.constants.clusterZsize];
         const dispatchX = Math.ceil(clusterCountX / shaders.constants.WORKGROUP_SIZE_X);
         const dispatchY = Math.ceil(clusterCountY / shaders.constants.WORKGROUP_SIZE_Y);
         const dispatchZ = Math.ceil(clusterCountZ / shaders.constants.WORKGROUP_SIZE_Z);
