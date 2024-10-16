@@ -19,7 +19,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     numTilesZ: number;
     resUniformBuffer: GPUBuffer;
     tileUniformBuffer: GPUBuffer;
-    pipelinePrez: GPURenderPipeline;
+    // pipelinePrez: GPURenderPipeline;
 
     // light culling - bounding box
     clusterBuffer: GPUBuffer;
@@ -78,41 +78,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
         });
         this.depthTextureView = this.depthTexture.createView();
-
-        // prez pass
-        this.pipelinePrez = renderer.device.createRenderPipeline({
-            layout: renderer.device.createPipelineLayout({
-                label: "forward plus prez pipeline layout",
-                bindGroupLayouts: [
-                    this.sceneUniformsBindGroupLayout,
-                    renderer.modelBindGroupLayout,
-                    renderer.materialBindGroupLayout,
-                ],
-            }),
-            depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: "less",
-                format: "depth24plus",
-            },
-            vertex: {
-                module: renderer.device.createShaderModule({
-                    label: "forward plus vert shader",
-                    code: shaders.forwardPlusVertSrc,
-                }),
-                buffers: [renderer.vertexBufferLayout],
-            },
-            fragment: {
-                module: renderer.device.createShaderModule({
-                    label: "forward plus prez frag shader",
-                    code: shaders.forwardPlusPassthroughSrc,
-                }),
-                targets: [
-                    {
-                        format: renderer.canvasFormat,
-                    },
-                ],
-            },
-        });
 
         // light culling
         this.resUniformBuffer = renderer.device.createBuffer({
@@ -413,29 +378,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         const encoder = renderer.device.createCommandEncoder();
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
 
-        // prez pass
-        const renderPassPrez = encoder.beginRenderPass({
-            label: "forward plus render pass",
-            colorAttachments: [
-                {
-                    view: canvasTextureView,
-                    clearValue: [0, 0, 0, 0],
-                    loadOp: "clear",
-                    storeOp: "store",
-                },
-            ],
-            depthStencilAttachment: {
-                view: this.depthTextureView,
-                depthClearValue: 1.0,
-                depthLoadOp: "clear",
-                depthStoreOp: "store",
-            },
-        });
-
-        renderPassPrez.setPipeline(this.pipelinePrez);
-        renderPassPrez.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
-        renderPassPrez.end();
-
         // light culling - bounding box
         const bboxPass = encoder.beginComputePass();
         bboxPass.setPipeline(this.pipelineBbox);
@@ -472,7 +414,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             depthStencilAttachment: {
                 view: this.depthTextureView,
                 depthClearValue: 1.0,
-                depthLoadOp: "load",
+                depthLoadOp: "clear",
                 depthStoreOp: "store",
             },
         });

@@ -34,10 +34,4 @@ fn computeMain(@builtin(global_invocation_id) global_id: vec3u,
     }
     tilesLightGridBuffer[tileIdx] = lightCount;
 
-
-    // if (global_id.x == 0u && global_id.y == 0u && global_id.z == 0u) {
-    //     for (var i = 0u; i < tileInfo.numTilesX * tileInfo.numTilesY * tileInfo.numTilesZ; i = i + 1u) {
-    //         tilesLightGridBuffer[i] = 20;
-    //     }
-    // }
 }

@@ -43,10 +43,16 @@ fn computeMain(@builtin(global_invocation_id) global_id: vec3u,
     for (var depth: u32 = 0; depth < ${tileSizeZ}; depth += 1)
     {
         var clusterIdx = depth * tileInfo.numTilesX * tileInfo.numTilesY + global_id.y * tileInfo.numTilesX + global_id.x;
-        var clusterMinNear = lerp(tileMinNear, tileMaxNear, f32(depth) / f32(${tileSizeZ}));
-        var clusterMaxNear = lerp(tileMinNear, tileMaxNear, f32(depth + 1) / f32(${tileSizeZ}));
-        var clusterMinFar = lerp(tileMinFar, tileMaxFar, f32(depth) / f32(${tileSizeZ}));
-        var clusterMaxFar = lerp(tileMinFar, tileMaxFar, f32(depth + 1) / f32(${tileSizeZ}));
+        var nearZ = f32(depth) / f32(${tileSizeZ});
+        var farZ = f32(depth + 1) / f32(${tileSizeZ});
+        // exponential depth
+        nearZ = cameraUniforms.near * pow(cameraUniforms.far / cameraUniforms.near, nearZ);
+        farZ = cameraUniforms.near * pow(cameraUniforms.far / cameraUniforms.near, farZ);
+
+        var clusterMinNear = lerp(tileMinNear, tileMaxNear, nearZ);
+        var clusterMaxNear = lerp(tileMinNear, tileMaxNear, farZ);
+        var clusterMinFar = lerp(tileMinFar, tileMaxFar, nearZ);
+        var clusterMaxFar = lerp(tileMinFar, tileMaxFar, farZ);
 
         clusterBuffer[clusterIdx].min = min(clusterMinNear, clusterMinFar);
         clusterBuffer[clusterIdx].max = max(clusterMaxNear, clusterMaxFar);

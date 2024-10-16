@@ -51,7 +51,9 @@ fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> @location
 
     var viewPos = (cameraUniforms.view * vec4(in.pos, 1.0)).xyz;
     var depth = (-viewPos.z - cameraUniforms.near) / (cameraUniforms.far - cameraUniforms.near);
-    var discreteDepth = floor(depth * ${tileSizeZ}) / ${tileSizeZ};
+    // exponential depth
+    depth = cameraUniforms.near * pow(cameraUniforms.far / cameraUniforms.near, depth);
+
 
     let tileXidx = u32(floor(fragCoord.x / ${tileSize}));
     let tileYidx = u32(floor(fragCoord.y / ${tileSize}));
@@ -66,7 +68,7 @@ fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> @location
         totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
     }
 
-    // return vec4(vec3(f32(lightCount) / 1000.0), 1.0);
+    // return vec4(vec3(f32(tileZidx) / ${tileSizeZ}), 1.0);
     var finalColor = diffuseColor.rgb * totalLightContrib;
     return vec4(finalColor, 1);
 }
