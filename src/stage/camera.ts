@@ -3,22 +3,45 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4 * 2);
-    private readonly floatView = new Float32Array(this.buffer);
-    private readonly floatInvView = new Float32Array(this.buffer, 16 * 4);
+    readonly buffer = new ArrayBuffer(16 * 4 * 4 + 4 * 4); // pad to 16 byte alignment
+    private readonly floatViewProj = new Float32Array(this.buffer);
+    private readonly floatInvViewProj = new Float32Array(this.buffer, 16 * 4);
+    private readonly floatInvProj = new Float32Array(this.buffer, 16 * 4 * 2);
+    private readonly floatView = new Float32Array(this.buffer, 16 * 4 * 3);
+    private readonly nearFar = new Float32Array(this.buffer, 16 * 4 * 4);
     set viewProjMat(mat: Float32Array) {
-        // TODO-1.1: set the first 16 elements of `this.floatView` to the input `mat`
+        // TODO-1.1: set the first 16 elements of `this.floatViewProj` to the input `mat`
         for (let i = 0; i < 16; i++) {
-            this.floatView[i] = mat[i];
+            this.floatViewProj[i] = mat[i];
         }
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
 
-    set invViewMat(mat: Float32Array) {
-        // TODO-1.1: set the first 16 elements of `this.floatInvView` to the input `mat`
+    set invViewProjMat(mat: Float32Array) {
+        // TODO-1.1: set the first 16 elements of `this.floatInvViewProj` to the input `mat`
         for (let i = 0; i < 16; i++) {
-            this.floatInvView[i] = mat[i];
+            this.floatInvViewProj[i] = mat[i];
+        }
+    }
+
+    set invProjMat(mat: Float32Array) {
+        // TODO-1.1: set the first 16 elements of `this.floatInvProj` to the input `mat`
+        for (let i = 0; i < 16; i++) {
+            this.floatInvProj[i] = mat[i];
+        }
+    }
+
+    set nearFarArr(arr: Float32Array) {
+        // TODO-1.1: set the first 2 elements of `this.nearFar` to the input `arr`
+        for (let i = 0; i < 2; i++) {
+            this.nearFar[i] = arr[i];
+        }
+    }
+
+    set viewMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[i] = mat[i];
         }
     }
 }
@@ -38,7 +61,7 @@ export class Camera {
     sensitivity: number = 0.15;
 
     static readonly nearPlane = 0.1;
-    static readonly farPlane = 100;
+    static readonly farPlane = 50;
 
     keys: { [key: string]: boolean } = {};
 
@@ -146,7 +169,10 @@ export class Camera {
         const viewProjMat = mat4.mul(this.projMat, viewMat);
         // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
         this.uniforms.viewProjMat = viewProjMat;
-        this.uniforms.invViewMat = mat4.invert(viewProjMat);
+        this.uniforms.invViewProjMat = mat4.invert(viewProjMat);
+        this.uniforms.invProjMat = mat4.invert(this.projMat);
+        this.uniforms.viewMat = viewMat;
+        this.uniforms.nearFarArr = new Float32Array([Camera.nearPlane, Camera.farPlane]);
         // TODO-2: write to extra buffers needed for light clustering here
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)

@@ -11,7 +11,7 @@ import forwardPlusFragRaw from "./forward_plus.fs.wgsl?raw";
 import forwardPlusVertRaw from "./forward_plus.vs.wgsl?raw";
 import forwardPlusPassthroughRaw from "./forward_plus_passthrough.fs.wgsl?raw";
 import forwardPlusBboxRaw from "./forward_plus_bbox.cs.wgsl?raw";
-import forwardPlusLightcullRaw from "./forward_plus_lightculling.cs.wgsl?raw";
+import forwardPlusLightcullRaw from "./forward_plus_cull.cs.wgsl?raw";
 
 import clusteredDeferredFragRaw from "./clustered_deferred.fs.wgsl?raw";
 import clusteredDeferredFullscreenVertRaw from "./clustered_deferred_fullscreen.vs.wgsl?raw";
@@ -34,8 +34,14 @@ export const constants = {
     bindGroup_model: 1,
     bindGroup_material: 2,
     bindGroup_lightcull: 3,
+
     moveLightsWorkgroupSize: 128,
     maxLightsPerTile: 1000,
+
+    tileSize: 128,
+    tileSizeZ: 20,
+    lightCullBlockSize: 8,
+
     lightRadius: 2,
 };
 

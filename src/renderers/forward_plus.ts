@@ -2,9 +2,6 @@ import * as renderer from "../renderer";
 import * as shaders from "../shaders/shaders";
 import { Stage } from "../stage/stage";
 
-const tileSize = 32;
-const maxLightsPerTile = 1000;
-
 export class ForwardPlusRenderer extends renderer.Renderer {
     // TODO-2: add layouts, pipelines, textures, etc. needed for Forward+ here
     // you may need extra uniforms such as the camera view matrix and the canvas resolution
@@ -20,15 +17,22 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     numTilesX: number;
     numTilesY: number;
     numTilesZ: number;
-    tilesUniformBuffer: GPUBuffer;
+    resUniformBuffer: GPUBuffer;
+    tileUniformBuffer: GPUBuffer;
     pipelinePrez: GPURenderPipeline;
 
-    // light culling - light intersection
+    // light culling - bounding box
+    clusterBuffer: GPUBuffer;
+    bboxBindGroupLayout: GPUBindGroupLayout;
+    bboxBindGroup: GPUBindGroup;
+    pipelineBbox: GPUComputePipeline;
+
+    // light culling - intersection
     tilesLightsIdxBuffer: GPUBuffer; // light index for each tile
     tilesLightsGridBuffer: GPUBuffer; // light offset and count for each tile
-    lightcullBindGroupLayout: GPUBindGroupLayout;
-    lightcullBindGroup: GPUBindGroup;
-    pipelineLightcull: GPUComputePipeline;
+    lightCullBindGroupLayout: GPUBindGroupLayout;
+    lightCullBindGroup: GPUBindGroup;
+    pipelineLightCull: GPUComputePipeline;
 
     sceneLightsBindGroupLayout: GPUBindGroupLayout;
     sceneLightsBindGroup: GPUBindGroup;
@@ -41,7 +45,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             entries: [
                 {
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" },
                 },
                 {
@@ -111,26 +115,36 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         });
 
         // light culling
-        this.tilesUniformBuffer = renderer.device.createBuffer({
+        this.resUniformBuffer = renderer.device.createBuffer({
             label: "tiles uniform buffer",
             size: 2 * Uint32Array.BYTES_PER_ELEMENT,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
 
-        const tilesUniformBufferArray = new Uint32Array([renderer.canvas.width, renderer.canvas.height]);
-        renderer.device.queue.writeBuffer(this.tilesUniformBuffer, 0, tilesUniformBufferArray);
+        const resUniformBufferArray = new Uint32Array([renderer.canvas.width, renderer.canvas.height]);
+        renderer.device.queue.writeBuffer(this.resUniformBuffer, 0, resUniformBufferArray);
 
-        this.numTilesX = Math.ceil(renderer.canvas.width / tileSize);
-        this.numTilesY = Math.ceil(renderer.canvas.height / tileSize);
-        this.numTilesZ = 10;
+        this.numTilesX = Math.ceil(renderer.canvas.width / shaders.constants.tileSize);
+        this.numTilesY = Math.ceil(renderer.canvas.height / shaders.constants.tileSize);
+        this.numTilesZ = shaders.constants.tileSizeZ;
 
         const numTiles = this.numTilesX * this.numTilesY * this.numTilesZ;
         const bufferSize = numTiles * Int32Array.BYTES_PER_ELEMENT;
+        console.log("numTiles", numTiles);
+
+        this.tileUniformBuffer = renderer.device.createBuffer({
+            label: "tiles uniform buffer",
+            size: 4 * Uint32Array.BYTES_PER_ELEMENT,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+
+        const tileUniformBufferArray = new Uint32Array([this.numTilesX, this.numTilesY, this.numTilesZ]);
+        renderer.device.queue.writeBuffer(this.tileUniformBuffer, 0, tileUniformBufferArray);
 
         // assume each tile accept at most 10 lights
         this.tilesLightsIdxBuffer = renderer.device.createBuffer({
             label: "tiles lights idx buffer",
-            size: bufferSize * maxLightsPerTile,
+            size: bufferSize * shaders.constants.maxLightsPerTile,
             usage: GPUBufferUsage.STORAGE,
         });
 
@@ -141,8 +155,14 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             usage: GPUBufferUsage.STORAGE,
         });
 
+        this.clusterBuffer = renderer.device.createBuffer({
+            label: "cluster buffer",
+            size: numTiles * Float32Array.BYTES_PER_ELEMENT * 6, // 6 floats per cluster
+            usage: GPUBufferUsage.STORAGE,
+        });
+
         // light culling - tile per thread
-        this.lightcullBindGroupLayout = renderer.device.createBindGroupLayout({
+        this.bboxBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "light cull bind group layout",
             entries: [
                 {
@@ -158,33 +178,25 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     buffer: { type: "uniform" },
                 },
                 {
-                    // lightSet
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "read-only-storage" },
+                    buffer: { type: "uniform" },
                 },
                 {
-                    // tiles lights idx
                     binding: 3,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "storage" },
-                },
-                {
-                    // tiles lights grid
-                    binding: 4,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "storage" },
                 },
             ],
         });
 
-        this.lightcullBindGroup = renderer.device.createBindGroup({
+        this.bboxBindGroup = renderer.device.createBindGroup({
             label: "light cull bind group",
-            layout: this.lightcullBindGroupLayout,
+            layout: this.bboxBindGroupLayout,
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.tilesUniformBuffer },
+                    resource: { buffer: this.resUniformBuffer },
                 },
                 {
                     binding: 1,
@@ -192,24 +204,114 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 },
                 {
                     binding: 2,
-                    resource: { buffer: this.lights.lightSetStorageBuffer },
+                    resource: { buffer: this.tileUniformBuffer },
                 },
                 {
                     binding: 3,
-                    resource: { buffer: this.tilesLightsIdxBuffer },
+                    resource: { buffer: this.clusterBuffer },
+                },
+            ],
+        });
+
+        this.pipelineBbox = renderer.device.createComputePipeline({
+            label: "forward plus light bounding box pipeline",
+            layout: renderer.device.createPipelineLayout({
+                label: "forward plus light bounding box pipeline layout",
+                bindGroupLayouts: [this.bboxBindGroupLayout],
+            }),
+            compute: {
+                module: renderer.device.createShaderModule({
+                    label: "forward plus light bounding box shader",
+                    code: shaders.forwardPlusBboxSrc,
+                }),
+                entryPoint: "computeMain",
+            },
+        });
+
+        // light culling - intersection
+        this.lightCullBindGroupLayout = renderer.device.createBindGroupLayout({
+            label: "light cull bind group layout",
+            entries: [
+                {
+                    // screen resolution
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" },
+                },
+                {
+                    // camera view and inv view matrix
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" },
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" },
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
                 },
                 {
                     binding: 4,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
+                },
+                {
+                    binding: 5,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "storage" },
+                },
+                {
+                    binding: 6,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "storage" },
+                },
+            ],
+        });
+
+        this.lightCullBindGroup = renderer.device.createBindGroup({
+            label: "light cull bind group",
+            layout: this.lightCullBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.resUniformBuffer },
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.camera.uniformsBuffer },
+                },
+                {
+                    binding: 2,
+                    resource: { buffer: this.tileUniformBuffer },
+                },
+                {
+                    binding: 3,
+                    resource: { buffer: this.clusterBuffer },
+                },
+                {
+                    binding: 4,
+                    resource: { buffer: this.lights.lightSetStorageBuffer },
+                },
+                {
+                    binding: 5,
+                    resource: { buffer: this.tilesLightsIdxBuffer },
+                },
+                {
+                    binding: 6,
                     resource: { buffer: this.tilesLightsGridBuffer },
                 },
             ],
         });
 
-        this.pipelineLightcull = renderer.device.createComputePipeline({
+        this.pipelineLightCull = renderer.device.createComputePipeline({
             label: "forward plus light cull pipeline",
             layout: renderer.device.createPipelineLayout({
                 label: "forward plus light cull pipeline layout",
-                bindGroupLayouts: [this.lightcullBindGroupLayout],
+                bindGroupLayouts: [this.lightCullBindGroupLayout],
             }),
             compute: {
                 module: renderer.device.createShaderModule({
@@ -233,10 +335,15 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: "read-only-storage" },
+                    buffer: { type: "uniform" },
                 },
                 {
                     binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "read-only-storage" },
+                },
+                {
+                    binding: 3,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" },
                 },
@@ -249,14 +356,18 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.tilesUniformBuffer },
+                    resource: { buffer: this.resUniformBuffer },
                 },
                 {
                     binding: 1,
-                    resource: { buffer: this.tilesLightsIdxBuffer },
+                    resource: { buffer: this.tileUniformBuffer },
                 },
                 {
                     binding: 2,
+                    resource: { buffer: this.tilesLightsIdxBuffer },
+                },
+                {
+                    binding: 3,
                     resource: { buffer: this.tilesLightsGridBuffer },
                 },
             ],
@@ -325,13 +436,27 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         renderPassPrez.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
         renderPassPrez.end();
 
-        // light culling - revised
-        const lightcullPass = encoder.beginComputePass();
-        lightcullPass.setPipeline(this.pipelineLightcull);
-        lightcullPass.setBindGroup(0, this.lightcullBindGroup);
-        lightcullPass.dispatchWorkgroups(Math.ceil(this.numTilesX / 8), Math.ceil(this.numTilesY / 8), this.numTilesZ);
+        // light culling - bounding box
+        const bboxPass = encoder.beginComputePass();
+        bboxPass.setPipeline(this.pipelineBbox);
+        bboxPass.setBindGroup(0, this.bboxBindGroup);
+        bboxPass.dispatchWorkgroups(
+            Math.ceil(this.numTilesX / shaders.constants.lightCullBlockSize),
+            Math.ceil(this.numTilesY / shaders.constants.lightCullBlockSize),
+            1
+        );
+        bboxPass.end();
 
-        lightcullPass.end();
+        // light culling - intersection
+        const lightCullPass = encoder.beginComputePass();
+        lightCullPass.setPipeline(this.pipelineLightCull);
+        lightCullPass.setBindGroup(0, this.lightCullBindGroup);
+        lightCullPass.dispatchWorkgroups(
+            Math.ceil(this.numTilesX / shaders.constants.lightCullBlockSize),
+            Math.ceil(this.numTilesY / shaders.constants.lightCullBlockSize),
+            this.numTilesZ
+        );
+        lightCullPass.end();
 
         // render pass
         const renderPass = encoder.beginRenderPass({
