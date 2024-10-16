@@ -3,7 +3,7 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(40 * 4); // 40 floats in total (16 for viewProjMat + 16 for inverse + 3 for cameraPos + 1 padding + 2 for zNear/zFar)
+    readonly buffer = new ArrayBuffer(88 * 4); // 88 floats in total (16 for viewProjMat + 16 for invViewProjMat + 16 for viewMat + 16 for projMat + 16 for invProjMat + 3 for cameraPos + 1 padding + 2 for zNear/zFar)
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -14,16 +14,28 @@ class CameraUniforms {
         this.floatView.set(invMat.subarray(0, 16), 16);
     }
 
+    set viewMat(viewMat: Float32Array) {
+        this.floatView.set(viewMat.subarray(0, 16), 32);
+    }
+
+    set projMat(projMat: Float32Array) {
+        this.floatView.set(projMat.subarray(0, 16), 48);
+    }
+
+    set invProjMat(invProjMat: Float32Array) {
+        this.floatView.set(invProjMat.subarray(0, 16), 64);
+    }
+
     set cameraPos(pos: Float32Array) {
-        this.floatView.set(pos.subarray(0, 3), 32);
+        this.floatView.set(pos.subarray(0, 3), 80);
     }
 
     set zNear(zNear: number) {
-        this.floatView[36] = zNear;
+        this.floatView[84] = zNear;
     }
 
     set zFar(zFar: number) {
-        this.floatView[37] = zFar;
+        this.floatView[85] = zFar;
     }
 }
 
@@ -157,6 +169,9 @@ export class Camera {
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
         const viewProjMat = mat4.mul(this.projMat, viewMat);
         // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
+        this.uniforms.viewMat = viewMat;
+        this.uniforms.projMat = this.projMat;
+        this.uniforms.invProjMat = this.invProjMat;
         this.uniforms.viewProjMat = viewProjMat;
         this.uniforms.invViewProjMat = mat4.invert(viewProjMat);
 

@@ -246,7 +246,7 @@ export class Lights {
         this.canvasHeight = canvas.height;
 
         this.clusterPixelDims = vec2.create(128, 128);
-        const numDepthSlices = 16;
+        const numDepthSlices = 100;
 
         this.clusterGridDims = vec3.create(
             Math.ceil(this.canvasWidth / this.clusterPixelDims[0]),
@@ -275,8 +275,6 @@ export class Lights {
         this.clusterGrid.canvasHeight = this.canvasHeight;
         this.clusterGrid.numLights = this.numLights;
         this.clusterGrid.maxLightsPerCluster = this.maxLightsPerCluster;
-        this.clusterGrid.zNear = 0.1;
-        this.clusterGrid.zFar = 2000.0;
 
         this.clusterGridBufferSize = this.clusterGrid.buffer.byteLength;
         if (this.debug) {
@@ -314,9 +312,9 @@ export class Lights {
         computePass.setPipeline(this.clusteringPipeline);
         computePass.setBindGroup(shaders.constants.bindGroup_scene, this.clusteringBindGroup);
 
-        const numWorkgroupsX = Math.ceil(this.clusterGridDims[0] / this.workgroupSize);
-        const numWorkgroupsY = Math.ceil(this.clusterGridDims[1] / this.workgroupSize);
-        const numWorkgroupsZ = this.clusterGridDims[2];
+        const numWorkgroupsX = Math.ceil(this.clusterGridDims[0] / 8);
+        const numWorkgroupsY = Math.ceil(this.clusterGridDims[1] / 4);
+        const numWorkgroupsZ = Math.ceil(this.clusterGridDims[2] / 8);
         if (this.debug) {
             console.log(`Dispatching workgroups: x=${numWorkgroupsX}, y=${numWorkgroupsY}, z=${numWorkgroupsZ}`);
         }
@@ -357,7 +355,7 @@ export class Lights {
         for (let i = 0; i < clusterUintData.length; i += 129) {
             console.log(clusterUintData.slice(i, i + 10));
         }
-        for (let i = 0; i < Math.min(129*this.numClusters, clusterUintData.length); i++) {
+        for (let i = 0; i < Math.min(257*this.numClusters, clusterUintData.length); i+=256) {
             console.log(clusterUintData[i]);
         }
     

@@ -27,7 +27,7 @@ struct FragmentInput {
     @location(0) pos: vec3f, 
     @location(1) nor: vec3f,
     @location(2) uv: vec2f,
-    @builtin(position) fragCoord: vec4f
+    @builtin(position) fragPixelPos: vec4f
 }
 
 @fragment
@@ -38,7 +38,7 @@ fn main(in: FragmentInput) -> @location(0) vec4f
         discard;
     }
 
-    let clusterIndex = calculateClusterIndex(in.fragCoord, in.pos);
+    let clusterIndex = calculateClusterIndex(in.fragPixelPos, in.pos);
     let currentCluster = clusters[clusterIndex];
 
     var totalLightContrib = vec3f(0, 0, 0);
@@ -52,15 +52,15 @@ fn main(in: FragmentInput) -> @location(0) vec4f
 
     var finalColor = diffuseColor.rgb * totalLightContrib;
 
-    finalColor = generateClusterColor(clusterIndex);
+    // finalColor = generateClusterColor(clusterIndex);
     // finalColor = generateClusterNumColor(currentCluster.numLights);
 
     return vec4(finalColor, 1);
 }
 
-fn calculateClusterIndex(fragCoord: vec4f, fragPos: vec3f) -> u32 {
-    let clusterX = u32(fragCoord.x / f32(clusterGrid.canvasWidth) * f32(clusterGrid.clusterGridSizeX));
-    let clusterY = u32(fragCoord.y / f32(clusterGrid.canvasHeight) * f32(clusterGrid.clusterGridSizeY));
+fn calculateClusterIndex(fragPixelPos: vec4f, fragPos: vec3f) -> u32 {
+    let clusterX = u32(fragPixelPos.x / f32(clusterGrid.canvasWidth) * f32(clusterGrid.clusterGridSizeX));
+    let clusterY = u32(fragPixelPos.y / f32(clusterGrid.canvasHeight) * f32(clusterGrid.clusterGridSizeY));
 
     let zDepth = length(fragPos - cameraData.cameraPos);
     let logZRatio = log2(cameraData.zFar / cameraData.zNear);
