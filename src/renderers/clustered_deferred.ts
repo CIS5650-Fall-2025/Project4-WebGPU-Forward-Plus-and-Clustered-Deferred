@@ -265,7 +265,14 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 depthClearValue: 1.0,
                 depthLoadOp: "clear",
                 depthStoreOp: "store"
-            }
+            }, 
+            ...(renderer.canTimestamp && {
+                timestampWrites: {
+                    querySet: this.querySet,
+                    beginningOfPassWriteIndex: 0,
+                    endOfPassWriteIndex: 1,
+                },
+            }),
         });
         renderPassPre.setPipeline(this.pipelinePre);
 
@@ -298,7 +305,14 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 depthClearValue: 1.0,
                 depthLoadOp: "clear",
                 depthStoreOp: "store"
-            }
+            }, 
+            ...(renderer.canTimestamp && {
+                timestampWrites: {
+                    querySet: this.querySet,
+                    beginningOfPassWriteIndex: 2,
+                    endOfPassWriteIndex: 3,
+                },
+            }),
         });
 
         renderPassFull.setPipeline(this.pipelineFull);
@@ -312,6 +326,36 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         
         renderPassFull.end();
 
+        if (renderer.canTimestamp) {
+            encoder.resolveQuerySet(this.querySet, 0, this.querySet.count, this.resolveBuffer, 0);
+            if (this.resultBuffer.mapState === 'unmapped') {
+                encoder.copyBufferToBuffer(this.resolveBuffer, 0, this.resultBuffer, 0, this.resultBuffer.size);
+            }
+        }
+
         renderer.device.queue.submit([encoder.finish()]);
+
+        if (renderer.canTimestamp && this.resultBuffer.mapState === 'unmapped') {
+            this.resultBuffer.mapAsync(GPUMapMode.READ).then(() => {
+                const times = new BigInt64Array(this.resultBuffer.getMappedRange());
+                this.gpuTime = (Number(times[3] - times[2] + times[1] - times[0])) * 0.000001;
+                if (this.gpuTimesIndex < this.gpuTimesSize && 
+                    this.gpuTimes[this.gpuTimesIndex] != this.gpuTime &&
+                    this.gpuTime > 0) {
+                    // May want to analyze with two passes separate
+                    // console.log(this.gpuTimesIndex);
+                    // console.log((Number(times[1] - times[0])) * 0.000001);
+                    // console.log((Number(times[3] - times[2])) * 0.000001);
+                    this.gpuTimes[this.gpuTimesIndex] = this.gpuTime;
+                    this.gpuTimesIndex++;
+                } 
+                this.resultBuffer.unmap();
+            });
+        }
+
+        if (this.gpuTimesIndex == this.gpuTimesSize) {
+            console.log(this.gpuTimes);
+            this.gpuTimesIndex++;
+        }
     }
 }
