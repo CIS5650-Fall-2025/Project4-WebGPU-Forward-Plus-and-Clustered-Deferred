@@ -130,6 +130,7 @@ export abstract class Renderer {
 
     protected quadVertexBuffer: GPUBuffer;
     protected quadIndexBuffer: GPUBuffer;
+    protected doClustering: boolean = true;
     bUseRenderBundles: boolean = false;
 
     constructor(stage: Stage) {
@@ -172,7 +173,7 @@ export abstract class Renderer {
 
         let deltaTime = time - this.prevTime;
         this.camera.onFrame(deltaTime);
-        this.lights.onFrame(time);
+        this.lights.onFrame(time, this.doClustering);
 
         this.stats.begin();
 

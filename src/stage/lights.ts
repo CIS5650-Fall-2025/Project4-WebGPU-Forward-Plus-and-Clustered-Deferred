@@ -14,6 +14,7 @@ export class Lights {
     private camera: Camera;
 
     numLights = 1024;
+    lightArraySize = 0;
     static readonly maxNumLights = 8192;
     static readonly numFloatsPerLight = 8; // vec3f is aligned at 16 byte boundaries
 
@@ -53,6 +54,7 @@ export class Lights {
     constructor(camera: Camera) {
         this.camera = camera;
         this.bitonicSortPipeline = [];
+        this.lightArraySize = 1 << Math.ceil(Math.log2(this.numLights));
 
         this.sceneUniformsBindGroupLayout = device.createBindGroupLayout({
             label: "scene uniforms bind group layout",
@@ -292,7 +294,7 @@ export class Lights {
             code: shaders.bitonicSortComputeSrc
         })
 
-        for (let k = 2; k <= this.numLights; k <<= 1){
+        for (let k = 2; k <= this.lightArraySize; k <<= 1){
             for (let j = k >> 1; j > 0; j >>= 1){
               this.bitonicSortPipeline.push(
                 device.createComputePipeline({
@@ -313,12 +315,15 @@ export class Lights {
     }
 
     updateLightSetUniformNumLights() {
+        this.lightArraySize = 1 << Math.ceil(Math.log2(this.numLights));
+        console.log("light size: %d", this.lightArraySize);
         device.queue.writeBuffer(this.lightSetStorageBuffer, 0, new Uint32Array([this.numLights]));
         this.constructBitonicSortPipeline();
+        device.queue.writeBuffer(this.lightSetStorageBuffer, 16, this.lightsArray.buffer);
     }
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
-    onFrame(time: number) {
+    onFrame(time: number, doCluster: boolean) {
         device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
 
         // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance
@@ -333,11 +338,14 @@ export class Lights {
         const workgroupCount = Math.ceil(this.numLights / shaders.constants.moveLightsWorkgroupSize);
         computePass.dispatchWorkgroups(workgroupCount);
 
+        if (doCluster)
+        {
         // sort the lights by z
         computePass.setBindGroup(0, this.moveLightsComputeBindGroup);
+        let sortWorkgroupCount = Math.ceil(this.lightArraySize / shaders.constants.moveLightsWorkgroupSize);
         for (let pipeline of this.bitonicSortPipeline) {
             computePass.setPipeline(pipeline);
-            computePass.dispatchWorkgroups(workgroupCount);
+            computePass.dispatchWorkgroups(sortWorkgroupCount);
         }
 
         // do z binning
@@ -352,8 +360,9 @@ export class Lights {
         let clusterWorkgroupCount = Math.ceil(this.clusterNum / shaders.constants.moveLightsWorkgroupSize);
         computePass.dispatchWorkgroups(clusterWorkgroupCount);
 
-        computePass.end();
+        }
 
+        computePass.end();
         // finish encoding and submit the commands
         device.queue.submit([encoder.finish()]);
 

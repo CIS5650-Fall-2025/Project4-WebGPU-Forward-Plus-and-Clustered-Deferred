@@ -7,13 +7,16 @@
 @compute @workgroup_size(${moveLightsWorkgroupSize})
 fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
   let idx = globalIdx.x;
-  if (idx >= lightSet.numLights) {
-    return;
-  }
+  //if (idx >= lightSet.numLights) {
+  //  return;
+  //}
   let l = idx ^ j;
 
   let lightA = lightSet.lights[idx];
-  let lightB = lightSet.lights[l];
+  var lightB = lightSet.lights[l];
+  if (lightB.idx >= lightSet.numLights) {
+    lightB.pos.z = -9999999.f;
+  }
 
   if (l > idx) {
     if (((idx & k) == 0u && lightA.pos.z < lightB.pos.z) || ((idx & k) != 0u && lightA.pos.z > lightB.pos.z)){

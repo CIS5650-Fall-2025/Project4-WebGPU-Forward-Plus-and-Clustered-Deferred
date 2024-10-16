@@ -13,6 +13,9 @@ export class NaiveRenderer extends renderer.Renderer {
 
     constructor(stage: Stage) {
         super(stage);
+        // disable clustering for the naive renderer
+        // since naive renderer doesn't need clustering
+        this.doClustering = false;
 
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "scene uniforms bind group layout",
