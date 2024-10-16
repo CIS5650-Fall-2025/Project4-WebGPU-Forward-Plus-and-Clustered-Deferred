@@ -31,7 +31,10 @@ export const constants = {
     bindGroup_cluster:3,
     
     moveLightsWorkgroupSize: 128,
-
+    tileSize: 32,
+    maxLightsPerTile: 1024,
+    clusterWorkgroupSizeX: 128,
+    clusterWorkgroupSizeY: 128,
     lightRadius: 2
 };
 

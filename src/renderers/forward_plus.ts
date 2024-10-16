@@ -18,8 +18,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
     pipeline: GPURenderPipeline;
     clusterPipeline: GPUComputePipeline;
-    clusterBuffer: GPUBuffer;
-    
 
     constructor(stage: Stage) {
         super(stage);
@@ -81,18 +79,23 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.clusterBuffer }
+                    resource: { buffer: this.lights.lightSetStorageBuffer }
                 }
             ]
         });
-
-        // Create the buffer to store clusters
-        this.clusterBuffer = renderer.device.createBuffer({
-            size: this.calculateClusterBufferSize(),
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        // Cluster compute pipeline
+        this.clusterPipeline = renderer.device.createComputePipeline({
+            layout: renderer.device.createPipelineLayout({
+                label: "cluster compute pipeline layout",
+                bindGroupLayouts: [this.sceneUniformsBindGroupLayout, this.clusterBindGroupLayout]
+            }),
+            compute: {
+                module: renderer.device.createShaderModule({
+                    label: "cluster compute shader",
+                    code: shaders.clusteringComputeSrc
+                })
+            }
         });
-
-        
         // Forward+ pipeline
         this.pipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
@@ -119,7 +122,8 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             fragment: {
                 module: renderer.device.createShaderModule({
                     label: "forward+ frag shader",
-                    code: shaders.forwardPlusFragSrc,
+                    // debug change forward to naive
+                    code: shaders.naiveFragSrc,
                 }),
                 targets: [
                     {
@@ -128,49 +132,25 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 ]
             }
         });
-        // Cluster compute pipeline
-        this.clusterPipeline = renderer.device.createComputePipeline({
-            layout: renderer.device.createPipelineLayout({
-                label: "cluster compute pipeline layout",
-                bindGroupLayouts: [this.sceneUniformsBindGroupLayout, this.clusterBindGroupLayout]
-            }),
-            compute: {
-                module: renderer.device.createShaderModule({
-                    label: "cluster compute shader",
-                    code: shaders.clusteringComputeSrc
-                })
-            }
-        });
     }
-        // Function to calculate the buffer size needed for clusters
-        calculateClusterBufferSize(): number {
-            const numClusters = this.calculateNumClusters();
-            const clusterSize = 32;
-            return numClusters * clusterSize;
-        }
-    
-        calculateNumClusters(): number {
-            const clusterX = 10;
-            const clusterY = 10;
-            const clusterZ = 10;
-            return clusterX * clusterY * clusterZ;
-        }
 
     override draw() {
         // TODO-2: run the Forward+ rendering pass:
         // - run the clustering compute shader
         // - run the main rendering pass, using the computed clusters for efficient lighting
         const encoder = renderer.device.createCommandEncoder();
-        
-        // step 1 run the clustering compute shader
+        // run the clustering compute shader
         const computePass = encoder.beginComputePass();
-        computePass.setPipeline(this.clusterPipeline);
+        computePass.setPipeline(this.clusterPipeline); 
         computePass.setBindGroup(0, this.sceneUniformsBindGroup);
         computePass.setBindGroup(1, this.clusterBindGroup);
-        computePass.dispatchWorkgroups(this.calculateNumClusters());
+        const workGroupCountX = Math.ceil(renderer.canvas.width / shaders.constants.tileSize);
+        const workGroupCountY = Math.ceil(renderer.canvas.height / shaders.constants.tileSize);
+        computePass.dispatchWorkgroups(workGroupCountX, workGroupCountY, 1);
         computePass.end();
 
-        // step 2 run the main rendering pass
+
+        // run the main rendering pass
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
         const renderPass = encoder.beginRenderPass({
             label: "forward+ render pass",

@@ -1,6 +1,7 @@
 @group(${bindGroup_scene}) @binding(0) var<uniform> camera: CameraUniforms;
-@group(${bindGroup_scene}) @binding(1) var<storage, read_write> lightSet: LightSet;
-@group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
+
+@group(${bindGroup_model}) @binding(0) var<storage, read_write> lightSet: LightSet;
+@group(${bindGroup_model}) @binding(1) var<storage, read_write> clusterSet: ClusterSet;
 
 // Constants
 const NUM_CLUSTERS_X: u32 = 16;
@@ -15,7 +16,7 @@ fn screenSpaceToViewSpace(x: f32, y: f32, z: f32) -> vec3f {
 }
 
 @compute
-@workgroup_size(1, 1, 1)
+@workgroup_size(${moveLightsWorkgroupSize})
 fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     let clusterX: u32 = globalIdx.x;
     let clusterY: u32 = globalIdx.y;
@@ -48,8 +49,8 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
         let light = lightSet.lights[i];
 
         // Check if the light's sphere intersects the cluster's AABB
-        let lightAABBMin = light.pos - vec3f(light.radius);
-        let lightAABBMax = light.pos + vec3f(light.radius);
+        let lightAABBMin = light.pos - vec3f(${lightRadius});
+        let lightAABBMax = light.pos + vec3f(${lightRadius});
 
         if (clusterAABBMax.x > lightAABBMin.x && clusterAABBMin.x < lightAABBMax.x &&
             clusterAABBMax.y > lightAABBMin.y && clusterAABBMin.y < lightAABBMax.y &&

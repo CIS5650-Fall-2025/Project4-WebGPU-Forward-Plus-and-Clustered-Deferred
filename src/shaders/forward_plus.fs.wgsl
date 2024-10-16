@@ -16,7 +16,11 @@
 // Return the final color, ensuring that the alpha component is set appropriately (typically to 1).
 @group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
-@group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
+
+@group(${bindGroup_cluster}) @binding(0) var<storage, read> clusterSet: ClusterSet;
+
+@group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
+@group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
 
 const NUM_CLUSTERS_X: u32 = 16;
 const NUM_CLUSTERS_Y: u32 = 9;
@@ -26,8 +30,8 @@ const NUM_CLUSTERS_Z: u32 = 24;
 struct FragmentInput {
     @builtin(position) fragCoord: vec4f,
     @location(0) fragPosition: vec3f,
-    @location(1) normal: vec3f,
-    @location(2) diffuseColor: vec3f,
+    @location(1) nor: vec3f,
+    @location(2) uv: vec2f,
 };
 
 // Fragment Output
@@ -65,10 +69,25 @@ fn calculateLightContribution(light: Light, fragPos: vec3f, normal: vec3f) -> ve
 
 @fragment
 fn main(input: FragmentInput) -> FragmentOutput {
-    let fragPos = input.fragPosition;
-    let normal = normalize(input.normal);
-    let diffuseColor = input.diffuseColor;
+    let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
+    if (diffuseColor.a < 0.5f) {
+        discard;
+    }
+
+    var totalLightContrib = vec3f(0, 0, 0);
+    for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
+        let light = lightSet.lights[lightIdx];
+        totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
+    }
+
+    var finalColor = diffuseColor.rgb * totalLightContrib;
+    return vec4(finalColor, 1);
+
+
+/*
+    let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, input.uv);
     let clusterIndex = getClusterIndex(fragPos);
+
     // !debug the clusterSet in common.wgsl
     let numLights = clusterSet.numLights[clusterIndex];
     // accumulate light contributions
@@ -76,9 +95,10 @@ fn main(input: FragmentInput) -> FragmentOutput {
     for (var i: u32 = 0; i < numLights; ++i) {
         let lightIndex = clusterSet.lightIndices[clusterIndex * 100 + i]; // max 100 light per cluster
         let light = lightSet.lights[lightIndex];
-        accumulatedLight += calculateLightContribution(light, fragPos, normal);
+        accumulatedLight += calculateLightContribution(light, input.pos, input.nor);
     }
     // multiply the diffuse color
     let finalColor = diffuseColor * accumulatedLight;
     return FragmentOutput(vec4f(finalColor, 1.0));
-}
+    */
+} 

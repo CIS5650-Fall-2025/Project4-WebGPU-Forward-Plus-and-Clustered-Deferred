@@ -22,6 +22,10 @@ class CameraUniforms {
         this.floatView[32] = near;
         this.floatView[33] = far;
     }
+    setScreenSize(x: number, y: number) {
+        this.floatView[34] = x;
+        this.floatView[35] = y;
+    }
 }
 
 export class Camera {
@@ -151,6 +155,7 @@ export class Camera {
         // TODO-2: write to extra buffers needed for light clustering here
         this.uniforms.inverseViewProjMat = new Float32Array(inverseViewProjMat);
         this.uniforms.setNearFarPlanes(Camera.nearPlane, Camera.farPlane);
+        this.uniforms.setScreenSize(canvas.width, canvas.height);
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);

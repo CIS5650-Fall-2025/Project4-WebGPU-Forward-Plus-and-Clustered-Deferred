@@ -1,24 +1,18 @@
 // CHECKITOUT: code that you add here will be prepended to all shaders
-
 struct Light {
     pos: vec3f,
     color: vec3f,
     // TODO-2
-    radius: f32,
 }
-
 struct LightSet {
     numLights: u32,
     lights: array<Light>
 }
-
 // TODO-2: you may want to create a ClusterSet struct similar to LightSet
-
 struct ClusterSet {
     numLights: u32, // num of lights per cluster 
-    lightIndices: array<u32> // max 100 lights
+    lightIndices: array<u32>,
 }
-
 
 struct CameraUniforms {
     viewProjMat: mat4x4f,
