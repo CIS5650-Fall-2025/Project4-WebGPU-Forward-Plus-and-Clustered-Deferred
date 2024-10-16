@@ -5,43 +5,38 @@
 @group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
-@group(${bindGroup_scene}) @binding(3) var gBufferPosition: texture_2d<f32>;
-@group(${bindGroup_scene}) @binding(4) var gBufferAlbedo: texture_2d<f32>;
-@group(${bindGroup_scene}) @binding(5) var gBufferNormal: texture_2d<f32>;
 
-@group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
-@group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
+@group(${bindGroup_deferred}) @binding(0) var gBufferPosition: texture_2d<f32>;
+@group(${bindGroup_deferred}) @binding(1) var gBufferAlbedo: texture_2d<f32>;
+@group(${bindGroup_deferred}) @binding(2) var gBufferNormal: texture_2d<f32>;
 
 @fragment
 fn main(@builtin(position) coord : vec4f) -> @location(0) vec4f
-{   
-    let position = textureSample(gBufferPosition, diffuseTexSampler, coord.xy / vec2f(textureDimensions(gBufferPosition))).xyz;
-    let albedo = textureSample(gBufferAlbedo, diffuseTexSampler, coord.xy / vec2f(textureDimensions(gBufferAlbedo))).xyz;
-    let normal = textureSample(gBufferNormal, diffuseTexSampler, coord.xy / vec2f(textureDimensions(gBufferNormal))).xyz;
-    // let position = textureLoad(
-    //     gBufferPosition,
-    //     vec2i(floor(coord.xy)),
-    //     0
-    // ).xyz;
+{
+    let worldpos = textureLoad(
+        gBufferPosition,
+        vec2i(floor(coord.xy)),
+        0
+    ).xyz;
 
-    // let albedo = textureLoad(
-    //     gBufferAlbedo,
-    //     vec2i(floor(coord.xy)),
-    //     0
-    // ).xyz;
+    let albedo = textureLoad(
+        gBufferAlbedo,
+        vec2i(floor(coord.xy)),
+        0
+    ).xyz;
 
-    // let normal = textureLoad(
-    //     gBufferNormal,
-    //     vec2i(floor(coord.xy)),
-    //     0
-    // ).xyz;
+    let normal = textureLoad(
+        gBufferNormal,
+        vec2i(floor(coord.xy)),
+        0
+    ).xyz;
 
     // Determine which cluster contains the current fragment
-    let posNDCSpace = applyTransform(vec4f(position, 1.0), cameraUniforms.viewproj);
+    let posNDCSpace = applyTransform(vec4f(worldpos, 1.0), cameraUniforms.viewproj);
     let clusterIndexX = u32((posNDCSpace.x + 1.0) * 0.5 * f32(${numClusterX}));
     let clusterIndexY = u32((posNDCSpace.y + 1.0) * 0.5 * f32(${numClusterY}));
     
-    let posViewSpace = cameraUniforms.view * vec4f(position, 1.0);
+    let posViewSpace = cameraUniforms.view * vec4f(worldpos, 1.0);
     let viewZ = clamp(-posViewSpace.z, cameraUniforms.nearFar[0], cameraUniforms.nearFar[1]);
     let clusterIndexZ = u32(log(viewZ / cameraUniforms.nearFar[0]) / log(cameraUniforms.nearFar[1] / cameraUniforms.nearFar[0]) * f32(${numClusterZ}));
 
@@ -60,7 +55,7 @@ fn main(@builtin(position) coord : vec4f) -> @location(0) vec4f
         let light = lightSet.lights[clusterSet.clusters[clusterIndex].lights[lightIdx]];
         // Calculate the contribution of the light based on its position, the fragment’s position, and the surface normal.
         // Add the calculated contribution to the total light accumulation.
-        totalLightContrib += calculateLightContrib(light, position, normal);
+        totalLightContrib += calculateLightContrib(light, worldpos, normal);
     }
 
     // Multiply the fragment’s diffuse color by the accumulated light contribution.
