@@ -4,7 +4,7 @@ import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
     // Last 4 x 4 bytes include padding for alignment
-    readonly buffer = new ArrayBuffer((16 * 4) + (16 * 4) + (4 * 4));
+    readonly buffer = new ArrayBuffer((16 + 16 + 16 + 2 + 1 + 1 + 1) * 4);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -15,8 +15,24 @@ class CameraUniforms {
         this.floatView.set(mat, 16);
     }
 
+    set viewMat(mat: Float32Array) {
+        this.floatView.set(mat, 32);
+    }
+
     set screenDimensions(dimensions: Float32Array) {
-        this.floatView.set(dimensions, 32);
+        this.floatView.set(dimensions, 48);
+    }
+
+    set near(near: number) {
+        this.floatView[50] = near;
+    }
+
+    set far(far: number) {
+        this.floatView[51] = far;
+    }
+
+    set logFarOverNear(logFarOverNear: number) {
+        this.floatView[52] = logFarOverNear;
     }
 }
 
@@ -42,7 +58,7 @@ export class Camera {
     constructor () {
         this.uniformsBuffer = device.createBuffer({
             label: "uniformsBuffer",
-            size: this.uniforms.buffer.byteLength,
+            size: Math.ceil(this.uniforms.buffer.byteLength / 16) * 16, // ensure 16 byte alignment
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
 
@@ -139,6 +155,10 @@ export class Camera {
         this.uniforms.viewProjMat = viewProjMat;
         this.uniforms.invProjMat = invProjMat;
         this.uniforms.screenDimensions = new Float32Array([canvas.width, canvas.height]);
+        this.uniforms.near = Camera.nearPlane;
+        this.uniforms.far = Camera.farPlane;
+        this.uniforms.logFarOverNear = Math.log(Camera.farPlane / Camera.nearPlane);
+        this.uniforms.viewMat = viewMat;
 
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);
     }

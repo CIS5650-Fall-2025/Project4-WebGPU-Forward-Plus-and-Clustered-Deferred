@@ -21,8 +21,8 @@ export class Lights {
 
     // The first 8 floats are for the min and max bounds, and the light count
     // We also need to pad the maxLightsPerCluster to be 4-float aligned.
-    static readonly clusterDimensions = vec3.fromValues(100, 100, 100);
-    static readonly numFloatsPerCluster = 8 + Math.ceil(shaders.constants.maxLightsPerCluster / 4) * 4;
+    static readonly numFloatsPerCluster = 1 + Math.ceil(shaders.constants.maxLightsPerCluster / 4) * 4;
+    static readonly clustersArrayByteLength = 4 * Lights.numFloatsPerCluster * shaders.constants.clusterDimensions[0] * shaders.constants.clusterDimensions[1] * shaders.constants.clusterDimensions[2];
 
     lightsArray = new Float32Array(Lights.maxNumLights * Lights.numFloatsPerLight);
     lightSetStorageBuffer: GPUBuffer;
@@ -33,8 +33,8 @@ export class Lights {
     moveLightsComputeBindGroup: GPUBindGroup;
     moveLightsComputePipeline: GPUComputePipeline;
 
-    clustersArray = new Float32Array(Lights.numFloatsPerCluster * Lights.clusterDimensions[0] * Lights.clusterDimensions[1] * Lights.clusterDimensions[2]);
     clusterSetStorageBuffer: GPUBuffer;
+    clusterUniformBuffer: GPUBuffer;
 
     clusterLightsComputeBindGroupLayout: GPUBindGroupLayout;
     clusterLightsComputeBindGroup: GPUBindGroup;
@@ -109,10 +109,15 @@ export class Lights {
 
         this.clusterSetStorageBuffer = device.createBuffer({
             label: "clusters",
-            size: 16 + this.clustersArray.byteLength, // 16 for cluster dimensions + padding
+            size: Lights.clustersArrayByteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
-        this.setClusterDimensions();
+
+        this.clusterUniformBuffer = device.createBuffer({
+            label: "cluster uniforms",
+            size: 4 * 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
 
         this.clusterLightsComputeBindGroupLayout = device.createBindGroupLayout({
             label: "cluster lights compute bind group layout",
@@ -129,6 +134,11 @@ export class Lights {
                 },
                 { // Camera
                     binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" }
+                },
+                { // Cluster dimensions
+                    binding: 3,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" }
                 }
@@ -150,6 +160,10 @@ export class Lights {
                 {
                     binding: 2,
                     resource: { buffer: this.camera.uniformsBuffer }
+                },
+                {
+                    binding: 3,
+                    resource: { buffer: this.clusterUniformBuffer }
                 }
             ]
         });
@@ -185,19 +199,16 @@ export class Lights {
         device.queue.writeBuffer(this.lightSetStorageBuffer, 0, new Uint32Array([this.numLights]));
     }
 
-    private setClusterDimensions() {
-        device.queue.writeBuffer(this.clusterSetStorageBuffer, 0, new Float32Array(Lights.clusterDimensions));
-    }
-
-    doLightClustering(encoder: GPUCommandEncoder) {
+    doLightClustering(encoder: GPUCommandEncoder, device: GPUDevice) {
+        device.queue.writeBuffer(this.clusterUniformBuffer, 0, new Float32Array(shaders.constants.clusterDimensions));
         const computePass = encoder.beginComputePass();
         computePass.setPipeline(this.clusterLightsComputePipeline);
 
         computePass.setBindGroup(shaders.constants.bindGroup_scene, this.clusterLightsComputeBindGroup);
 
-        const workgroupCountX = Math.ceil(Lights.clusterDimensions[0] / shaders.constants.computeClustersWorkgroupSize);
-        const workgroupCountY = Math.ceil(Lights.clusterDimensions[1] / shaders.constants.computeClustersWorkgroupSize);
-        const workgroupCountZ = Math.ceil(Lights.clusterDimensions[2] / shaders.constants.computeClustersWorkgroupSize);
+        const workgroupCountX = Math.ceil(shaders.constants.clusterDimensions[0] / shaders.constants.computeClustersWorkgroupSize[0]);
+        const workgroupCountY = Math.ceil(shaders.constants.clusterDimensions[1] / shaders.constants.computeClustersWorkgroupSize[1]);
+        const workgroupCountZ = Math.ceil(shaders.constants.clusterDimensions[2] / shaders.constants.computeClustersWorkgroupSize[2]);
 
         computePass.dispatchWorkgroups(workgroupCountX, workgroupCountY, workgroupCountZ);
 
@@ -220,8 +231,6 @@ export class Lights {
         computePass.dispatchWorkgroups(workgroupCount);
 
         computePass.end();
-
-        this.doLightClustering(encoder);
 
         device.queue.submit([encoder.finish()]);
     }
