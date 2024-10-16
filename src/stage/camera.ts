@@ -67,6 +67,12 @@ export class Camera {
     moveSpeed: number = 0.004;
     sensitivity: number = 0.15;
 
+    tileCountX: number = 16;
+    tileCountY: number = 16;
+    tileCountZ: number = 16;
+    tileSize: number = this.tileCountX * this.tileCountY * this.tileCountZ;
+
+
     static readonly nearPlane = 0.1;
     static readonly farPlane = 1000;
 
@@ -182,13 +188,13 @@ export class Camera {
         this.uniforms.viewMat = viewMat;
         this.uniforms.zNear = Camera.nearPlane;
         this.uniforms.zFar = Camera.farPlane;
-        this.uniforms.tileCountX = Math.ceil(canvas.height / shaders.constants.clusterTileSize_X);
-        this.uniforms.tileCountY = Math.ceil(canvas.width / shaders.constants.clusterTileSize_Y);
-        this.uniforms.tileCountZ = Math.ceil(Camera.farPlane / shaders.constants.clusterTileSize_Z);
-        this.uniforms.tileSize = this.uniforms.tileCountX * this.uniforms.tileCountY * this.uniforms.tileCountZ;
-        //console.log("tileCountX: " + this.uniforms.tileCountX + " tileCountY: " + this.uniforms.tileCountY + " tileCountZ: " + this.uniforms.tileCountZ);
+        this.uniforms.tileCountX = this.tileCountX;// Math.ceil(canvas.height / shaders.constants.clusterTileSize_X);
+        this.uniforms.tileCountY = this.tileCountY; //Math.ceil(canvas.width / shaders.constants.clusterTileSize_Y);
+        this.uniforms.tileCountZ = this.tileCountZ; //Math.ceil(Camera.farPlane / shaders.constants.clusterTileSize_Z);
+        this.uniforms.tileSize = this.tileSize;
+        //console.log("tileCountX: " + this.tileCountX + " tileCountY: " + this.tileCountY + " tileCountZ: " + this.tileCountZ);
         this.uniforms.canvasSize = [canvas.width, canvas.height];
-        
+        console.log("canvas.width: " + canvas.width + " canvas.height: " + canvas.height);
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`

@@ -30,7 +30,7 @@ export class Lights {
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
     numClusters = Math.ceil(canvas.height / shaders.constants.clusterTileSize_X) * Math.ceil(canvas.width / shaders.constants.clusterTileSize_Y) * Math.ceil(Camera.farPlane / shaders.constants.clusterTileSize_Z);
-    static readonly maxNumClusters = 100000;
+    static readonly maxNumClusters = 10000;
 
     clustersArray = new Float32Array(Lights.maxNumClusters * 112); // 112 bytes for each cluster
     clustersSetStorageBuffer: GPUBuffer;
@@ -105,7 +105,7 @@ export class Lights {
         this.clustersSetStorageBuffer = device.createBuffer({
             label: "clusters",
             size: 16 + this.clustersArray.byteLength, // 16 for numClusters + padding
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
         });
 
         this.populateClustersBuffer();
@@ -193,25 +193,21 @@ export class Lights {
         // implementing clustering here allows for reusing the code in both Forward+ and Clustered Deferred
         
         const lightCullingComputePass = encoder.beginComputePass({ label: "light culling compute pass" });
-        // //console.log("lightCullingComputePass encoder label: " + encoder.label);
         lightCullingComputePass.setPipeline(this.lightCullingComputePipeline);
-        // //console.log("setPipeline");
         lightCullingComputePass.setBindGroup(0, this.lightCullingComputeBindGroup);
 
         // // #working groups = #clusters / workgroup size
         const rowNum = Math.ceil(canvas.height / shaders.constants.clusterTileSize_X);
         const colNum = Math.ceil(canvas.width / shaders.constants.clusterTileSize_Y);
         const sliceNum = Math.ceil(Camera.farPlane / shaders.constants.clusterTileSize_Z);
-        //console.log("rowNum: " + rowNum + " colNum: " + colNum + " sliceNum: " + sliceNum);
-        const workgroupCount = rowNum * colNum * sliceNum / shaders.constants.clusterComputeWorkgroupSize;
+        //const workgroupCount =Math.ceil( rowNum * colNum * sliceNum / shaders.constants.clusterComputeWorkgroupSize);
+        const workgroupCount = Math.ceil( this.camera.tileSize / shaders.constants.clusterComputeWorkgroupSize) | 0;
+        //console.log("workgroupCount: " + workgroupCount);
         lightCullingComputePass.dispatchWorkgroups(workgroupCount);
-
-
 
         lightCullingComputePass.end();
 
-        // copy the clusters buffer back to the CPU for debugging
-        //device.queue.copyBufferToBuffer(this.clustersSetStorageBuffer, 16, this.clustersBuffer, 0, this.clustersArray.byteLength);
+        device.queue.submit([encoder.finish()]);
     }
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host

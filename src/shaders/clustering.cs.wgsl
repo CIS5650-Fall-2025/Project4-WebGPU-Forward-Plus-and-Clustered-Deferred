@@ -31,8 +31,10 @@ fn lineIntersectionWithZPlane(startPoint: vec3f, endPoint: vec3f, zDistance: f32
 
 fn clusterBound(clusterIdx: u32, tileSize: u32) {
     var tileIdx: vec3u = vec3u(clusterIdx % cameraUniforms.tileCountX, (clusterIdx / cameraUniforms.tileCountX) % cameraUniforms.tileCountY, clusterIdx / (cameraUniforms.tileCountX * cameraUniforms.tileCountY));
-    var minTile_screenspace: vec2u = tileIdx.xy * tileSize;
-    var maxTile_screenspace: vec2u = (tileIdx.xy + vec2u(1, 1)) * tileSize;
+    var tilePixelSize_X: u32 = u32(cameraUniforms.canvasSize.x) / u32(cameraUniforms.tileCountX);
+    var tilePixelSize_Y: u32 = u32(cameraUniforms.canvasSize.y) / u32(cameraUniforms.tileCountY);
+    var minTile_screenspace: vec2u = tileIdx.xy * vec2u(tilePixelSize_X, tilePixelSize_Y);
+    var maxTile_screenspace: vec2u = (tileIdx.xy + vec2u(1, 1)) * vec2u(tilePixelSize_X, tilePixelSize_Y);
 
     // convert to view space
     var minTile_view: vec3f = screenToView(vec2f(minTile_screenspace));
@@ -96,17 +98,18 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     //var tileIdx: u32 = clusterIdx.x + clusterIdx.y * cameraUniforms.tileCountX + clusterIdx.z * cameraUniforms.tileCountX * cameraUniforms.tileCountY;
     var cluster: Cluster = clusterSet.clusters[clusterIdx];
 
-    cluster.lightCount = 0;
+    clusterSet.clusters[clusterIdx].lightCount = 0;
     var lightIdx: u32 = 0u;
     var numLights: u32 = lightSet.numLights;
 
     for(lightIdx = 0u; lightIdx < numLights; lightIdx++) {
-        if (testSphereAABB(cluster, lightIdx)) {
-            cluster.lightIndices[cluster.lightCount] = lightIdx;
-            cluster.lightCount++;
-            if (cluster.lightCount >= 100) {
+        if (testSphereAABB(clusterSet.clusters[clusterIdx], lightIdx)) {
+            clusterSet.clusters[clusterIdx].lightIndices[clusterSet.clusters[clusterIdx].lightCount] = lightIdx;
+            clusterSet.clusters[clusterIdx].lightCount++;
+            if (clusterSet.clusters[clusterIdx].lightCount >= 100) {
                 break;
             }
         }
     }
+
 }

@@ -110,9 +110,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         // - run the clustering compute shader
         const clusteringEncoder = renderer.device.createCommandEncoder({ label: 'compute clustering encoder' });
         this.lights.doLightClustering(clusteringEncoder);
-        const clusterCmdBuffer = clusteringEncoder.finish({label: 'compute clustering pass finished'});
-        console.log("clusterCmdBuffer: " + clusterCmdBuffer.label);
-        renderer.device.queue.submit([clusterCmdBuffer]);
 
         // - run the main rendering pass, using the computed clusters for efficient lighting
         const renderPass = encoder.beginRenderPass({
