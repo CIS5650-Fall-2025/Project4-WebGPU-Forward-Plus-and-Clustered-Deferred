@@ -37,3 +37,11 @@ fn calculateLightContrib(light: Light, posWorld: vec3f, nor: vec3f) -> vec3f {
     let lambert = max(dot(nor, normalize(vecToLight)), 0.f);
     return light.color * lambert * rangeAttenuation(distToLight);
 }
+
+fn clusterIdx1d(x: u32, y: u32, z: u32) -> u32 {
+    return x + y * ${clusterX} + z * ${clusterX} * ${clusterY};
+}
+
+fn zViewToSlice(zView: f32, camera: ptr<uniform, CameraUniforms>) -> u32{
+    return u32(log(-zView / camera.near) / camera.logfarovernear * ${clusterZ});
+}

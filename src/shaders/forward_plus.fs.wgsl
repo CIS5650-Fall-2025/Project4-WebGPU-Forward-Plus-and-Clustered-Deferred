@@ -43,12 +43,9 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     ));
 
     let viewPos = cameraUniforms.view * vec4(in.pos, 1);
+    let zIdx = zViewToSlice(viewPos.z, &cameraUniforms);
 
-    let zView = -viewPos.z;
-    let zSlice = log(zView / cameraUniforms.near) / cameraUniforms.logfarovernear * ${clusterZ};
-    let zIdx = u32(floor(zSlice));
-
-    let clusterIdx = xyIdx.x + xyIdx.y * ${clusterX} + zIdx * ${clusterX} * ${clusterY};    
+    let clusterIdx = xyIdx.x + xyIdx.y * ${clusterX} + zIdx * ${clusterX} * ${clusterY};
 
     var totalLightContrib = vec3f(0, 0, 0);
     for (var lightIdx = 0u; lightIdx < clusters[clusterIdx].numLights; lightIdx++) {

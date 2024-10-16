@@ -26,12 +26,12 @@
 @group(${bindGroup_scene}) @binding(1) var<storage> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusters: array<Cluster>;
 
-fn to_view(idx: vec2f) -> vec2f {
+fn xy_slice_to_view_1depth(idx: vec2f) -> vec2f {
     return (idx.xy * 2.0 / vec2f(${clusterX}, ${clusterY}) - 1.0) * vec2f(cameraUniforms.invProj[0][0], cameraUniforms.invProj[1][1]);
 }
 
-fn z_slice(z: f32) -> f32 {
-    return -cameraUniforms.near * exp(z / ${clusterZ} * cameraUniforms.logfarovernear);
+fn z_slice_to_view(zSlice: f32) -> f32 {
+    return -cameraUniforms.near * exp(zSlice / ${clusterZ} * cameraUniforms.logfarovernear);
 }
 
 fn intersect(c: vec3f, r: f32, minB: vec3f, maxB: vec3f) -> bool {
@@ -54,11 +54,11 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     }
     let clusterIdx = globalIdx.x + globalIdx.y * ${clusterX} + globalIdx.z * ${clusterX} * ${clusterY};
 
-    let view_lo = to_view(vec2f(globalIdx.xy));
-    let view_hi = to_view(vec2f(globalIdx.xy + 1));
+    let view_lo = xy_slice_to_view_1depth(vec2f(globalIdx.xy));
+    let view_hi = xy_slice_to_view_1depth(vec2f(globalIdx.xy + 1));
 
-    let z_near = z_slice(f32(globalIdx.z));
-    let z_far = z_slice(f32(globalIdx.z + 1));
+    let z_near = z_slice_to_view(f32(globalIdx.z));
+    let z_far = z_slice_to_view(f32(globalIdx.z + 1));
 
     let min_xy = min(view_lo * -z_near, view_lo * -z_far);
     let max_xy = max(view_hi *- z_near, view_hi * -z_far);
