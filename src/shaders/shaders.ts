@@ -25,6 +25,7 @@ import clusteringComputeRaw from './clustering.cs.wgsl?raw';
 // that are unused in host side code.
 export const constants = {
     bindGroup_scene: 0,
+    bindGroup_fullscreen: 1,
     bindGroup_model: 1,
     bindGroup_material: 2,
 
