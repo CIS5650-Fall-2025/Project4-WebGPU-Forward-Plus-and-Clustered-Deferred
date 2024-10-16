@@ -15,7 +15,7 @@ struct Cluster {
     minPoint: vec4f,
     maxPoint: vec4f,
     lightCount: u32,
-    lightIndices: array<u32, 100>
+    lightIndices: array<u32, 500>
 }
 
 struct ClusterSet {
@@ -30,11 +30,12 @@ struct CameraUniforms {
     viewMat: mat4x4f,
     zNear: f32,
     zFar: f32,
-    tileSize: u32,
-    tileCountX: u32,
-    tileCountY: u32,
-    tileCountZ: u32,
-    canvasSize: vec2u
+    tileSize: f32,
+    tileCountX: f32,
+    tileCountY: f32,
+    tileCountZ: f32,
+    canvasSizeX: f32,
+    canvasSizeY: f32
 }
 
 // CHECKITOUT: this special attenuation function ensures lights don't affect geometry outside the maximum light radius

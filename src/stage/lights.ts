@@ -30,9 +30,10 @@ export class Lights {
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
     numClusters = Math.ceil(canvas.height / shaders.constants.clusterTileSize_X) * Math.ceil(canvas.width / shaders.constants.clusterTileSize_Y) * Math.ceil(Camera.farPlane / shaders.constants.clusterTileSize_Z);
-    static readonly maxNumClusters = 10000;
+    static readonly maxNumClusters = 4096;
+    static readonly numFloatsPerClusteer = 12 + 1988; // 4 bytes for each light, (500 - 3) * 4 = 1988)
 
-    clustersArray = new Float32Array(Lights.maxNumClusters * 112); // 112 bytes for each cluster
+    clustersArray = new Float32Array(Lights.maxNumClusters * Lights.numFloatsPerClusteer); // 112 bytes for each cluster
     clustersSetStorageBuffer: GPUBuffer;
     lightCullingComputeBindGroupLayout: GPUBindGroupLayout;
     lightCullingComputeBindGroup: GPUBindGroup;

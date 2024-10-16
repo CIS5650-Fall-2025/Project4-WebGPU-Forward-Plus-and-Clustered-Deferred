@@ -45,9 +45,12 @@ class CameraUniforms {
         this.floatView[53] = value;
     }
 
-    set canvasSize(size: [number, number]) {
-        this.floatView[54] = size[0];
-        this.floatView[55] = size[1];
+    set canvasSizeX(size: number) {
+        this.floatView[54] = size;
+    }
+
+    set canvasSizeY(size: number) {
+        this.floatView[55] = size;
     }
 
 
@@ -193,8 +196,9 @@ export class Camera {
         this.uniforms.tileCountZ = this.tileCountZ; //Math.ceil(Camera.farPlane / shaders.constants.clusterTileSize_Z);
         this.uniforms.tileSize = this.tileSize;
         //console.log("tileCountX: " + this.tileCountX + " tileCountY: " + this.tileCountY + " tileCountZ: " + this.tileCountZ);
-        this.uniforms.canvasSize = [canvas.width, canvas.height];
-        console.log("canvas.width: " + canvas.width + " canvas.height: " + canvas.height);
+        this.uniforms.canvasSizeX = canvas.width;
+        this.uniforms.canvasSizeY = canvas.height;
+        //console.log("canvas.width: " + canvas.width + " canvas.height: " + canvas.height);
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
