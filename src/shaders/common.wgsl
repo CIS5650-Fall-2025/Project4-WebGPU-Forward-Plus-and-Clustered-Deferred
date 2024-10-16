@@ -20,7 +20,9 @@ struct Cluster {
 struct CameraUniforms {
     viewProj : mat4x4f,
     view: mat4x4f,
-    invProj: mat4x4f,
+    invViewProj: mat4x4f,
+    xscale: f32,
+    yscale: f32,
     near: f32,
     logfarovernear: f32
 }

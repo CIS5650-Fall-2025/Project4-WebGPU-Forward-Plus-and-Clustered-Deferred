@@ -27,7 +27,7 @@
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusters: array<Cluster>;
 
 fn xy_slice_to_view_1depth(idx: vec2f) -> vec2f {
-    return (idx.xy * 2.0 / vec2f(${clusterX}, ${clusterY}) - 1.0) * vec2f(cameraUniforms.invProj[0][0], cameraUniforms.invProj[1][1]);
+    return (idx.xy * 2.0 / vec2f(${clusterX}, ${clusterY}) - 1.0) * vec2f(cameraUniforms.xscale, cameraUniforms.yscale);
 }
 
 fn z_slice_to_view(zSlice: f32) -> f32 {

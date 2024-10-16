@@ -14,16 +14,24 @@ class CameraUniforms {
         this.floatView.set(mat, 16);
     }
 
-    set invProjMat(mat: Float32Array) {
+    set invViewProj(mat: Float32Array) {
         this.floatView.set(mat, 16 * 2);
     }
 
-    set near(n: number) {
+    set xScale(n : number) {
         this.floatView[16 * 3] = n;
     }
 
-    set logfarovernear(n: number) {
+    set yScale(n : number) {
         this.floatView[16 * 3 + 1] = n;
+    }
+
+    set near(n: number) {
+        this.floatView[16 * 3 + 2] = n;
+    }
+
+    set logfarovernear(n: number) {
+        this.floatView[16 * 3 + 3] = n;
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
@@ -146,9 +154,11 @@ export class Camera {
         this.uniforms.viewMat = viewMat;
         const viewProjMat = mat4.mul(this.projMat, viewMat);
         this.uniforms.viewProjMat = viewProjMat;
-        const invProjMat = mat4.inverse(this.projMat);
-        this.uniforms.invProjMat = invProjMat;
+        const invViewProj = mat4.inverse(viewProjMat);
+        this.uniforms.invViewProj = invViewProj;
 
+        this.uniforms.xScale = 1 / this.projMat[0];
+        this.uniforms.yScale = 1 / this.projMat[5];
         this.uniforms.near = Camera.nearPlane;
         this.uniforms.logfarovernear = Math.log(Camera.farPlane / Camera.nearPlane);
         // TODO-2: write to extra buffers needed for light clustering here
