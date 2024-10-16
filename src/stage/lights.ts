@@ -29,9 +29,19 @@ export class Lights {
     moveLightsComputePipeline: GPUComputePipeline;
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
+    // static readonly numClusters = 512;
+    // static readonly numFloatsPerCluster = 112;
+    // clusterArray = new Float32Array(Lights.numClusters * Lights.numFloatsPerCluster);
+    // clusterSetStorageBuffer: GPUBuffer;
 
     constructor(camera: Camera) {
         this.camera = camera;
+
+        // this.clusterSetStorageBuffer = device.createBuffer({
+        //     label: "cluster set buffer in light class",
+        //     size: this.clusterArray.byteLength,
+        //     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        // });
 
         this.lightSetStorageBuffer = device.createBuffer({
             label: "lights",
@@ -112,7 +122,7 @@ export class Lights {
 
     doLightClustering(encoder: GPUCommandEncoder) {
         // TODO-2: run the light clustering compute pass(es) here
-        // implementing clustering here allows for reusing the code in both Forward+ and Clustered Deferred
+        // implementing clustaering here allows for reusing the code in both Forward+ and Clustered Deferred
     }
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host

@@ -89,11 +89,15 @@ export class Camera {
         this.uniforms.screenHeight = canvas.height;
         this.uniforms.zNear = Camera.nearPlane;
         this.uniforms.zFar = Camera.farPlane;
-        //32 may be too small
-        // this.uniforms.gridSize = [64, 64, 64];
-        this.uniforms.clusterX = 64;
-        this.uniforms.clusterY = 64;
+        //how many clusters in x, y, z (64 * 64 pixels)
+        this.uniforms.clusterX = Math.ceil(canvas.width/64);
+        this.uniforms.clusterY = Math.ceil(canvas.height/64);
         this.uniforms.clusterZ = 64;
+        // this.uniforms.clusterZ = Math.log2(Camera.farPlane / Camera.nearPlane) / 64;
+
+        // this.uniforms.clusterX = 64;
+        // this.uniforms.clusterY = 64;
+        // this.uniforms.clusterZ = 64;
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
