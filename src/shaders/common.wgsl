@@ -38,7 +38,7 @@ struct CameraUniforms {
     clusterY: f32,
     clusterZ: f32,
      // Padding to make the size 160 bytes
-    padding: vec4<f32>,
+    padding: f32
 }
 
 // CHECKITOUT: this special attenuation function ensures lights don't affect geometry outside the maximum light radius

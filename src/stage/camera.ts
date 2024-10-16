@@ -5,7 +5,7 @@ import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 class CameraUniforms {
     //readonly buffer = new ArrayBuffer(16 * 4);
     //readonly buffer = new ArrayBuffer(16 * 4 + 4 * 4);
-    readonly buffer = new ArrayBuffer(16 *11);
+    readonly buffer = new ArrayBuffer(16 * 10);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -46,12 +46,6 @@ class CameraUniforms {
         this.floatView[38] = value;
     }
 
-    // set gridSize(grid: [number, number, number]) {
-    //     this.floatView[20] = grid[0]; // gridSize.x
-    //     this.floatView[21] = grid[1]; // gridSize.y
-    //     this.floatView[22] = grid[2]; // gridSize.z
-    // }
-
 }
 
 export class Camera {
@@ -89,15 +83,14 @@ export class Camera {
         this.uniforms.screenHeight = canvas.height;
         this.uniforms.zNear = Camera.nearPlane;
         this.uniforms.zFar = Camera.farPlane;
-        //how many clusters in x, y, z (64 * 64 pixels)
-        this.uniforms.clusterX = Math.ceil(canvas.width/64);
-        this.uniforms.clusterY = Math.ceil(canvas.height/64);
-        this.uniforms.clusterZ = 64;
-        // this.uniforms.clusterZ = Math.log2(Camera.farPlane / Camera.nearPlane) / 64;
-
-        // this.uniforms.clusterX = 64;
-        // this.uniforms.clusterY = 64;
+        //how many clusters in x, y, z (64 * 64 pixels) too small
+        // this.uniforms.clusterX = Math.ceil(canvas.width/64);
+        // this.uniforms.clusterY = Math.ceil(canvas.height/64);
         // this.uniforms.clusterZ = 64;
+
+        this.uniforms.clusterX = 16.0;
+        this.uniforms.clusterY = 16.0;
+        this.uniforms.clusterZ = 64.0;
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
@@ -197,9 +190,12 @@ export class Camera {
         this.uniforms.zNear = Camera.nearPlane;
         this.uniforms.zFar = Camera.farPlane;
         // this.uniforms.gridSize = [32, 32, 32];
-        this.uniforms.clusterX = 64;
-        this.uniforms.clusterY = 64;
-        this.uniforms.clusterZ = 64;
+        // this.uniforms.clusterX = Math.ceil(canvas.width/64);
+        // this.uniforms.clusterY = Math.ceil(canvas.height/64);
+        // this.uniforms.clusterZ = 64;
+        this.uniforms.clusterX = 16.0;
+        this.uniforms.clusterY = 16.0;
+        this.uniforms.clusterZ = 64.0;
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`

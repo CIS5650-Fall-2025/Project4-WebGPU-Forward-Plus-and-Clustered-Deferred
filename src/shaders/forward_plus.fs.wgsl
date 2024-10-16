@@ -63,14 +63,14 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     let screenPos = (cameraUniforms.viewProjMat * vec4(in.pos, 1.0)).xyz; 
     var fragCoordXY = (screenPos.xy / screenPos.z) * 0.5 + 0.5;            // Normalize to [0, 1] for XY
    // fragCoordXY.y = f32(1.0 - fragCoordXY.y); //ed screen space y is flipped
-    let fragCoordZ = in.pos.z;                                              // Use Z-depth in view space
-
+    let fragCoordZ = screenPos.z; // Use Z-depth in view space
     // Compute which 2D tile and Z slice the fragment belongs to
     // How many cluster are there in x, y, z
     let gridSize = vec3f(cameraUniforms.clusterX, cameraUniforms.clusterY, cameraUniforms.clusterZ);
     // Suppose to be 64 * 64
     // let tileSize = vec2(cameraUniforms.screenWidth / f32(gridSize.x), cameraUniforms.screenHeight / f32(gridSize.y));
-    let tileSize = vec2(64.0,64.0);
+    // let tileSize = vec2(64.0,64.0);
+    let tileSize = vec2f(cameraUniforms.screenWidth / f32(gridSize.x), cameraUniforms.screenHeight / f32(gridSize.y));
     let tileIdxX = u32(fragCoordXY.x * cameraUniforms.screenWidth / tileSize.x);
     let tileIdxY = u32(fragCoordXY.y * cameraUniforms.screenHeight / tileSize.y);
     let depthSlice = u32((log2(abs(fragCoordZ) / cameraUniforms.zNear)* f32(gridSize.z)) / log2(cameraUniforms.zFar / cameraUniforms.zNear));
@@ -78,8 +78,8 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     let clusterIdx = tileIdxX + (tileIdxY * u32(gridSize.x)) + (depthSlice * u32(gridSize.x) * u32(gridSize.y));
 
     // Step 2: Retrieve the lights for this cluster
-    // let cluster = clusterSet.clusters[200];// I did able to get all the cluster but the idex seems to be incorrect
-    let cluster = clusterSet.clusters[clusterIdx];
+    let cluster = clusterSet.clusters[2];// I did able to get all the cluster but the idex seems to be incorrect
+    // let cluster = clusterSet.clusters[clusterIdx];
     var totalLightContrib = vec3f(0.0, 0.0, 0.0);
 
     // Step 3: Accumulate light contributions from lights affecting this fragment's cluster
@@ -99,10 +99,12 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     var finalColor = diffuseColor.rgb * totalLightContrib;
 
    //Test buffer
-    let red = cameraUniforms.screenWidth / 2560.0; // correct
-    let green = cameraUniforms.screenHeight / 1398.0; // correct
-    let red2 = f32(gridSize.x) / 64.0;// correct
-    let green2 = f32(gridSize.y) / 64.0;// correct
+    let camWidth = cameraUniforms.screenWidth / 2560.0; // correct
+    let camHei = cameraUniforms.screenHeight / 1398.0; // correct
+    let camClus = cameraUniforms.clusterZ / 16.0; // correct
+    let camZnear = cameraUniforms.zNear / 0.1; // correct
+
+    //Test Cluster buffer
     let red3 = f32(cluster.numLights)/10.3; // wrong
     let green3 = f32(clusterIdx); // wrong
     let red4 = cluster.minPos.x;
@@ -110,11 +112,11 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     let test2 = random2(vec2f(f32(tileIdxX), f32(tileIdxY)));
     let test1 =  random1(clusterIdx);
     let depthSliceVis = f32(depthSlice) / f32(gridSize.z);  // Normalize depthSlice to [0, 1]
-    let minPosVis = cluster.minPos.xyz;  // should be 1.0
-    let numLightsVis = f32(cluster.numLights) / 500.0;  //should be 1.0
-    // return vec4(minPosVis, 1.0);
-    // return vec4(depthSliceVis, depthSliceVis, depthSliceVis, 1.0);  // Visualize as grayscale
-    return vec4(finalColor, 1.0);
+    let clusMinPos = cluster.minPos.xyz;  // should be 1.0
+    let clusLightNum = f32(cluster.numLights) / 500.0;  //should be 1.0
+    return vec4(clusMinPos, 1.0);
+    // return vec4(clusLightNum, 0, 0, 1.0);  // Visualize as grayscale
+    // return vec4(test2, 1.0);
 }
 
 //naive.fs

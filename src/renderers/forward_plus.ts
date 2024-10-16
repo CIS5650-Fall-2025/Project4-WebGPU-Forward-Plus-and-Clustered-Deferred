@@ -157,11 +157,13 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         // group 0 only
         computePass.setBindGroup(0, this.sceneUniformsBindGroup);
 
-        computePass.dispatchWorkgroups(
-            Math.ceil(renderer.canvas.width / 64 / 16),
-            Math.ceil(renderer.canvas.height / 64 / 16),
-            64 // 64 slices for cluster in z
-        );
+        // computePass.dispatchWorkgroups(
+        //     Math.ceil(renderer.canvas.width / 64 / 16),
+        //     Math.ceil(renderer.canvas.height / 64 / 16),
+        //     64 // 64 slices for cluster in z
+        // );
+        computePass.dispatchWorkgroups(1, 1, 64);
+        
         computePass.end();
         renderer.device.queue.submit([computeEncoder.finish()]);
 
