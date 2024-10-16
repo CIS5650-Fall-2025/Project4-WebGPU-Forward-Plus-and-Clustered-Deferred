@@ -3,15 +3,36 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
+    readonly buffer = new ArrayBuffer(16 * 4 * 6);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
-        // TODO-1.1: set the first 16 elements of `this.floatView` to the input `mat`
+        // Set the first 16 elements of `this.floatView` to the input `mat`
         this.floatView.set(mat, 0);
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
+    set invViewProjMat(mat: Float32Array) {
+        this.floatView.set(mat, 16);
+    }
+
+    set projMat(mat: Float32Array) {
+        this.floatView.set(mat, 32);
+    }
+
+    set invProjMat(mat: Float32Array) {
+        this.floatView.set(mat, 48);
+    }
+
+    set viewMat(mat: Float32Array) {
+        this.floatView.set(mat, 64);
+    }
+
+    set invViewMat(mat: Float32Array) {
+        this.floatView.set(mat, 80);
+    }
+
+
 }
 
 export class Camera {
@@ -139,6 +160,11 @@ export class Camera {
         this.uniforms.viewProjMat = viewProjMat;
 
         // TODO-2: write to extra buffers needed for light clustering here
+        this.uniforms.invViewProjMat = mat4.invert(viewProjMat);
+        this.uniforms.projMat = this.projMat;
+        this.uniforms.invProjMat = mat4.invert(this.projMat);
+        this.uniforms.viewMat = viewMat;
+        this.uniforms.invViewMat = mat4.invert(viewMat);
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
@@ -146,8 +172,6 @@ export class Camera {
             this.uniformsBuffer,
             0,
             this.uniforms.buffer,
-            0,
-            this.uniforms.buffer.byteLength
         );
     }
 }
