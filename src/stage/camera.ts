@@ -51,7 +51,6 @@ export class Camera {
 
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
         this.inversePorjMat = mat4.inverse(this.projMat);
-        this.uniforms.inverseProjMat = this.inversePorjMat;
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
@@ -143,6 +142,7 @@ export class Camera {
 
         // assign view matrix and view projection matrix to camera uniforms
         this.uniforms.viewProjMat = viewProjMat;
+        this.uniforms.inverseProjMat = this.inversePorjMat;
         this.uniforms.viewMat = viewMat;
 
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer, 0, this.uniforms.buffer.byteLength);

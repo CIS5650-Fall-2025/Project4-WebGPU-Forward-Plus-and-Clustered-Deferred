@@ -30,15 +30,12 @@ export class Lights {
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
 
-    numTileX = 0;
-    numTileY = 0;
-    numTileD = shaders.constants.depthSlice;
-    numClusters = 0;
+    // create clusters array
+    numClusters = shaders.constants.tileNumberX * shaders.constants.tileNumberY * shaders.constants.tileNumberZ;
     numFloatsPerCluster = shaders.constants.maxLightsNumPerCluster + 8;
-    clustersArray = new Float32Array();
+    clustersArray = new Float32Array(this.numClusters * this.numFloatsPerCluster);
 
     clusterSetBuffer: GPUBuffer;
-    canvasDimUniformBuffer: GPUBuffer;
 
     lightClusteringBindGroupLayout: GPUBindGroupLayout;
     lightClusteringBindGroup: GPUBindGroup;
@@ -108,22 +105,7 @@ export class Lights {
         });
 
         // TODO-2: initialize layouts, pipelines, textures, etc. needed for light clustering here
-
-        // create canvas dimension buffer
-        this.canvasDimUniformBuffer = device.createBuffer({
-            label: "canvas dimension uniform",
-            size: 8,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        });
-
-        // set canvas dimensions values
-        device.queue.writeBuffer(this.canvasDimUniformBuffer, 0, new Uint32Array([canvas.width, canvas.height]));
-
-        // calculate tile dimensions and create clusters array
-        this.numTileX = Math.ceil(canvas.width / shaders.constants.tileSize);
-        this.numTileY = Math.ceil(canvas.height / shaders.constants.tileSize);
-        this.numClusters = this.numTileX * this.numTileY * this.numTileD;
-        this.clustersArray = new Float32Array(this.numClusters * this.numFloatsPerCluster);
+        console.log(this.numClusters);
 
         // create buffer to store clusters set
         this.clusterSetBuffer = device.createBuffer({
@@ -133,7 +115,7 @@ export class Lights {
         });
 
         // set tile dimentions
-        device.queue.writeBuffer(this.clusterSetBuffer, 0, new Uint32Array([this.numClusters, this.numTileX, this.numTileY, this.numTileD]));
+        device.queue.writeBuffer(this.clusterSetBuffer, 0, new Float32Array([canvas.width, canvas.height, Camera.nearPlane, Camera.farPlane]));
 
         // create light clustering bind group layout
         this.lightClusteringBindGroupLayout = device.createBindGroupLayout({
@@ -149,13 +131,8 @@ export class Lights {
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "read-only-storage" }
                 },
-                { // canvas dimensions
-                    binding: 2,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "uniform" }
-                },
                 { // clusterSet
-                    binding: 3,
+                    binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "storage" }
 
@@ -178,10 +155,6 @@ export class Lights {
                 },
                 {
                     binding: 2,
-                    resource: { buffer: this.canvasDimUniformBuffer }
-                },
-                {
-                    binding: 3,
                     resource: { buffer: this.clusterSetBuffer }
                 }
             ]
@@ -228,7 +201,9 @@ export class Lights {
 
         computePass.setBindGroup(0, this.lightClusteringBindGroup);
 
-        computePass.dispatchWorkgroups(this.numTileX, this.numTileY, this.numTileD);
+        computePass.dispatchWorkgroups(Math.ceil(shaders.constants.tileNumberX / 8), 
+                                       Math.ceil(shaders.constants.tileNumberY / 8), 
+                                       Math.ceil(shaders.constants.tileNumberZ) / 4);
 
         computePass.end();
     }

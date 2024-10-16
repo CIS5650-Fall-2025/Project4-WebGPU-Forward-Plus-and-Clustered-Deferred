@@ -19,16 +19,11 @@ struct Cluster {
 }
 
 struct ClusterSet {
-    numClusters: u32,
-    numTileX: u32,
-    numTileY: u32,
-    numTileZ: u32,
-    clusters: array<Cluster>
-}
-
-struct CanvasDims {
     xdim: u32,
-    ydim: u32
+    ydim: u32,
+    nclip: f32,
+    fclip: f32,
+    clusters: array<Cluster>
 }
 
 struct CameraUniforms {

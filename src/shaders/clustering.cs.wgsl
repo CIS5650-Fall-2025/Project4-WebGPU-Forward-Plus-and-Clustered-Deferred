@@ -24,27 +24,35 @@
 
 @group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
-@group(${bindGroup_scene}) @binding(2) var<uniform> canvasDims: CanvasDims;
-@group(${bindGroup_scene}) @binding(3) var<storage, read_write> clusterSet: ClusterSet;
+@group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
 @compute
-@workgroup_size(1, 1, 1)
-fn main(@builtin(workgroup_id) workgroupID: vec3<u32>) {
+@workgroup_size(8, 8, 4)
+fn main(@builtin(global_invocation_id) workgroupID: vec3<u32>) {
     // tile index and cluster index
     let idx: u32 = workgroupID.x;
     let idy: u32 = workgroupID.y;
     let idz: u32 = workgroupID.z;
-    let clusterIdx: u32 = idx + clusterSet.numTileX * idy + clusterSet.numTileX * clusterSet.numTileY * idz;
+
+    if (idx >= ${tileNumberX}|| idy >= ${tileNumberY} || idz >= ${tileNumberZ}) {
+        return;
+    }
+
+    let clusterIdx: u32 = idx + ${tileNumberX} * idy + ${tileNumberX} * ${tileNumberY} * idz;
     
     // ndc range
-    let xMin: f32 = (f32(${tileSize} * idx) / f32(canvasDims.xdim)) * 2f - 1f;
-    let xMax: f32 = (f32(min(${tileSize} * (idx + 1), canvasDims.xdim)) / f32(canvasDims.xdim)) * 2f - 1f;
-    let yMin: f32 = 1f - (f32(${tileSize} * idy) / f32(canvasDims.ydim)) * 2f;
-    let yMax: f32 = 1f - (f32(min(${tileSize} * (idy + 1), canvasDims.ydim)) / f32(canvasDims.ydim)) * 2f;
+    let xMin: f32 = (f32(idx) / f32(${tileNumberX})) * 2f - 1f;
+    let xMax: f32 = (f32(idx + 1) / f32(${tileNumberX})) * 2f - 1f;
+    let yMin: f32 = 1f - (f32(idy) / f32(${tileNumberY})) * 2f;
+    let yMax: f32 = 1f - (f32(idy + 1) / f32(${tileNumberY})) * 2f;
     // let zMin: f32 = (0.1 * pow(10000, f32(idz) / f32(clusterSet.numTileZ)) - 0.1) / 999.9;
     // let zMax: f32 = (0.1 * pow(10000, f32(idz + 1) / f32(clusterSet.numTileZ)) - 0.1) / 999.9;
-    let zMin: f32 = f32(idz) / f32(${depthSlice});
-    let zMax: f32 = f32(idz + 1) / f32(${depthSlice});
+    // let zMin: f32 = f32(idz) / f32(${tileNumberZ});
+    // let zMax: f32 = f32(idz + 1) / f32(${tileNumberZ});
+    let zMinView: f32 = clusterSet.nclip * pow((clusterSet.fclip / clusterSet.nclip), f32(idz) / f32(${tileNumberZ}));
+    let zMaxView: f32 = clusterSet.nclip * pow((clusterSet.fclip / clusterSet.nclip), f32(idz + 1) / f32(${tileNumberZ}));
+    let zMin: f32 = (zMinView - clusterSet.nclip) / (clusterSet.fclip - clusterSet.nclip);
+    let zMax: f32 = (zMaxView - clusterSet.nclip) / (clusterSet.fclip - clusterSet.nclip);
 
     // perspective camera range
     let cor1: vec4f = cameraUniforms.inverseProj * vec4(xMin, yMin, zMin, 1.0);
@@ -86,16 +94,19 @@ fn main(@builtin(workgroup_id) workgroupID: vec3<u32>) {
         let lightPos_v: vec4f = cameraUniforms.viewMat * vec4(light.pos.x, light.pos.y, light.pos.z, 1.0);
 
         // find closest point on bbox
-        let closest_x: f32 = max(bboxMinx, min(bboxMaxx, lightPos_v.x));
-        let closest_y: f32 = max(bboxMiny, min(bboxMaxy, lightPos_v.y));
-        let closest_z: f32 = max(bboxMinz, min(bboxMaxz, lightPos_v.z));
-        let dis_squ: f32 = pow((closest_x - lightPos_v.x), 2.0) + pow((closest_y - lightPos_v.y), 2.0) + pow((closest_z - lightPos_v.z), 2.0);
+        // let closest_x: f32 = max(bboxMinx, min(bboxMaxx, lightPos_v.x));
+        // let closest_y: f32 = max(bboxMiny, min(bboxMaxy, lightPos_v.y));
+        // let closest_z: f32 = max(bboxMinz, min(bboxMaxz, lightPos_v.z));
+        // let dis_squ: f32 = pow((closest_x - lightPos_v.x), 2.0) + pow((closest_y - lightPos_v.y), 2.0) + pow((closest_z - lightPos_v.z), 2.0);
+
+        let closestPoint = clamp(lightPos_v.xyz, vec3(bboxMinx, bboxMiny, bboxMinz), vec3(bboxMaxx, bboxMaxy, bboxMaxz));
+        let distance = length(lightPos_v.xyz - closestPoint);
 
         // check intersect
-        if (dis_squ <= (${lightRadius} * ${lightRadius})) {
+        if (distance <= (${lightRadius})) {
             // add to cluster light index array
             clusterSet.clusters[clusterIdx].lightInx[lightCount] = lightIdx;
-            lightCount = lightCount + 1u;
+            lightCount++;
             if (lightCount == ${maxLightsNumPerCluster}) {
                 // reach maximum lights number
                 break;
