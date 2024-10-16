@@ -32,13 +32,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     if (clusterIndex >= ${clusteringCountTotal}) {
         return;
     }
-    // ------------------------------------
-    // Calculating cluster bounds:
-    // ------------------------------------
-
-    // - Calculate the screen-space bounds for this cluster in 2D (XY).
-    let logDepthRatio = log(f32(${farClip}) / f32(${nearClip}));
-
 
     var minX_ndc = 2.0 * f32(global_id.x) / f32(${clusteringCountX}) - 1.0;
     var maxX_ndc = 2.0 * f32(global_id.x + 1) / f32(${clusteringCountX}) - 1.0;
