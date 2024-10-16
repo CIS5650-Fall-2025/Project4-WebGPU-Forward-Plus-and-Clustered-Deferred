@@ -46,25 +46,28 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
     
     // Initialize numLights to 0
     clusterLights[clusterOffset] = 0u;
-    // Like [0, 100] 
+    // 0.1
     let clusterSizeX = cameraUniforms.screenWidth / f32(clusterCountX);
     let clusterSizeY = cameraUniforms.screenHeight / f32(clusterCountY);
-    // The min X Y in Screen Space Like [200, 300] - [300, 400]
+    // Cluster x y range in [0, 1]
     let xMin = f32(clusterId.x) * clusterSizeX;
     let xMax = f32(clusterId.x + 1u) * clusterSizeX;
     let yMin = f32(clusterId.y) * clusterSizeY;
     let yMax = f32(clusterId.y + 1u) * clusterSizeY;
     
-    // Convert screen-space to NDC (-1, 1) Like [-0.5,-0.5] - [-0.4,-0.4]
+    // Convert screen-space to NDC (-1, 1)
     let ndcMin = vec2f(xMin / cameraUniforms.screenWidth * 2.0 - 1.0, yMin / cameraUniforms.screenHeight * 2.0 - 1.0);
     let ndcMax = vec2f(xMax / cameraUniforms.screenWidth * 2.0 - 1.0, yMax / cameraUniforms.screenHeight * 2.0 - 1.0);
 
-    //let clusterDepthSlice = 1000 / f32(clusterCountZ);
+    // let clusterDepthSlice = 1000 / f32(clusterCountZ);
     let clusterDepthSlice = (cameraUniforms.farPlane - cameraUniforms.nearPlane) / f32(clusterCountZ);
+
+    // nearest z for this cluster
     let zNear = cameraUniforms.nearPlane + f32(clusterId.z) * clusterDepthSlice;
+    // farest z
     let zFar = cameraUniforms.nearPlane + f32(clusterId.z + 1u) * clusterDepthSlice;
 
-        // Compute frustum corners in view space
+    // Compute frustum corners in view space
     var frustumCorners: array<vec3f, 8>;
 
     let invProjMat = cameraUniforms.invProjMat;
@@ -80,23 +83,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
         vec4f(ndcMax.x, ndcMax.y, 1.0, 1.0)
     );
 
-    // Compute NDC z values based on the projection matrix
-    let a = (cameraUniforms.farPlane + cameraUniforms.nearPlane) / (cameraUniforms.farPlane - cameraUniforms.nearPlane);
-    let b = (2.0 * cameraUniforms.farPlane * cameraUniforms.nearPlane) / (cameraUniforms.farPlane - cameraUniforms.nearPlane);
-
     for (var i = 0u; i < 8u; i = i + 1u) {
         var corner = ndcPoints[i];
-
-         // map z from [- 1, 1] to [0, 1] * 
-         corner.z = mix(-zNear / cameraUniforms.farPlane, -zFar / cameraUniforms.farPlane, corner.z * 0.5 + 0.5);
-        // Correctly compute NDC z based on cluster z slice
-        // if (corner.z < 0.0) { // Near plane
-        //     corner.z = (a + b / zNear);
-        // } else { // Far plane
-        //     corner.z = (a + b / zFar);
-        // }
-
+        corner.z = mix(-zNear / cameraUniforms.farPlane, -zFar / cameraUniforms.farPlane, corner.z * 0.5 + 0.5);
         var viewSpaceCorner = invProjMat * corner;
+        //var viewSpaceCorner = cameraUniforms.invViewProjMat * corner;
         viewSpaceCorner = viewSpaceCorner / viewSpaceCorner.w;
         frustumCorners[i] = viewSpaceCorner.xyz;
     }
@@ -115,7 +106,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
         let radius = f32(${lightRadius});
 
         // Light bounding sphere
-        let lightPos = light.pos;
+        let lightPos = (cameraUniforms.viewMat * vec4f(light.pos, 1.0)).xyz;
         let sphereMin = lightPos - vec3f(radius);
         let sphereMax = lightPos + vec3f(radius);
 

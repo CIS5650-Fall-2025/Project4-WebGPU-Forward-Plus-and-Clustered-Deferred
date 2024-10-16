@@ -48,8 +48,12 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     //viewPos = viewPos / viewPos.w;
 
     //let viewPos =  vec4f(in.pos, 1.0);
-    let xCluster = u32(in.fragPos.x / screenWidth * f32(${clusterCountX}));
-    let yCluster = u32(in.fragPos.y / screenHeight * f32(${clusterCountY}));
+    
+    var ndcPos = cameraUniforms.viewProjMat * vec4(in.pos, 1.0);
+    ndcPos = ndcPos / ndcPos.w;
+
+    let xCluster = u32((ndcPos.x + 1)/2  * f32(${clusterCountX}));
+    let yCluster = u32((ndcPos.y + 1)/2  * f32(${clusterCountY}));
 
     //let test = viewPos1 - viewPos;
     // Compute depth in view space
@@ -78,8 +82,22 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     }
 
     var finalColor = diffuseColor.rgb * totalLightContrib;
+
+    // if (depth < 0.0) {
+    //     finalColor = vec3f(0.5, 0.5, 0.5);
+    // }else{
+    //     finalColor = vec3f(interDepth, interDepth,interDepth);
+    // }
+
     return vec4(finalColor, 1.0);
-    //return vec4(vec3(depth,depth,depth),1.0);
+    //return vec4(vec3(0, f32((ndcPos.x + 1)/2) ,f32((ndcPos.y + 1)/2)),1.0);
+    //return vec4(vec3(0, f32(xCluster)/15.0 ,f32(yCluster)/15.0),1.0);
+
+    // depth > 1 so only can see the valve 1
+    //return vec4(0, f32(depth)/15 ,f32(depth)/15 ,1.0);
+
+    //return in.fragPos;
+    //return vec4(vec3(0, (in.fragPos.x * 0.5) + 0.5,(in.fragPos.y * 0.5) + 0.5),1.0);
     //return viewPos;
     //return vec4(test);
 }
