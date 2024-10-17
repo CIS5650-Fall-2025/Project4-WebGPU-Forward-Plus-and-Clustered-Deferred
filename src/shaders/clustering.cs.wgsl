@@ -51,15 +51,20 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     
     let clusterIndex = clusterZ * u32(${clusterXsize}) * u32(${clusterYsize}) + clusterY *  ${clusterXsize } + clusterX;
 
-   
+
     if (clusterX >= u32(${clusterXsize }) || clusterY >=  (${clusterYsize })|| clusterZ >= (${clusterZsize })) {
         return;
     }
     
-    var cluster:Cluster;
 
+    //pointer set up
+    let cluster_ptr = &(clusterSet.clusters[clusterIndex]);
+    let lightSet_ptr = &(lightSet);
 
     let canvasResolution = camera.canvasResolution;
+    let far = camera.farPlane;
+    let near = camera.nearPlane;
+    let invProjMat = camera.invProjMat;
     
     
 
@@ -83,24 +88,28 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     );
 
 
-    let Zstep = (camera.farPlane - camera.nearPlane) / f32(${clusterZsize });
+//     let Zstep = (far - near) / f32(${clusterZsize });
 
     
-   let clusterMinZView = (camera.nearPlane + f32(clusterZ) * Zstep);
-   let clusterMaxZView = clusterMinZView + Zstep;
-
-
-
-
-    let clusterMinZNDC = (clusterMinZView - camera.nearPlane) / (camera.farPlane - camera.nearPlane) * 2.0 - 1.0;
-    let clusterMaxZNDC = (clusterMaxZView - camera.nearPlane) / (camera.farPlane - camera.nearPlane) * 2.0 - 1.0;
+//    let clusterMinZView = (near + f32(clusterZ) * Zstep);
+//    let clusterMaxZView = clusterMinZView + Zstep;
 
    
-    var viewMin = camera.invProjMat * vec4<f32>(ndcMin.x, ndcMin.y, clusterMinZNDC, 1.0);
-    var viewMax = camera.invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, clusterMinZNDC, 1.0);
 
-    var viewMin2 = camera.invProjMat * vec4<f32>(ndcMin.x, ndcMin.y, clusterMaxZNDC, 1.0);
-    var viewMax2 = camera.invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, clusterMaxZNDC, 1.0);
+    // let clusterMinZNDC = (clusterMinZView - near) / (far - near) * 2.0 - 1.0;
+    // let clusterMaxZNDC = (clusterMaxZView - near) / (far - near) * 2.0 - 1.0;
+
+    let tileNear = near * pow(far / near, f32(clusterZ) / f32(clusterGridSizeZ));
+    let tileFar = near * pow(far / near, f32(clusterZ + 1u) / f32(clusterGridSizeZ));
+
+    let tileNearNDC = (tileNear - near) / (far - near);
+    let tileFarNDC = (tileFar - near) / (far - near);
+   
+    var viewMin = invProjMat * vec4<f32>(ndcMin.x, ndcMin.y, tileNearNDC, 1.0);
+    var viewMax = invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, tileNearNDC, 1.0);
+
+    var viewMin2 = invProjMat * vec4<f32>(ndcMin.x, ndcMin.y, tileFarNDC, 1.0);
+    var viewMax2 = invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, tileFarNDC, 1.0);
 
     let viewMinCart = viewMin.xyz / viewMin.w;
     let viewMaxCart = viewMax.xyz / viewMax.w;
@@ -108,29 +117,29 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let viewMinCart2 = viewMin2.xyz / viewMin2.w;
     let viewMaxCart2 = viewMax2.xyz / viewMax2.w;
 
+    (*cluster_ptr).minDepth = min(min(viewMinCart2, viewMinCart), min(viewMaxCart2, viewMaxCart));
+    (*cluster_ptr).maxDepth = max(max(viewMinCart2, viewMinCart), max(viewMaxCart2, viewMaxCart));
+
    
-    cluster.minDepth = min(min(viewMinCart2, viewMinCart),min(viewMaxCart2, viewMaxCart));
     
-    cluster.maxDepth = max(max(viewMinCart2, viewMinCart),max(viewMaxCart2, viewMaxCart));
     
     
     let maxLightsPerCluster = u32(${MAX_LIGHTS_PER_CLUSTER});
     var lightCount = 0u;
     let lightRadius = f32(${lightRadius}); 
 
-    for (var i = 0u; i < lightSet.numLights; i++) {
+    for (var i = 0u; i < (*lightSet_ptr).numLights; i++) {
         
-        let light = lightSet.lights[i];
+        let light = (*lightSet_ptr).lights[i];
         let lightPos = camera.viewMat * vec4<f32>(light.pos, 1.0);
         
-        if(isLightInAABB(lightPos.xyz, cluster.minDepth, cluster.maxDepth, lightRadius)){
+        if(isLightInAABB(lightPos.xyz, (*cluster_ptr).minDepth, (*cluster_ptr).maxDepth, lightRadius)){
             if (lightCount <= maxLightsPerCluster){
-                cluster.lightIndices[lightCount] = i;
+                (*cluster_ptr).lightIndices[lightCount] = i;
                 lightCount++;
             }
         }
         
     }
-    cluster.numLights = lightCount;
-    clusterSet.clusters[clusterIndex] = cluster;
+    (*cluster_ptr).numLights = lightCount;
 }
