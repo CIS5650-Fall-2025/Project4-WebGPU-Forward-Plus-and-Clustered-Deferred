@@ -30,24 +30,28 @@ struct FragmentInput
 }
 
 @fragment
-fn main(in: FragmentInput, @builtin(position) fragPos: vec4<f32>) -> @location(0) vec4f
+fn main(in: FragmentInput) -> @location(0) vec4f
 {
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
         discard;
     }
 
-    let strideX = f32(cameraUniforms.xdim) / f32(clusterSet.tileNumX);
-    let strideY = f32(cameraUniforms.ydim) / f32(clusterSet.tileNumY);
-    let tileX = u32(fragPos.x / strideX);
-    let tileY = u32(fragPos.y / strideY);
-    let zView = fragPos.z * (cameraUniforms.fclip - cameraUniforms.nclip) + cameraUniforms.nclip;
-    let logZ = log(zView / cameraUniforms.nclip) / log(cameraUniforms.fclip / cameraUniforms.nclip);
-    let tileZ = u32(logZ * f32(clusterSet.tileNumZ));
+    // compute cluster indices
+    let clipPos = cameraUniforms.viewProjMat * vec4(in.pos, 1.0);
+    let ndcPos = (clipPos.xyz / clipPos.w) * 0.5 + 0.5;
+    let tileX = clamp(u32(ndcPos.x * f32(clusterSet.tileNumX)), 0u, clusterSet.tileNumX - 1);
+    let tileY = clamp(u32(ndcPos.y * f32(clusterSet.tileNumY)), 0u, clusterSet.tileNumY - 1);
 
+    let viewZ = -(cameraUniforms.viewMat * vec4(in.pos, 1.0)).z;
+    let logZ = log(viewZ / cameraUniforms.nclip) / log(cameraUniforms.fclip / cameraUniforms.nclip);
+    let tileZ = clamp(u32(logZ * f32(clusterSet.tileNumZ)), 0u, clusterSet.tileNumZ - 1);
+
+    // get current cluster
     let clusterIdx = tileX + clusterSet.tileNumX * tileY + clusterSet.tileNumX * clusterSet.tileNumY * tileZ;
     let cluster = clusterSet.clusters[clusterIdx];
-
+    
+    // aggregate light in the cluster
     var totalLightContrib = vec3f(0, 0, 0);
     for (var idx = 0u; idx < cluster.numLights; idx++) {
         let lightIdx = cluster.lightInx[idx];
@@ -57,13 +61,7 @@ fn main(in: FragmentInput, @builtin(position) fragPos: vec4<f32>) -> @location(0
 
     var finalColor = diffuseColor.rgb * totalLightContrib;
     return vec4(finalColor, 1);
-    // return vec4(f32(tileX) / f32(clusterSet.numTileX), f32(tileY) / f32(clusterSet.numTileY), f32(tileZ) / f32(${depthSlice}), 1.0);
-    // return vec4(f32(cluster.numLights) / 16.0, 0, 0, 1);
-    // if (tileZ == 31) {
-    //     return vec4(1, 0, 0, 1);
-    // } else {
-    //     return vec4(0, 0, 0, 1);
-    // }
-    // return vec4(logZ, 0, 0, 1);
+
+    // return vec4(f32(tileX) / f32(clusterSet.tileNumX), f32(tileY) / f32(clusterSet.tileNumY), f32(tileZ) / f32(clusterSet.tileNumZ), 1.0);
     // return vec4(f32(clusterIdx) / f32(clusterSet.tileNum), f32(clusterIdx) / f32(clusterSet.tileNum), f32(clusterIdx) / f32(clusterSet.tileNum), 1.0);
 }

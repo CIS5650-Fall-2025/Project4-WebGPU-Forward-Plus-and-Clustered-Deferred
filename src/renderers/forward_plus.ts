@@ -129,6 +129,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 depthStoreOp: "store"
             }
         });
+        
         renderPass.setPipeline(this.pipeline);
 
         renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);

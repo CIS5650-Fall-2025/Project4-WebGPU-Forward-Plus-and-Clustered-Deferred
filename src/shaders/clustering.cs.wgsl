@@ -28,7 +28,8 @@
 
 @compute
 @workgroup_size(8, 8, 4)
-fn main(@builtin(global_invocation_id) workgroupID: vec3<u32>) {
+fn main(@builtin(global_invocation_id) workgroupID: vec3u) 
+{
     // tile index and cluster index
     let idx = workgroupID.x;
     let idy = workgroupID.y;
@@ -43,14 +44,17 @@ fn main(@builtin(global_invocation_id) workgroupID: vec3<u32>) {
     // ndc range
     let xMin = (f32(idx) / f32(clusterSet.tileNumX)) * 2f - 1f;
     let xMax = (f32(idx + 1) / f32(clusterSet.tileNumX)) * 2f - 1f;
-    let yMin = 1f - (f32(idy) / f32(clusterSet.tileNumY)) * 2f;
-    let yMax = 1f - (f32(idy + 1) / f32(clusterSet.tileNumY)) * 2f;
+    let yMin = (f32(idy) / f32(clusterSet.tileNumY)) * 2f -1f;
+    let yMax = (f32(idy + 1) / f32(clusterSet.tileNumY)) * 2f - 1f;
+
     let zMinView = cameraUniforms.nclip * pow((cameraUniforms.fclip / cameraUniforms.nclip), f32(idz) / f32(clusterSet.tileNumZ));
     let zMaxView = cameraUniforms.nclip * pow((cameraUniforms.fclip / cameraUniforms.nclip), f32(idz + 1) / f32(clusterSet.tileNumZ));
-    let zMin = (zMinView - cameraUniforms.nclip) / (cameraUniforms.fclip - cameraUniforms.nclip);
-    let zMax = (zMaxView - cameraUniforms.nclip) / (cameraUniforms.fclip - cameraUniforms.nclip);
+    let zMinClip = cameraUniforms.projMat * vec4(0, 0, -zMinView, 1);
+    let zMaxClip = cameraUniforms.projMat * vec4(0, 0, -zMaxView, 1);
+    let zMin = zMinClip.z / zMinClip.w;
+    let zMax = zMaxClip.z / zMaxClip.w;
     
-    let corners = array<vec4<f32>, 8>(
+    let corners = array<vec4f, 8>(
         vec4(xMin, yMin, zMin, 1.0),
         vec4(xMin, yMax, zMin, 1.0),
         vec4(xMin, yMin, zMax, 1.0),
@@ -62,7 +66,7 @@ fn main(@builtin(global_invocation_id) workgroupID: vec3<u32>) {
     );
 
     // camera range
-    var corners_v = array<vec3<f32>, 8>();
+    var corners_v = array<vec3f, 8>();
     for (var i = 0u; i < 8u; i++) {
         let cor_v = cameraUniforms.invProjMat * corners[i];
         corners_v[i] = cor_v.xyz / cor_v.w;
@@ -85,13 +89,22 @@ fn main(@builtin(global_invocation_id) workgroupID: vec3<u32>) {
     for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
         let light = lightSet.lights[lightIdx];
         // light pos in camera
-        let lightPos_v = cameraUniforms.viewMat * vec4(light.pos, 1.0);
+        let lightPosView = cameraUniforms.viewMat * vec4(light.pos, 1.0);
+
+        // // check intersect
+        // if (sphereIntersectionTest(lightPosView.xyz, ${lightRadius}, minPos, maxPos)) {
+        //     // add to cluster light index array
+        //     clusterSet.clusters[clusterIdx].lightInx[lightCount] = lightIdx;
+        //     lightCount++;
+        //     if (lightCount == ${maxLightsNumPerCluster}) {
+        //         // reach maximum lights number
+        //         break;
+        //     }
+        // }
 
         // find closest point on bbox
-        let closest_x = max(minPos.x, min(maxPos.x, lightPos_v.x));
-        let closest_y = max(minPos.y, min(maxPos.y, lightPos_v.y));
-        let closest_z = max(minPos.z, min(maxPos.z, lightPos_v.z));
-        let dis_squ = pow((closest_x - lightPos_v.x), 2.0) + pow((closest_y - lightPos_v.y), 2.0) + pow((closest_z - lightPos_v.z), 2.0);
+        let closestP = clamp(lightPosView.xyz, minPos, maxPos);
+        let dis_squ = dot(closestP - lightPosView.xyz, closestP - lightPosView.xyz);
 
         // check intersect
         if (dis_squ <= (${lightRadius} * ${lightRadius})) {
@@ -107,4 +120,17 @@ fn main(@builtin(global_invocation_id) workgroupID: vec3<u32>) {
 
     // set lights number
     clusterSet.clusters[clusterIdx].numLights = u32(lightCount);
+}
+
+fn sphereIntersectionTest(oriPos: vec3f, radius: f32, clusterBBoxMinPos: vec3f, clusterBBoxMaxPos: vec3f) -> bool
+{
+    let spherBBoxMinPos = oriPos - vec3f(radius, radius, radius);
+    let spherBBoxMaxPos = oriPos + vec3f(radius, radius, radius);
+
+    for (var i = 0u; i < 3u; i++) {
+        if (spherBBoxMinPos[i] > clusterBBoxMaxPos[i] || spherBBoxMaxPos[i] < clusterBBoxMinPos[i]) {
+            return false;
+        }
+    }
+    return true;
 }

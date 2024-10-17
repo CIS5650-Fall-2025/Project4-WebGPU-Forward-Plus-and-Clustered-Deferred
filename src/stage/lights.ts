@@ -17,7 +17,7 @@ export class Lights {
     static readonly maxNumLights = 5000;
     static readonly numFloatsPerLight = 8; // vec3f is aligned at 16 byte boundaries
 
-    static readonly lightIntensity = 1;
+    static readonly lightIntensity = 0.1;
 
     lightsArray = new Float32Array(Lights.maxNumLights * Lights.numFloatsPerLight);
     lightSetStorageBuffer: GPUBuffer;
@@ -183,7 +183,7 @@ export class Lights {
         for (let lightIdx = 0; lightIdx < Lights.maxNumLights; ++lightIdx) {
             // light pos is set by compute shader so no need to set it here
             const lightColor = vec3.scale(hueToRgb(Math.random()), Lights.lightIntensity);
-            this.lightsArray.set(new Float32Array([lightIdx / 2 - this.numLights / 2 + 10, 1, 0]), (lightIdx * Lights.numFloatsPerLight));
+            //this.lightsArray.set(new Float32Array([lightIdx / 2 - this.numLights / 2 + 10, 1, 0]), (lightIdx * Lights.numFloatsPerLight));
             this.lightsArray.set(lightColor, (lightIdx * Lights.numFloatsPerLight) + 4);
         }
 
