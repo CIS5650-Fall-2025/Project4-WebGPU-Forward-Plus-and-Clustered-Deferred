@@ -4,10 +4,6 @@
 
 @group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
-@group(${bindGroup_scene}) @binding(2) var albedoTex: texture_2d<f32>;
-@group(${bindGroup_scene}) @binding(3) var normalTex: texture_2d<f32>;
-@group(${bindGroup_scene}) @binding(4) var positionTex: texture_2d<f32>;
-@group(${bindGroup_scene}) @binding(5) var gbufferSampler: sampler;
 
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
 @group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
@@ -22,15 +18,28 @@ struct FragmentInput
     @location(2) uv: vec2f
 }
 
+struct FragmentOutput {
+    @location(0) gbufferPosition: vec4<f32>,
+    @location(1) gbufferNormal: vec4<f32>,
+    @location(2) gbufferAlbedo: vec4<f32>,
+    @location(3) finalColor: vec4<f32>
+}
+
 
 @fragment
-fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f
+fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> FragmentOutput
 {
+    var out: FragmentOutput;
 
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
         discard;
     }
 
-    return vec4(vec3(0), 1);
+    // populate G-buffer
+    out.gbufferPosition = vec4(in.pos, 1.0);
+    out.gbufferNormal = vec4(in.nor, 1.0);
+    out.gbufferAlbedo = vec4(diffuseColor.rgb, 1.0);
+    
+    return out;
 }

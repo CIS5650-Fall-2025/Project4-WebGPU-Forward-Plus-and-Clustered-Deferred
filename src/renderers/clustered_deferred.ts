@@ -19,6 +19,10 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     positionTextureView: GPUTextureView;
     gbufferSampler: GPUSampler;
 
+    // scene bind group with gbuffer
+    sceneGbufferBindGroupLayout: GPUBindGroupLayout;
+    sceneGbufferBindGroup: GPUBindGroup;
+
     pipeline: GPURenderPipeline;
 
     // light culling
@@ -51,6 +55,38 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         // TODO-3: initialize layouts, pipelines, textures, etc. needed for Forward+ here
         // you'll need two pipelines: one for the G-buffer pass and one for the fullscreen pass
 
+        this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
+            label: "scene uniforms bind group layout",
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: "uniform" },
+                },
+                {
+                    // lightSet
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "read-only-storage" },
+                },
+            ],
+        });
+
+        this.sceneUniformsBindGroup = renderer.device.createBindGroup({
+            label: "scene uniforms bind group",
+            layout: this.sceneUniformsBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.camera.uniformsBuffer },
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.lights.lightSetStorageBuffer },
+                },
+            ],
+        });
+
         // gbuffer creation
         this.depthTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
@@ -68,14 +104,14 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
 
         this.normalTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba32float",
+            format: "rgba16float",
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
         });
         this.normalTextureView = this.normalTexture.createView();
 
         this.positionTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba32float",
+            format: "rgba16float",
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
         });
         this.positionTextureView = this.positionTexture.createView();
@@ -85,7 +121,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             minFilter: "linear",
         });
 
-        this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
+        this.sceneGbufferBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "scene uniforms bind group layout",
             entries: [
                 {
@@ -134,9 +170,9 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             ],
         });
 
-        this.sceneUniformsBindGroup = renderer.device.createBindGroup({
+        this.sceneGbufferBindGroup = renderer.device.createBindGroup({
             label: "scene uniforms bind group",
-            layout: this.sceneUniformsBindGroupLayout,
+            layout: this.sceneGbufferBindGroupLayout,
             entries: [
                 {
                     binding: 0,
@@ -193,6 +229,15 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     code: shaders.clusteredDeferredFragSrc,
                 }),
                 targets: [
+                    {
+                        format: renderer.canvasFormat,
+                    },
+                    {
+                        format: "rgba16float",
+                    },
+                    {
+                        format: "rgba16float",
+                    },
                     {
                         format: renderer.canvasFormat,
                     },
@@ -507,6 +552,24 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         const renderPassGeometry = encoder.beginRenderPass({
             label: "deferred cluster render pass",
             colorAttachments: [
+                {
+                    view: this.albedoTextureView,
+                    loadOp: "clear",
+                    storeOp: "store",
+                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                },
+                {
+                    view: this.normalTextureView,
+                    loadOp: "clear",
+                    storeOp: "store",
+                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                },
+                {
+                    view: this.positionTextureView,
+                    loadOp: "clear",
+                    storeOp: "store",
+                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                },
                 {
                     view: canvasTextureView,
                     clearValue: [0, 0, 0, 0],
