@@ -196,7 +196,8 @@ export class Lights {
         const computePass = encoder.beginComputePass({label: "Forward+ compute pass begin"}); 
         computePass.setPipeline(this.computePipeline);
         computePass.setBindGroup(0, this.clusterComputeBindGroup);
-        computePass.dispatchWorkgroups(1,1,64); // check workgroup size later
+        // computePass.dispatchWorkgroups(1,1,64); // check workgroup size later
+        computePass.dispatchWorkgroups(2,2,64);
         computePass.end();
         device.queue.submit([encoder.finish()]);
     }
