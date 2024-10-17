@@ -15,7 +15,7 @@ export class NaiveRenderer extends renderer.Renderer {
         super(stage);
 
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
-            label: "scene uniforms bind group layout",
+            label: "scene uniforms bind group layout for naive",
             entries: [
                 // TODO-1.2: add an entry for camera uniforms at binding 0, visible to only the vertex shader, and of type "uniform"
                 {
@@ -32,7 +32,7 @@ export class NaiveRenderer extends renderer.Renderer {
         });
 
         this.sceneUniformsBindGroup = renderer.device.createBindGroup({
-            label: "scene uniforms bind group",
+            label: "scene uniforms bind group for naive",
             layout: this.sceneUniformsBindGroupLayout,
             entries: [
                 // TODO-1.2: add an entry for camera uniforms at binding 0
@@ -117,15 +117,19 @@ export class NaiveRenderer extends renderer.Renderer {
         // TODO-1.2: bind `this.sceneUniformsBindGroup` to index `shaders.constants.bindGroup_scene`
         renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
 
-        this.scene.iterate(node => {
-            renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
-        }, material => {
-            renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
-        }, primitive => {
-            renderPass.setVertexBuffer(0, primitive.vertexBuffer);
-            renderPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
-            renderPass.drawIndexed(primitive.numIndices);
-        });
+        this.scene.iterate(
+            node => {
+                renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+            }, 
+            material => {
+                renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+            }, 
+            primitive => {
+                renderPass.setVertexBuffer(0, primitive.vertexBuffer);
+                renderPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
+                renderPass.drawIndexed(primitive.numIndices);
+            }
+        );
 
         renderPass.end();
 

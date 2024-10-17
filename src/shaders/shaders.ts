@@ -23,14 +23,22 @@ import clusteringComputeRaw from './clustering.cs.wgsl?raw';
 
 // Note that these are declared in a somewhat roundabout way because otherwise minification will drop variables
 // that are unused in host side code.
+const clusterDimensions = { x: 16, y: 16, z: 16 }; // Keep each element powers of 2 
+const numOfClusters = clusterDimensions.x * clusterDimensions.y * clusterDimensions.z;
+
 export const constants = {
+    // bind group indices
     bindGroup_scene: 0,
     bindGroup_model: 1,
     bindGroup_material: 2,
-
+    // move light compute shader vars
     moveLightsWorkgroupSize: 128,
-
-    lightRadius: 2
+    lightRadius: 2,
+    // clustering compute shader vars
+    clusterDimensions: clusterDimensions,
+    numOfClusters: numOfClusters,
+    maxLightsPerCluster: 10,
+    lightCluserWorkgroupSize: 128
 };
 
 // =================================
