@@ -23,7 +23,8 @@
 @group(${bindGroup_lightcull}) @binding(1) var<uniform> tileInfo: TileInfo;
 @group(${bindGroup_lightcull}) @binding(2) var<storage> tilesLightIdxBuffer: array<u32>;
 @group(${bindGroup_lightcull}) @binding(3) var<storage> tilesLightGridBuffer: array<u32>;
-
+@group(${bindGroup_lightcull}) @binding(4) var depthTex:  texture_depth_2d;
+@group(${bindGroup_lightcull}) @binding(5) var depthTexSampler: sampler;
 
 struct FragmentInput
 {
@@ -36,9 +37,13 @@ struct FragmentInput
 @fragment
 fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f
 {
-
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
+        discard;
+    }
+    var UV = vec2<f32>(fragCoord.x / f32(res.width), fragCoord.y / f32(res.height));
+    var rawDepth = textureSample(depthTex, depthTexSampler, UV);
+    if (fragCoord.z > rawDepth) {
         discard;
     }
 

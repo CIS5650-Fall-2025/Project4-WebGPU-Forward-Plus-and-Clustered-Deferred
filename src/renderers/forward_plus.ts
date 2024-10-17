@@ -10,6 +10,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
     depthTexture: GPUTexture;
     depthTextureView: GPUTextureView;
+    depthTextureSampler: GPUSampler;
 
     pipeline: GPURenderPipeline;
 
@@ -19,7 +20,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     numTilesZ: number;
     resUniformBuffer: GPUBuffer;
     tileUniformBuffer: GPUBuffer;
-    // pipelinePrez: GPURenderPipeline;
+    pipelinePrez: GPURenderPipeline;
 
     // light culling - bounding box
     clusterBuffer: GPUBuffer;
@@ -78,6 +79,46 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
         });
         this.depthTextureView = this.depthTexture.createView();
+
+        this.depthTextureSampler = renderer.device.createSampler({
+            magFilter: "linear",
+            minFilter: "linear",
+        });
+
+        // prez pass
+        this.pipelinePrez = renderer.device.createRenderPipeline({
+            layout: renderer.device.createPipelineLayout({
+                label: "forward plus prez pipeline layout",
+                bindGroupLayouts: [
+                    this.sceneUniformsBindGroupLayout,
+                    renderer.modelBindGroupLayout,
+                    renderer.materialBindGroupLayout,
+                ],
+            }),
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less",
+                format: "depth24plus",
+            },
+            vertex: {
+                module: renderer.device.createShaderModule({
+                    label: "forward plus vert shader",
+                    code: shaders.forwardPlusVertSrc,
+                }),
+                buffers: [renderer.vertexBufferLayout],
+            },
+            fragment: {
+                module: renderer.device.createShaderModule({
+                    label: "forward plus prez frag shader",
+                    code: shaders.forwardPlusPassthroughSrc,
+                }),
+                targets: [
+                    {
+                        format: renderer.canvasFormat,
+                    },
+                ],
+            },
+        });
 
         // light culling
         this.resUniformBuffer = renderer.device.createBuffer({
@@ -312,6 +353,18 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" },
                 },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {
+                        sampleType: "depth",
+                    },
+                },
+                {
+                    binding: 5,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {},
+                },
             ],
         });
 
@@ -335,6 +388,14 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     binding: 3,
                     resource: { buffer: this.tilesLightsGridBuffer },
                 },
+                {
+                    binding: 4,
+                    resource: this.depthTextureView,
+                },
+                {
+                    binding: 5,
+                    resource: this.depthTextureSampler,
+                },
             ],
         });
 
@@ -348,11 +409,11 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     this.sceneLightsBindGroupLayout,
                 ],
             }),
-            depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: "less",
-                format: "depth24plus",
-            },
+            // depthStencil: {
+            //     depthWriteEnabled: true,
+            //     depthCompare: "less",
+            //     format: "depth24plus",
+            // },
             vertex: {
                 module: renderer.device.createShaderModule({
                     label: "forward plus vert shader",
@@ -378,6 +439,42 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         const encoder = renderer.device.createCommandEncoder();
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
 
+        // prez pass
+        const renderPassPrez = encoder.beginRenderPass({
+            label: "forward plus render pass",
+            colorAttachments: [
+                {
+                    view: canvasTextureView,
+                    clearValue: [0, 0, 0, 0],
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
+            depthStencilAttachment: {
+                view: this.depthTextureView,
+                depthClearValue: 1.0,
+                depthLoadOp: "clear",
+                depthStoreOp: "store",
+            },
+        });
+
+        renderPassPrez.setPipeline(this.pipelinePrez);
+        renderPassPrez.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+        this.scene.iterate(
+            (node) => {
+                renderPassPrez.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+            },
+            (material) => {
+                renderPassPrez.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+            },
+            (primitive) => {
+                renderPassPrez.setVertexBuffer(0, primitive.vertexBuffer);
+                renderPassPrez.setIndexBuffer(primitive.indexBuffer, "uint32");
+                renderPassPrez.drawIndexed(primitive.numIndices);
+            }
+        );
+        renderPassPrez.end();
+
         // light culling - bounding box
         const bboxPass = encoder.beginComputePass();
         bboxPass.setPipeline(this.pipelineBbox);
@@ -387,6 +484,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             Math.ceil(this.numTilesY / shaders.constants.lightCullBlockSize),
             1
         );
+
         bboxPass.end();
 
         // light culling - intersection
@@ -411,12 +509,12 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     storeOp: "store",
                 },
             ],
-            depthStencilAttachment: {
-                view: this.depthTextureView,
-                depthClearValue: 1.0,
-                depthLoadOp: "clear",
-                depthStoreOp: "store",
-            },
+            // depthStencilAttachment: {
+            //     view: this.depthTextureView,
+            //     depthClearValue: 1.0,
+            //     depthLoadOp: "load",
+            //     depthStoreOp: "store",
+            // },
         });
 
         renderPass.setPipeline(this.pipeline);
