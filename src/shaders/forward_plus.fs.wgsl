@@ -42,12 +42,6 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
 
     // pos is in world space
     var viewPos =  cameraUniforms.viewMat * vec4f(in.pos, 1.0);
-
-    // fragPos is in clip space [-1, 1]
-    //var viewPos =  cameraUniforms.invProjMat * in.fragPos;
-    //viewPos = viewPos / viewPos.w;
-
-    //let viewPos =  vec4f(in.pos, 1.0);
     
     var ndcPos = cameraUniforms.viewProjMat * vec4(in.pos, 1.0);
     ndcPos = ndcPos / ndcPos.w;
@@ -55,11 +49,17 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     let xCluster = u32((ndcPos.x + 1)/2  * f32(${clusterCountX}));
     let yCluster = u32((ndcPos.y + 1)/2  * f32(${clusterCountY}));
 
-    //let test = viewPos1 - viewPos;
     // Compute depth in view space
     let depth = -viewPos.z;
 
-    let zCluster = u32((depth - cameraUniforms.nearPlane) / (cameraUniforms.farPlane - cameraUniforms.nearPlane) * f32(${clusterCountZ}));
+    // Calculate cluster indices using logarithmic depth
+    let logRatio = cameraUniforms.farPlane / cameraUniforms.nearPlane;
+    var zClusterF32: f32;
+    
+    let depthClamped = clamp(depth, cameraUniforms.nearPlane, cameraUniforms.farPlane);
+    zClusterF32 = (log(depthClamped / cameraUniforms.nearPlane) / log(logRatio)) * f32(${clusterCountZ});
+
+    var zCluster = u32((floor(zClusterF32)));
 
     // Clamp clusters
     let clusterIdX = clamp(xCluster, 0u, ${clusterCountX}u - 1u);
@@ -91,7 +91,7 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
 
     return vec4(finalColor, 1.0);
     //return vec4(vec3(0, f32((ndcPos.x + 1)/2) ,f32((ndcPos.y + 1)/2)),1.0);
-    //return vec4(vec3(0, f32(xCluster)/15.0 ,f32(yCluster)/15.0),1.0);
+    //return vec4(vec3(0, f32(xCluster)/ ,f32(yCluster)/cameraUniforms.clusterCountY),1.0);
 
     // depth > 1 so only can see the valve 1
     //return vec4(0, f32(depth)/15 ,f32(depth)/15 ,1.0);

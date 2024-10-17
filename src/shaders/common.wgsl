@@ -22,6 +22,7 @@ struct CameraUniforms {
     viewProjMat: mat4x4<f32>,
     invProjMat: mat4x4f,
     viewMat: mat4x4f,
+    projMat: mat4x4f,
     screenWidth: f32,
     screenHeight: f32,
     nearPlane: f32,

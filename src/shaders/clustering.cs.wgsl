@@ -33,6 +33,13 @@ const maxLightsPerCluster = ${maxLightsPerCluster};
 @group(${bindGroup_scene}) @binding(1) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterLights: array<u32>;
 
+
+fn isSphereIntersectingAABB(center: vec3f, radius: f32, aabbMin: vec3f, aabbMax: vec3f) -> bool {
+    let closestPoint = clamp(center, aabbMin, aabbMax);
+    let distance = length(center - closestPoint);
+    return distance < radius;
+}
+
 @compute
 @workgroup_size(4, 4, 4)
 fn main(@builtin(global_invocation_id) global_id: vec3u) {
@@ -44,28 +51,26 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
     let clusterIdx = global_id.x + global_id.y * clusterCountX + global_id.z * clusterCountX * clusterCountY;
     let clusterOffset = clusterIdx * (1u + maxLightsPerCluster);
     
-    // Initialize numLights to 0
-    clusterLights[clusterOffset] = 0u;
-    // 0.1
-    let clusterSizeX = cameraUniforms.screenWidth / f32(clusterCountX);
-    let clusterSizeY = cameraUniforms.screenHeight / f32(clusterCountY);
-    // Cluster x y range in [0, 1]
-    let xMin = f32(clusterId.x) * clusterSizeX;
-    let xMax = f32(clusterId.x + 1u) * clusterSizeX;
-    let yMin = f32(clusterId.y) * clusterSizeY;
-    let yMax = f32(clusterId.y + 1u) * clusterSizeY;
+    let sliceNDCX = 2.0 / f32(clusterCountX);
+    let sliceNDCY = 2.0 / f32(clusterCountY);
+
+    let xMin = -1.0 + f32(clusterId.x) * sliceNDCX;
+    let xMax = -1.0 + f32(clusterId.x + 1u) * sliceNDCX;
+    let yMin = -1.0 + f32(clusterId.y) * sliceNDCY;
+    let yMax = -1.0 + f32(clusterId.y + 1u) * sliceNDCY;
     
-    // Convert screen-space to NDC (-1, 1)
-    let ndcMin = vec2f(xMin / cameraUniforms.screenWidth * 2.0 - 1.0, yMin / cameraUniforms.screenHeight * 2.0 - 1.0);
-    let ndcMax = vec2f(xMax / cameraUniforms.screenWidth * 2.0 - 1.0, yMax / cameraUniforms.screenHeight * 2.0 - 1.0);
+    // Convert screen-space to NDC (-1, 1) and filp y
+    let ndcMin = vec2f(xMin, yMin);
+    let ndcMax = vec2f(xMax, yMax);
 
-    // let clusterDepthSlice = 1000 / f32(clusterCountZ);
-    let clusterDepthSlice = (cameraUniforms.farPlane - cameraUniforms.nearPlane) / f32(clusterCountZ);
+    // Logarithmic depth partitioning
+    let logRatio = cameraUniforms.farPlane / cameraUniforms.nearPlane;
+    let minZview = cameraUniforms.nearPlane * exp(logRatio * f32(clusterId.z) / f32(clusterCountZ));
+    let maxZview = cameraUniforms.nearPlane * exp(logRatio * f32(clusterId.z + 1u) / f32(clusterCountZ));
 
-    // nearest z for this cluster
-    let zNear = cameraUniforms.nearPlane + f32(clusterId.z) * clusterDepthSlice;
-    // farest z
-    let zFar = cameraUniforms.nearPlane + f32(clusterId.z + 1u) * clusterDepthSlice;
+    let projectMat = cameraUniforms.projMat;
+    let minZNDC = ((projectMat[2][2] * minZview) + projectMat[3][2]) / ((projectMat[2][3] * minZview) + projectMat[3][3]);
+    let maxZNDC = ((projectMat[2][2] * maxZview) + projectMat[3][2]) / ((projectMat[2][3] * maxZview) + projectMat[3][3]);
 
     // Compute frustum corners in view space
     var frustumCorners: array<vec3f, 8>;
@@ -73,21 +78,19 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
     let invProjMat = cameraUniforms.invProjMat;
 
     var ndcPoints = array<vec4f, 8>(
-        vec4f(ndcMin.x, ndcMin.y, -1.0, 1.0),
-        vec4f(ndcMax.x, ndcMin.y, -1.0, 1.0),
-        vec4f(ndcMin.x, ndcMax.y, -1.0, 1.0),
-        vec4f(ndcMax.x, ndcMax.y, -1.0, 1.0),
-        vec4f(ndcMin.x, ndcMin.y, 1.0, 1.0),
-        vec4f(ndcMax.x, ndcMin.y, 1.0, 1.0),
-        vec4f(ndcMin.x, ndcMax.y, 1.0, 1.0),
-        vec4f(ndcMax.x, ndcMax.y, 1.0, 1.0)
+        vec4f(ndcMin.x, ndcMin.y, minZNDC, 1.0),
+        vec4f(ndcMax.x, ndcMin.y, minZNDC, 1.0),
+        vec4f(ndcMin.x, ndcMax.y, minZNDC, 1.0),
+        vec4f(ndcMax.x, ndcMax.y, minZNDC, 1.0),
+        vec4f(ndcMin.x, ndcMin.y, maxZNDC, 1.0),
+        vec4f(ndcMax.x, ndcMin.y, maxZNDC, 1.0),
+        vec4f(ndcMin.x, ndcMax.y, maxZNDC, 1.0),
+        vec4f(ndcMax.x, ndcMax.y, maxZNDC, 1.0)
     );
 
     for (var i = 0u; i < 8u; i = i + 1u) {
         var corner = ndcPoints[i];
-        corner.z = mix(-zNear / cameraUniforms.farPlane, -zFar / cameraUniforms.farPlane, corner.z * 0.5 + 0.5);
         var viewSpaceCorner = invProjMat * corner;
-        //var viewSpaceCorner = cameraUniforms.invViewProjMat * corner;
         viewSpaceCorner = viewSpaceCorner / viewSpaceCorner.w;
         frustumCorners[i] = viewSpaceCorner.xyz;
     }
@@ -100,6 +103,9 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
         clusterMax = max(clusterMax, frustumCorners[i]);
     }
 
+    // Initialize numLights to 0
+    clusterLights[clusterOffset] = 0u;
+    var lightCount = 0u;
     // Assign lights to clusters
     for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx = lightIdx + 1u) {
         let light = lightSet.lights[lightIdx];
@@ -110,17 +116,25 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
         let sphereMin = lightPos - vec3f(radius);
         let sphereMax = lightPos + vec3f(radius);
 
-        // Check intersection between cluster AABB and light sphere AABB
+        //Check intersection between cluster AABB and light sphere AABB
         let intersectMin = max(clusterMin, sphereMin);
         let intersectMax = min(clusterMax, sphereMax);
         let overlaps = all(intersectMin <= intersectMax);
 
+        //let overlaps = isSphereIntersectingAABB(lightPos, radius, clusterMin, clusterMax);
         if (overlaps) {
-            let numLights = clusterLights[clusterOffset];
+            var numLights = clusterLights[clusterOffset];
             if (numLights < maxLightsPerCluster) {
+                // Add light to cluster
                 clusterLights[clusterOffset + 1u + numLights] = lightIdx;
-                clusterLights[clusterOffset] = numLights + 1u;
+                numLights = numLights + 1u;
+                lightCount = lightCount + 1u;
+                clusterLights[clusterOffset] = lightCount;
+            }else {
+                break;
             }
         }
+        
     }
+
 }
