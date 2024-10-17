@@ -3,22 +3,57 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(48 * 4);
+    readonly buffer = new ArrayBuffer(100 * 4);
     private readonly floatView = new Float32Array(this.buffer);
 
-    // set view projection matrix
-    set viewProjMat(mat: Float32Array) {
+    // set projection matrix
+    set projMat(mat: Float32Array) {
         this.floatView.set(mat.subarray(0, 16), 0);
     }
 
     // set inverse projection matrix
-    set inverseProjMat(mat: Float32Array) {
+    set invProjMat(mat: Float32Array) {
         this.floatView.set(mat.subarray(0, 16), 16);
     }
 
     // set view matrix
     set viewMat(mat: Float32Array) {
-        this.floatView.set(mat.subarray(0, 16), 32)
+        this.floatView.set(mat.subarray(0, 16), 32);
+    }
+
+    // set inverse view matrix
+    set invViewMat(mat: Float32Array) {
+        this.floatView.set(mat.subarray(0, 16), 48);
+    }
+
+    // set view-projection matrix
+    set viewProjMat(mat: Float32Array) {
+        this.floatView.set(mat.subarray(0, 16), 64);
+    }
+
+    // set inverse view-projection matrix
+    set invViewProjMat(mat: Float32Array) {
+        this.floatView.set(mat.subarray(0, 16), 80);
+    }
+
+    // set canvas x dimension
+    set xdim(n: number) {
+        this.floatView[96] = n;
+    }
+
+    // set canvas y dimension
+    set ydim(n: number) {
+        this.floatView[97] = n;
+    }
+
+    // set camera near plane
+    set nclip(n: number) {
+        this.floatView[98] = n;
+    }
+
+    // set camera far plane
+    set fclip(n: number) {
+        this.floatView[99] = n;
     }
 }
 
@@ -50,7 +85,15 @@ export class Camera {
         });
 
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
-        this.inversePorjMat = mat4.inverse(this.projMat);
+        this.inversePorjMat = mat4.invert(this.projMat);
+
+        // set project matrix, canvas dimension, and camera near/far plane
+        this.uniforms.projMat = this.projMat;
+        this.uniforms.invProjMat = this.inversePorjMat;
+        this.uniforms.xdim = canvas.width;
+        this.uniforms.ydim = canvas.height;
+        this.uniforms.nclip = Camera.nearPlane;
+        this.uniforms.fclip = Camera.farPlane;
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
@@ -138,12 +181,15 @@ export class Camera {
 
         const lookPos = vec3.add(this.cameraPos, vec3.scale(this.cameraFront, 1));
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
+        const inverseViewMat = mat4.invert(viewMat);
         const viewProjMat = mat4.mul(this.projMat, viewMat);
+        const inverseViewProjMat = mat4.invert(viewProjMat);
 
         // assign view matrix and view projection matrix to camera uniforms
-        this.uniforms.viewProjMat = viewProjMat;
-        this.uniforms.inverseProjMat = this.inversePorjMat;
         this.uniforms.viewMat = viewMat;
+        this.uniforms.invViewMat = inverseViewMat;
+        this.uniforms.viewProjMat = viewProjMat;
+        this.uniforms.invViewProjMat = inverseViewProjMat;
 
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer, 0, this.uniforms.buffer.byteLength);
     }

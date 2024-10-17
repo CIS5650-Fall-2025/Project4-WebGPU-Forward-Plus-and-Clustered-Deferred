@@ -37,19 +37,15 @@ fn main(in: FragmentInput, @builtin(position) fragPos: vec4<f32>) -> @location(0
         discard;
     }
 
-    let strideX: f32 = f32(clusterSet.xdim) / f32(${tileNumberX});
-    let strideY: f32 = f32(clusterSet.ydim) / f32(${tileNumberY});
-    let tileX: u32 = u32(fragPos.x / strideX);
-    let tileY: u32 = u32(fragPos.y / strideY);
-    let zView: f32 = fragPos.z * (clusterSet.fclip - clusterSet.nclip) + clusterSet.nclip;
-    let logZ: f32 = log(zView / clusterSet.nclip) / log(clusterSet.fclip / clusterSet.nclip);
-    let tileZ = u32(logZ * f32(${tileNumberZ}));
-    // let tileZ: u32 = u32(fragPos.z * ${tileNumberZ});
-    // let pos_ndc: vec4f = cameraUniforms.viewProj * vec4(in.pos.x, in.pos.y, in.pos.z, 1.0);
-    // let normalized_z: f32 = pos_ndc.z / pos_ndc.w;
-    // let tileZ: u32 = u32(normalized_z * ${depthSlice});
+    let strideX = f32(cameraUniforms.xdim) / f32(clusterSet.tileNumX);
+    let strideY = f32(cameraUniforms.ydim) / f32(clusterSet.tileNumY);
+    let tileX = u32(fragPos.x / strideX);
+    let tileY = u32(fragPos.y / strideY);
+    let zView = fragPos.z * (cameraUniforms.fclip - cameraUniforms.nclip) + cameraUniforms.nclip;
+    let logZ = log(zView / cameraUniforms.nclip) / log(cameraUniforms.fclip / cameraUniforms.nclip);
+    let tileZ = u32(logZ * f32(clusterSet.tileNumZ));
 
-    let clusterIdx = tileX + ${tileNumberX} * tileY + ${tileNumberX} * ${tileNumberY} * tileZ;
+    let clusterIdx = tileX + clusterSet.tileNumX * tileY + clusterSet.tileNumX * clusterSet.tileNumY * tileZ;
     let cluster = clusterSet.clusters[clusterIdx];
 
     var totalLightContrib = vec3f(0, 0, 0);
@@ -68,5 +64,6 @@ fn main(in: FragmentInput, @builtin(position) fragPos: vec4<f32>) -> @location(0
     // } else {
     //     return vec4(0, 0, 0, 1);
     // }
-    // return vec4(fragPos.z, 0, 0, 1);
+    // return vec4(logZ, 0, 0, 1);
+    // return vec4(f32(clusterIdx) / f32(clusterSet.tileNum), f32(clusterIdx) / f32(clusterSet.tileNum), f32(clusterIdx) / f32(clusterSet.tileNum), 1.0);
 }

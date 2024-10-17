@@ -34,7 +34,7 @@ export const constants = {
     tileNumberY: 16,
     tileNumberZ: 8,
     lightRadius: 2,
-    maxLightsNumPerCluster: 16
+    maxLightsNumPerCluster: 40
 };
 
 // =================================

@@ -1,5 +1,5 @@
 import { vec3 } from "wgpu-matrix";
-import { canvas, device } from "../renderer";
+import { device } from "../renderer";
 
 import * as shaders from '../shaders/shaders';
 import { Camera } from "./camera";
@@ -30,7 +30,7 @@ export class Lights {
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
 
-    // create clusters array
+    // create clusters array and buffer
     numClusters = shaders.constants.tileNumberX * shaders.constants.tileNumberY * shaders.constants.tileNumberZ;
     numFloatsPerCluster = shaders.constants.maxLightsNumPerCluster + 8;
     clustersArray = new Float32Array(this.numClusters * this.numFloatsPerCluster);
@@ -115,7 +115,10 @@ export class Lights {
         });
 
         // set tile dimentions
-        device.queue.writeBuffer(this.clusterSetBuffer, 0, new Float32Array([canvas.width, canvas.height, Camera.nearPlane, Camera.farPlane]));
+        device.queue.writeBuffer(this.clusterSetBuffer, 0, new Uint32Array([this.numClusters, 
+                                                                            shaders.constants.tileNumberX, 
+                                                                            shaders.constants.tileNumberY, 
+                                                                            shaders.constants.tileNumberZ]));
 
         // create light clustering bind group layout
         this.lightClusteringBindGroupLayout = device.createBindGroupLayout({
@@ -203,7 +206,7 @@ export class Lights {
 
         computePass.dispatchWorkgroups(Math.ceil(shaders.constants.tileNumberX / 8), 
                                        Math.ceil(shaders.constants.tileNumberY / 8), 
-                                       Math.ceil(shaders.constants.tileNumberZ) / 4);
+                                       Math.ceil(shaders.constants.tileNumberZ / 4));
 
         computePass.end();
     }
