@@ -61,10 +61,7 @@ fn getClusterIndex(posWorld: vec3f, camera: CameraUniforms) -> u32 {
     let yIndex = u32((pos_ndc.y * 0.5 + 0.5) * ${clusteringCountY});
 
     let Z_view = (camera.viewMat * vec4<f32>(posWorld, 1.0)).z;
-    // let zIndex = u32((Z_view - ${nearClip}) / (${farClip} - ${nearClip}) * ${clusteringCountZ});
-    // let safeZ_view = max(Z_view, f32(${nearClip}) + 1e-6);
-    // let zIndex = u32(log(safeZ_view / f32(${nearClip})) / log(f32(${farClip}) / f32(${nearClip})) * f32(${clusteringCountZ}));
-    var zIndex = u32(log(Z_view / -f32(${nearClip})) * f32(${clusteringCountZ}) / log(f32(${farClip}) / f32(${nearClip})));
+    let zIndex = u32(log(Z_view / -f32(${nearClip})) / log(f32(${farClip}) / f32(${nearClip})) * f32(${clusteringCountZ}));
     var clusterIndex = xIndex + yIndex * ${clusteringCountX} + zIndex * ${clusteringCountX} * ${clusteringCountY};
     
     return clusterIndex;

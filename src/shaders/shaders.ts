@@ -37,7 +37,7 @@ export const constants = {
     clusteringCountY: 9,
     clusteringCountZ: 24,
     clusteringCountTotal: 16 * 9 * 24,
-    maxNumLightsPerCluster: 512,
+    maxNumLightsPerCluster: 256,
 
     farClip: 20.0,
     nearClip: 2.0,

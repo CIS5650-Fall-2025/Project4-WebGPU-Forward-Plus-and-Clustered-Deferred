@@ -37,15 +37,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var maxX_ndc = 2.0 * f32(global_id.x + 1) / f32(${clusteringCountX}) - 1.0;
     var minY_ndc = 2.0 * f32(global_id.y) / f32(${clusteringCountY}) - 1.0;
     var maxY_ndc = 2.0 * f32(global_id.y + 1) / f32(${clusteringCountY}) - 1.0;
-
-    // var minZ_view = ${nearClip} + f32(global_id.z) / f32(${clusteringCountZ}) * (${farClip} - ${nearClip});
-    // var maxZ_view = ${nearClip} + f32(global_id.z + 1) / f32(${clusteringCountZ}) * (${farClip} - ${nearClip});
-
-    var minZ_view = -${nearClip} * exp(f32(global_id.z) * log(f32(${farClip}) / f32(${nearClip})) / f32(${clusteringCountZ}));
-    var maxZ_view = -${nearClip} * exp(f32(global_id.z + 1) * log(f32(${farClip}) / f32(${nearClip})) / f32(${clusteringCountZ}));
-
-    // var minZ_view = ${nearClip} * pow(f32(${farClip}) / f32(${nearClip}), f32(global_id.z) / f32(${clusteringCountZ}));
-    // var maxZ_view = ${nearClip} * pow(f32(${farClip}) / f32(${nearClip}), f32(global_id.z + 1) / f32(${clusteringCountZ}));
+    var minZ_view = -${nearClip} * pow(f32(${farClip}) / f32(${nearClip}), f32(global_id.z) / f32(${clusteringCountZ}));
+    var maxZ_view = -${nearClip} * pow(f32(${farClip}) / f32(${nearClip}), f32(global_id.z + 1) / f32(${clusteringCountZ}));
 
     var minZ_ndc_vec = camera.projMat * vec4<f32>(0.0,0.0,minZ_view,1.0);
     var minZ_ndc = minZ_ndc_vec.z/minZ_ndc_vec.w;
