@@ -17,6 +17,10 @@ import clusteredDeferredFullscreenFragRaw from './clustered_deferred_fullscreen.
 import moveLightsComputeRaw from './move_lights.cs.wgsl?raw';
 import clusteringComputeRaw from './clustering.cs.wgsl?raw';
 
+import fullscreenVertexRAW from './clustered_deferred_fullscreen.vs.wgsl?raw';
+import fullscreenFragRAW from './clustered_deferred_fullscreen.fs.wgsl?raw';
+import clusterDeferredRAW from './clustered_deferred.fs.wgsl?raw';
+
 // CONSTANTS (for use in shaders)
 // =================================
 
@@ -31,7 +35,7 @@ export const constants = {
 
     moveLightsWorkgroupSize: 128,
     lightRadius: 2,
-    MAX_LIGHTS_PER_CLUSTER: 256,
+    MAX_LIGHTS_PER_CLUSTER: 1024,
 
     WORKGROUP_SIZE_X: 8,
     WORKGROUP_SIZE_Y: 8,
@@ -68,3 +72,7 @@ export const clusteredDeferredFullscreenFragSrc: string = processShaderRaw(clust
 
 export const moveLightsComputeSrc: string = processShaderRaw(moveLightsComputeRaw);
 export const clusteringComputeSrc: string = processShaderRaw(clusteringComputeRaw);
+
+export const fullscreenVertexScr: string = processShaderRaw(fullscreenVertexRAW);
+export const fullscreenFragSrc: string = processShaderRaw(fullscreenFragRAW);
+export const clusterDeferredSrc: string = processShaderRaw(clusterDeferredRAW);

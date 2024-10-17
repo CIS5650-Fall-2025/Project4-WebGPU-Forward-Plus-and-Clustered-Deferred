@@ -49,21 +49,21 @@ fn main(in: FragmentInput) -> @location(0) vec4<f32> {
     // let clusterY = u32((ndcPos.y + 1.0) * 0.5 * f32(clusterGridSizeY));
     //let clusterZ = u32(ndcPos.z * f32(clusterGridSizeZ));
 
-
-    let zDepth = ndcPos.z * (far - near) + near;
-    let clusterZ = u32(log(zDepth / near) / log(far / near) * f32(clusterGridSizeZ));
+    let posView = camera.viewMat * vec4<f32>(in.pos, 1.0);
+    let zDepth = posView.z;
+    let clusterZ = u32(log(abs(zDepth) / near) / log(far / near) * f32(clusterGridSizeZ));
 
     let clusterX = u32((ndcPos.x + 1.0) * 0.5 * f32(clusterGridSizeX));
     let clusterY = u32((ndcPos.y + 1.0) * 0.5 * f32(clusterGridSizeY));
    
-    let clusterXClamped = min(clusterX, u32(clusterGridSizeX) - 1u);
-    let clusterYClamped = min(clusterY,u32( clusterGridSizeY) - 1u);
-    let clusterZClamped = min(clusterZ, u32(clusterGridSizeZ) - 1u);
+    // let clusterXClamped = min(clusterX, u32(clusterGridSizeX) - 1u);
+    // let clusterYClamped = min(clusterY,u32( clusterGridSizeY) - 1u);
+    // let clusterZClamped = min(clusterZ, u32(clusterGridSizeZ) - 1u);
 
    
-    let clusterIndex = clusterZClamped * u32(clusterGridSizeX) * u32(clusterGridSizeY) +
-                       clusterYClamped * u32(clusterGridSizeX) +
-                       clusterXClamped;
+    let clusterIndex = clusterZ * u32(clusterGridSizeX) * u32(clusterGridSizeY) +
+                       clusterY * u32(clusterGridSizeX) +
+                       clusterX;
     
 
 
@@ -85,6 +85,9 @@ fn main(in: FragmentInput) -> @location(0) vec4<f32> {
     let finalColor = diffuseColor.rgb * totalLightContrib;
     
     return vec4<f32>(finalColor, 1.0);
+
+    // let newColor = vec3f(f32(clusterX), f32(clusterY), f32(clusterZ)) / vec3f(f32(clusterGridSizeX), f32(clusterGridSizeY), f32(clusterGridSizeZ));
+    // return vec4f(newColor, 1);
 
 
     // for (var i = 0u; i < (*cluster_ptr).numLights; i++) {

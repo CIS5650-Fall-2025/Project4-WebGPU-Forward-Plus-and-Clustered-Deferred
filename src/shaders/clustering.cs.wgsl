@@ -102,23 +102,33 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let tileNear = near * pow(far / near, f32(clusterZ) / f32(clusterGridSizeZ));
     let tileFar = near * pow(far / near, f32(clusterZ + 1u) / f32(clusterGridSizeZ));
 
-    let tileNearNDC = (tileNear - near) / (far - near);
-    let tileFarNDC = (tileFar - near) / (far - near);
+    var viewMin = invProjMat * vec4(ndcMin, -1.f, 1.f);
+    viewMin /= viewMin.w;
+    var viewMax = invProjMat * vec4(ndcMax, -1.f, 1.f);
+    viewMax /= viewMax.w;
+
+    let minBoundsPos1 = viewMin.xyz * (tileNear / -viewMin.z);
+    let maxBoundsPos1 = viewMax.xyz * (tileNear / -viewMax.z);
+
+    let minBoundsPos2 = viewMin.xyz * (tileFar / -viewMin.z);
+    let maxBoundsPos2 = viewMax.xyz * (tileFar / -viewMax.z);
+
    
-    var viewMin = invProjMat * vec4<f32>(ndcMin.x, ndcMin.y, tileNearNDC, 1.0);
-    var viewMax = invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, tileNearNDC, 1.0);
+   
+    // var viewMin = invProjMat * vec4<f32>(ndcMin.x, ndcMin.y, tileNearNDC, 1.0);
+    // var viewMax = invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, tileNearNDC, 1.0);
 
-    var viewMin2 = invProjMat * vec4<f32>(ndcMin.x, ndcMin.y, tileFarNDC, 1.0);
-    var viewMax2 = invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, tileFarNDC, 1.0);
+    // var viewMin2 = invProjMat * vec4<f32>(ndcMin.x, ndcMin.y, tileFarNDC, 1.0);
+    // var viewMax2 = invProjMat * vec4<f32>(ndcMax.x, ndcMax.y, tileFarNDC, 1.0);
 
-    let viewMinCart = viewMin.xyz / viewMin.w;
-    let viewMaxCart = viewMax.xyz / viewMax.w;
+    // let viewMinCart = viewMin.xyz / viewMin.w;
+    // let viewMaxCart = viewMax.xyz / viewMax.w;
 
-    let viewMinCart2 = viewMin2.xyz / viewMin2.w;
-    let viewMaxCart2 = viewMax2.xyz / viewMax2.w;
+    // let viewMinCart2 = viewMin2.xyz / viewMin2.w;
+    // let viewMaxCart2 = viewMax2.xyz / viewMax2.w;
 
-    (*cluster_ptr).minDepth = min(min(viewMinCart2, viewMinCart), min(viewMaxCart2, viewMaxCart));
-    (*cluster_ptr).maxDepth = max(max(viewMinCart2, viewMinCart), max(viewMaxCart2, viewMaxCart));
+    (*cluster_ptr).minDepth = min(min(minBoundsPos2,  minBoundsPos1), min(maxBoundsPos2,  maxBoundsPos1));
+    (*cluster_ptr).maxDepth = max(max(minBoundsPos2,  minBoundsPos1), max(maxBoundsPos2,  maxBoundsPos1));
 
    
     
