@@ -14,7 +14,9 @@
 //     Add the calculated contribution to the total light accumulation.
 // Multiply the fragment’s diffuse color by the accumulated light contribution.
 // Return the final color, ensuring that the alpha component is set appropriately (typically to 1).
+@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
 
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
 @group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
@@ -34,9 +36,21 @@ fn main(in: FragmentInput) -> @location(0) vec4f
         discard;
     }
 
+    let screenSpacePos = (cameraUniforms.viewProjMat * vec4(in.pos, 1.0)).xyz;
+    
+    let clusterPosX = u32(floor(((screenSpacePos.xy / screenSpacePos.z).x * 0.5 + 0.5) * f32(clusterSet.clusterCount[0])));
+    let clusterPosY = u32(floor(((screenSpacePos.xy / screenSpacePos.z).y * 0.5 + 0.5) * f32(clusterSet.clusterCount[1])));
+    let clusterPosZ = u32(floor((-screenSpacePos.z - ${nearPlane}) / (${farPlane} - ${nearPlane}) * f32(clusterSet.clusterCount[2])));
+    
+    let clusterIdx = clusterPosX + 
+                       clusterPosY * clusterSet.clusterCount[0] + 
+                       clusterPosZ * clusterSet.clusterCount[0] * clusterSet.clusterCount[1];
+
+    let cluster = clusterSet.clusters[clusterIdx];
+
     var totalLightContrib = vec3f(0, 0, 0);
-    for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
-        let light = lightSet.lights[lightIdx];
+    for (var lightIdx = 0u; lightIdx < cluster.lightCount; lightIdx++) {
+        let light = lightSet.lights[cluster.lightIndices[lightIdx]];
         totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
     }
 
