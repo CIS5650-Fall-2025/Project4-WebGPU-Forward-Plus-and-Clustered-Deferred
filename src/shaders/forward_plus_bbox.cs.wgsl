@@ -40,7 +40,7 @@ fn computeMain(@builtin(global_invocation_id) global_id: vec3u,
     var tileMaxFar = lineIntersectionToZPlane(tileMax, abs(tileMax.z));
 
 
-    for (var depth: u32 = 0; depth < ${tileSizeZ}; depth += 1)
+    for (var depth: u32 = 0; depth < tileInfo.numTilesZ; depth += 1)
     {
         var clusterIdx = depth * tileInfo.numTilesX * tileInfo.numTilesY + global_id.y * tileInfo.numTilesX + global_id.x;
         var nearZ = f32(depth) / f32(${tileSizeZ});

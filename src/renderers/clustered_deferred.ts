@@ -2,6 +2,9 @@ import * as renderer from "../renderer";
 import * as shaders from "../shaders/shaders";
 import { Stage } from "../stage/stage";
 
+// screen size triangle
+const vertexBufferData = new Float32Array([-1, -1, 3, -1, -1, 3]);
+
 export class ClusteredDeferredRenderer extends renderer.Renderer {
     // TODO-3: add layouts, pipelines, textures, etc. needed for Forward+ here
     // you may need extra uniforms such as the camera view matrix and the canvas resolution
@@ -48,6 +51,10 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
 
     sceneLightsBindGroupLayout: GPUBindGroupLayout;
     sceneLightsBindGroup: GPUBindGroup;
+
+    // full screen triangle
+    vertexBuffer: GPUBuffer;
+    vertexBufferLayout: GPUVertexBufferLayout;
 
     constructor(stage: Stage) {
         super(stage);
@@ -140,7 +147,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     binding: 2,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: {
-                        sampleType: "unfilterable-float",
+                        sampleType: "float",
                         viewDimension: "2d",
                     },
                 },
@@ -149,16 +156,16 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     binding: 3,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: {
-                        sampleType: "unfilterable-float",
+                        sampleType: "float",
                         viewDimension: "2d",
                     },
                 },
                 {
-                    // position
+                    // depth
                     binding: 4,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: {
-                        sampleType: "unfilterable-float",
+                        sampleType: "float",
                         viewDimension: "2d",
                     },
                 },
@@ -504,32 +511,45 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             ],
         });
 
+        this.vertexBuffer = renderer.device.createBuffer({
+            label: "screen size triangle vertex buffer",
+            size: vertexBufferData.byteLength,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+        renderer.device.queue.writeBuffer(this.vertexBuffer, 0, vertexBufferData);
+
+        this.vertexBufferLayout = {
+            arrayStride: 2 * Float32Array.BYTES_PER_ELEMENT,
+            attributes: [
+                {
+                    format: "float32x2",
+                    offset: 0,
+                    shaderLocation: 0,
+                },
+            ],
+        };
+
         this.pipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
                 label: "deferred cluster pipeline layout",
-                bindGroupLayouts: [
-                    this.sceneUniformsBindGroupLayout,
-                    renderer.modelBindGroupLayout,
-                    renderer.materialBindGroupLayout,
-                    this.sceneLightsBindGroupLayout,
-                ],
+                bindGroupLayouts: [this.sceneGbufferBindGroupLayout, this.sceneLightsBindGroupLayout],
             }),
-            depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: "less",
-                format: "depth24plus",
-            },
+            // depthStencil: {
+            //     depthWriteEnabled: true,
+            //     depthCompare: "less",
+            //     format: "depth24plus",
+            // },
             vertex: {
                 module: renderer.device.createShaderModule({
                     label: "deferred cluster vert shader",
-                    code: shaders.forwardPlusVertSrc,
+                    code: shaders.clusteredDeferredFullscreenVertSrc,
                 }),
-                buffers: [renderer.vertexBufferLayout],
+                buffers: [this.vertexBufferLayout],
             },
             fragment: {
                 module: renderer.device.createShaderModule({
                     label: "deferred cluster frag shader",
-                    code: shaders.forwardPlusFragSrc,
+                    code: shaders.clusteredDeferredFullscreenFragSrc,
                 }),
                 targets: [
                     {
@@ -635,31 +655,19 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     storeOp: "store",
                 },
             ],
-            depthStencilAttachment: {
-                view: this.depthTextureView,
-                depthClearValue: 1.0,
-                depthLoadOp: "clear",
-                depthStoreOp: "store",
-            },
+            // depthStencilAttachment: {
+            //     view: this.depthTextureView,
+            //     depthClearValue: 1.0,
+            //     depthLoadOp: "load",
+            //     depthStoreOp: "store",
+            // },
         });
 
         renderPass.setPipeline(this.pipeline);
-        renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
-        renderPass.setBindGroup(shaders.constants.bindGroup_lightcull, this.sceneLightsBindGroup);
-
-        this.scene.iterate(
-            (node) => {
-                renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
-            },
-            (material) => {
-                renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
-            },
-            (primitive) => {
-                renderPass.setVertexBuffer(0, primitive.vertexBuffer);
-                renderPass.setIndexBuffer(primitive.indexBuffer, "uint32");
-                renderPass.drawIndexed(primitive.numIndices);
-            }
-        );
+        renderPass.setBindGroup(0, this.sceneGbufferBindGroup);
+        renderPass.setBindGroup(1, this.sceneLightsBindGroup);
+        renderPass.setVertexBuffer(0, this.vertexBuffer);
+        renderPass.draw(3);
         renderPass.end();
 
         renderer.device.queue.submit([encoder.finish()]);

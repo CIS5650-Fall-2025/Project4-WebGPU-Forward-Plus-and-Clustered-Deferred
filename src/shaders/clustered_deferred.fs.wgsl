@@ -8,9 +8,6 @@
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
 @group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
 
-
-
-
 struct FragmentInput
 {
     @location(0) pos: vec3f,
@@ -19,9 +16,9 @@ struct FragmentInput
 }
 
 struct FragmentOutput {
-    @location(0) gbufferPosition: vec4<f32>,
+    @location(0) gbufferAlbedo: vec4<f32>,
     @location(1) gbufferNormal: vec4<f32>,
-    @location(2) gbufferAlbedo: vec4<f32>,
+    @location(2) gbufferPosition: vec4<f32>,
     @location(3) finalColor: vec4<f32>
 }
 
@@ -40,6 +37,6 @@ fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> FragmentO
     out.gbufferPosition = vec4(in.pos, 1.0);
     out.gbufferNormal = vec4(in.nor, 1.0);
     out.gbufferAlbedo = vec4(diffuseColor.rgb, 1.0);
-    
+
     return out;
 }
