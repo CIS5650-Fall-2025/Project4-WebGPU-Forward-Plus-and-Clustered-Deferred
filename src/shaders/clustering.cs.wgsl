@@ -106,13 +106,13 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
     // Initialize numLights to 0
     clusterLights[clusterOffset] = 0u;
     var lightCount = 0u;
+
+    let radius = f32(${lightRadius});
     // Assign lights to clusters
     for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx = lightIdx + 1u) {
-        let light = lightSet.lights[lightIdx];
-        let radius = f32(${lightRadius});
-
+        
         // Light bounding sphere
-        let lightPos = (cameraUniforms.viewMat * vec4f(light.pos, 1.0)).xyz;
+        let lightPos = (cameraUniforms.viewMat * vec4f(lightSet.lights[lightIdx].pos, 1.0)).xyz;
         let sphereMin = lightPos - vec3f(radius);
         let sphereMax = lightPos + vec3f(radius);
 
