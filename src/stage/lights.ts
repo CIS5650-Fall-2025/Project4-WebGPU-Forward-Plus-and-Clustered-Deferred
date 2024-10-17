@@ -31,7 +31,6 @@ export class Lights {
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
     // add buffers for clusterSet
     static readonly numClusters = 4096;
-    // static readonly numClusters = 2048;
     static readonly numFloatsPerCluster = 509;
 
     clusterArray = new Float32Array(Lights.numClusters * Lights.numFloatsPerCluster);
@@ -198,9 +197,8 @@ export class Lights {
         computePass.setPipeline(this.computePipeline);
         computePass.setBindGroup(0, this.clusterComputeBindGroup);
         // const clustergroupCount = Math.ceil((16*16*32) / 128);
-        // computePass.dispatchWorkgroups(1,1,32); // check workgroup size later
         // computePass.dispatchWorkgroups(clustergroupCount);
-        computePass.dispatchWorkgroups(32,32,32);
+        computePass.dispatchWorkgroups(1,1,32);
         computePass.end();
         device.queue.submit([encoder.finish()]);
     }

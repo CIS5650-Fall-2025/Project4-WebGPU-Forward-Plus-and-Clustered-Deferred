@@ -17,6 +17,16 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     // add pipelines
     pipeline: GPURenderPipeline;
 
+    //Store vertex attributes in a G-buffer
+    normalTexture: GPUTexture;
+    normalTextureView: GPUTextureView;
+
+    albedoTexture: GPUTexture;
+    albedoTextureView: GPUTextureView;
+
+    positionTexture: GPUTexture;
+    positionTextureView: GPUTextureView;
+
     constructor(stage: Stage) {
         super(stage);
 
@@ -72,6 +82,27 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         });
         this.depthTextureView = this.depthTexture.createView();
+
+        this.normalTexture = renderer.device.createTexture({
+            size: [renderer.canvas.width, renderer.canvas.height],
+            format: "rgba8unorm",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.normalTextureView = this.normalTexture.createView();
+
+        this.albedoTexture = renderer.device.createTexture({
+            size: [renderer.canvas.width, renderer.canvas.height],
+            format: "rgba8unorm",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.albedoTextureView = this.albedoTexture.createView();
+
+        this.positionTexture = renderer.device.createTexture({
+            size: [renderer.canvas.width, renderer.canvas.height],
+            format: "rgba32float",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.positionTextureView = this.positionTexture.createView();
 
         this.pipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({

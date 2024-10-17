@@ -32,7 +32,6 @@ fn sphereIntersectsAABB(center: vec3f, radius: f32, aabbMin: vec3f, aabbMax: vec
 //CUDA block size. Specify the size in the shader.
 //maxComputeInvocationsPerWorkgroup = 256
 @workgroup_size(16, 16, 1)
-// @workgroup_size(8, 8, 1)
 //global_invocation_id is equivalent to blockIdx * blockdim + threadIdx
 fn main(@builtin(global_invocation_id) globalIdx: vec3u){
 // ------------------------------------
@@ -103,6 +102,7 @@ clusterSet.clusters[tileIdx].maxPos = maxPos;
 //     - Store the number of lights assigned to this cluster.
 
 var lightNum: u32 = 0u;
+var lightIndices: array<u32, 500>;
 for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
     var light: Light = lightSet.lights[lightIdx];
     var lightPos: vec3f = light.pos;
@@ -112,10 +112,12 @@ for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
     // Check if the light intersects with the cluster’s bounding box (AABB).
     if(lightNum < 500u && sphereIntersectsAABB(lightPos, lightRadius, minPos.xyz, maxPos.xyz)) {
         // Add the light to the cluster's light list.
-        clusterSet.clusters[tileIdx].lightIndices[lightNum] = lightIdx;
-        lightNum = lightNum + 1u;
+        lightIndices[lightNum] = lightIdx;
+        //clusterSet.clusters[tileIdx].lightIndices[lightNum] = lightIdx;
+        lightNum++;
     }   
 }
+clusterSet.clusters[tileIdx].lightIndices = lightIndices;
 clusterSet.clusters[tileIdx].numLights = lightNum;
 
 

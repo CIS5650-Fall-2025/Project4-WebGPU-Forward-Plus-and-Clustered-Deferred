@@ -60,7 +60,7 @@ export class Camera {
     pitch: number = 0;
     moveSpeed: number = 0.004;
     sensitivity: number = 0.15;
-    cluterX: number = 16.0;
+    clusterX: number = 16.0;
     clusterY: number = 16.0;
     clusterZ: number = 32.0;
 
@@ -179,7 +179,7 @@ export class Camera {
         this.uniforms.screenHeight =  canvas.height;
         this.uniforms.zNear = Camera.nearPlane;
         this.uniforms.zFar = Camera.farPlane;
-        this.uniforms.clusterX = this.cluterX;//16
+        this.uniforms.clusterX = this.clusterX;//16
         this.uniforms.clusterY = this.clusterY;//16
         this.uniforms.clusterZ = this.clusterZ;//32
 
