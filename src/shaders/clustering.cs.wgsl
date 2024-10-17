@@ -2,15 +2,14 @@
 // bindGroup_scene is 0
 // bindGroup_model is 1
 // bindGroup_material is 2
-@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
-@group(${bindGroup_scene}) @binding(1) var<storage, read_write> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(0) var<storage, read_write> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(1) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
 fn screenToView(screenCoord: vec2f) -> vec3f {
     let ndc = vec4f((screenCoord.x / cameraUniforms.screenWidth) * 2.0 - 1.0, (screenCoord.y / cameraUniforms.screenHeight) * 2.0 - 1.0, -1.0, 1.0);
-    // let viewPos = cameraUniforms.invViewProjMat * ndc;
-    var viewPos = cameraUniforms.invViewProjMat * ndc;
-    viewPos.y = -viewPos.y;
+    var viewPos = cameraUniforms.invProjMat * ndc;
+    // viewPos.y = -viewPos.y;
     return viewPos.xyz / viewPos.w;
 }
 
@@ -34,6 +33,7 @@ fn sphereIntersectsAABB(center: vec3f, radius: f32, aabbMin: vec3f, aabbMax: vec
 //CUDA block size. Specify the size in the shader.
 //maxComputeInvocationsPerWorkgroup = 256
 @workgroup_size(16, 16, 1)
+// @workgroup_size(${moveLightsWorkgroupSize})
 //global_invocation_id is equivalent to blockIdx * blockdim + threadIdx
 fn main(@builtin(global_invocation_id) globalIdx: vec3u){
 // ------------------------------------
@@ -58,7 +58,7 @@ let viewProjMat = cameraUniforms.viewProjMat;
 
 // Calculate the cluster's screen-space bounds in 2D (XY).
 // let tileSize = vec2f(64.0, 64.0);
-let tileSize - vec2f(screenWidth / f32(gridSize.x), screenHeight / f32(gridSize.y));
+let tileSize = vec2f(screenWidth / f32(gridSize.x), screenHeight / f32(gridSize.y));
 // Get current thread index 
 let tileIdxX = globalIdx.x;
 let tileIdxY = globalIdx.y;
@@ -89,6 +89,10 @@ var maxPointFar = lineIntersectionWithZPlane(vec3f(0.0,0.0,0.0), maxTile_Viewspa
 
 var minPos = vec4f(min(minPointNear, minPointFar), 0.0);
 var maxPos = vec4f(max(maxPointNear, maxPointFar), 0.0);
+// clusterSet.clusters[tileIdx].minPos = vec4f(f32(tileIdxX),f32(tileIdxX),f32(tileIdxX),1.0); // tileIdx yes
+// clusterSet.clusters[tileIdx].minPos = vec4f(minTile_Screenspace,0.0,1.0); // tileSize yes // minTile_Screenspace yes
+// clusterSet.clusters[tileIdx].minPos = vec4f(minTile_Viewspace,1.0); // minTile_Viewspace yes
+
 clusterSet.clusters[tileIdx].minPos = minPos;
 clusterSet.clusters[tileIdx].maxPos = maxPos;
 
@@ -106,31 +110,32 @@ clusterSet.clusters[tileIdx].maxPos = maxPos;
 //     - Store the number of lights assigned to this cluster.
 
 var lightNum: u32 = 0u;
-// for (var i = 0u; i < lightSet.numLights; i++) {
-//     var light = lightSet.lights[i];
-//     var lightPos = light.pos;
-//     var lightColor = light.color;
-//     // hardcoded light radius for now
-//     let lightRadius = 2.0; // in shader.ts
+for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
+    var light = lightSet.lights[lightIdx];
+    var lightPos = light.pos;
+    // hardcoded light radius for now
+    let lightRadius = 2.0; // in shader.ts
 
-//     // Check if the light intersects with the cluster’s bounding box (AABB).
-//     var lightIntersectsCluster = sphereIntersectsAABB(lightPos, lightRadius, minPos.xyz, maxPos.xyz);
-//     if(lightNum < 100u && lightIntersectsCluster) {
-//         // Add the light to the cluster's light list.
-//         clusterSet.clusters[tileIdx].lightIndices[lightNum] = i;
-//         // clusterSet.clusters[tileIdx].numLights = lightNum + 1u;
-//         lightNum = lightNum + 1u;
-
-//     }   
-// }
-// clusterSet.clusters[tileIdx].numLights = lightNum;
-
-// Test buffer write and did work then is sth wrong with index
-for(var i = 0u; i <= 500u; i++) {
-    clusterSet.clusters[i].lightIndices[i % 100] = i % 100;
-    clusterSet.clusters[i].minPos = vec4f(1.0, 0.0, 0.0, 1.0); // Set a uniform value to all clusters for testing
-    clusterSet.clusters[i].maxPos = vec4f(0.0, 1.0, 0.0, 2.0); // Example value
-    clusterSet.clusters[i].numLights = 500u;
+    // Check if the light intersects with the cluster’s bounding box (AABB).
+    var lightIntersectsCluster = sphereIntersectsAABB(lightPos, lightRadius, minPos.xyz, maxPos.xyz);
+    if(lightIntersectsCluster) {
+        // Add the light to the cluster's light list.
+        clusterSet.clusters[tileIdx].lightIndices[lightNum] = lightIdx;
+        // clusterSet.clusters[tileIdx].numLights = lightNum + 1u;
+        lightNum = lightNum + 1u;
+        // clusterSet.clusters[tileIdx].numLights = 500u;
+    }   
 }
-// clusterSet.clusters[tileIdx].numLights = 500u;
+//  clusterSet.clusters[tileIdx].numLights = 500u;
+clusterSet.clusters[tileIdx].numLights = lightNum;
+
+
+
+// // Test buffer write and did work then is sth wrong with index
+// for(var i = 0u; i <= 5000u; i++) {
+//     clusterSet.clusters[i].lightIndices[i % 100] = i % 100;
+//     clusterSet.clusters[i].minPos = vec4f(1.0, 0.0, 0.0, 1.0); // Set a uniform value to all clusters for testing
+//     clusterSet.clusters[i].maxPos = vec4f(0.0, 1.0, 0.0, 2.0); // Example value
+//     clusterSet.clusters[i].numLights = 500u;
+// }
 }

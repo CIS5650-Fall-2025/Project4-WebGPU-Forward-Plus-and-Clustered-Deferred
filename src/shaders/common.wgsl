@@ -16,24 +16,24 @@ struct Cluster {
     minPos: vec4f, //16 bytes
     maxPos: vec4f, //16 bytes
     numLights: u32, //4 bytes
-    lightIndices: array<u32,103> //412 bytes
-    // total 448 bytes per cluster
+    lightIndices: array<u32,500> // 2000 bytes
+    // total 2036 bytes per cluster
 }
 
 struct ClusterSet {
     // numClusters: u32, //4 bytes
-    clusters: array<Cluster,512> // 229376 bytes
+    clusters: array<Cluster>
 }
 
 struct CameraUniforms {
     // TODO-1.3: add an entry for the view proj mat (of type mat4x4f)
     viewProjMat: mat4x4f,
-    invViewProjMat: mat4x4<f32>,
+    invProjMat: mat4x4<f32>,
     screenWidth: f32,
     screenHeight: f32,
     zNear: f32,
     zFar: f32,
-    //gridSize: vec3<u32>,
+    // cluster in each dimension
     clusterX: f32,
     clusterY: f32,
     clusterZ: f32,

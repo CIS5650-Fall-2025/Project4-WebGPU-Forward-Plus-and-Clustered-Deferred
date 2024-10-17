@@ -14,7 +14,7 @@ class CameraUniforms {
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
-    set invViewProjMat(mat: Float32Array) {
+    set invProjMat(mat: Float32Array) {
         this.floatView.set(mat, 16);
     }
 
@@ -61,6 +61,9 @@ export class Camera {
     pitch: number = 0;
     moveSpeed: number = 0.004;
     sensitivity: number = 0.15;
+    cluterX: number = 16.0;
+    clusterY: number = 16.0;
+    clusterZ: number = 64.0;
 
     static readonly nearPlane = 0.1;
     static readonly farPlane = 1000;
@@ -79,18 +82,13 @@ export class Camera {
         });
        
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
-        this.uniforms.screenWidth = canvas.width;
-        this.uniforms.screenHeight = canvas.height;
-        this.uniforms.zNear = Camera.nearPlane;
-        this.uniforms.zFar = Camera.farPlane;
-        //how many clusters in x, y, z (64 * 64 pixels) too small
-        // this.uniforms.clusterX = Math.ceil(canvas.width/64);
-        // this.uniforms.clusterY = Math.ceil(canvas.height/64);
-        // this.uniforms.clusterZ = 64;
-
-        this.uniforms.clusterX = 16.0;
-        this.uniforms.clusterY = 16.0;
-        this.uniforms.clusterZ = 64.0;
+        // this.uniforms.screenWidth = canvas.width;
+        // this.uniforms.screenHeight = canvas.height;
+        // this.uniforms.zNear = Camera.nearPlane;
+        // this.uniforms.zFar = Camera.farPlane;
+        // this.uniforms.clusterX = 16.0;
+        // this.uniforms.clusterY = 16.0;
+        // this.uniforms.clusterZ = 64.0;
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
@@ -183,19 +181,15 @@ export class Camera {
         this.uniforms.viewProjMat = viewProjMat;
 
         // TODO-2: write to extra buffers needed for light clustering here
-        const invViewProjMat = mat4.invert(viewProjMat);
-        this.uniforms.invViewProjMat = invViewProjMat;
+        const invProjMat = mat4.invert(this.projMat);
+        this.uniforms.invProjMat = invProjMat;
         this.uniforms.screenWidth = canvas.width;
         this.uniforms.screenHeight =  canvas.height;
         this.uniforms.zNear = Camera.nearPlane;
         this.uniforms.zFar = Camera.farPlane;
-        // this.uniforms.gridSize = [32, 32, 32];
-        // this.uniforms.clusterX = Math.ceil(canvas.width/64);
-        // this.uniforms.clusterY = Math.ceil(canvas.height/64);
-        // this.uniforms.clusterZ = 64;
-        this.uniforms.clusterX = 16.0;
-        this.uniforms.clusterY = 16.0;
-        this.uniforms.clusterZ = 64.0;
+        this.uniforms.clusterX = this.cluterX;//16
+        this.uniforms.clusterY = this.clusterY;//16
+        this.uniforms.clusterZ = this.clusterZ;//64
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`

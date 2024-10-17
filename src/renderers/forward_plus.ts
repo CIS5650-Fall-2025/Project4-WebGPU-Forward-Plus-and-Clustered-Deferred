@@ -9,8 +9,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     // add layouts
     sceneUniformsBindGroupLayout: GPUBindGroupLayout;
     sceneUniformsBindGroup: GPUBindGroup;
-    //sceneComputeBindGroupLayout: GPUBindGroupLayout;
-    // sceneComputeBindGroup: GPUBindGroup;
 
     // add textures
     depthTexture: GPUTexture;
@@ -18,45 +16,28 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
     // add pipelines
     pipeline: GPURenderPipeline;
-    computePipeline: GPUComputePipeline;  
-
-    // add buffers for clusterSet
-    readonly numClusters = 512;
-    readonly numFloatsPerCluster = 112;
-    clusterArray = new Float32Array(this.numClusters * this.numFloatsPerCluster);
-    clusterSetStorageBuffer: GPUBuffer;
-
-    private populateClusterBuffer() {
-        renderer.device.queue.writeBuffer(this.clusterSetStorageBuffer, 0, this.clusterArray);
-    }
 
     constructor(stage: Stage) {
         super(stage);
         
-        this.clusterSetStorageBuffer = renderer.device.createBuffer({
-            label: "cluster set buffer in light class",
-            size: this.clusterArray.byteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        });
-        this.populateClusterBuffer();
-
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "forward: scene uniforms bind group layout",
             entries: [
                 {// camera uniforms
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX| GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    visibility: GPUShaderStage.VERTEX| GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" }
                 },
                 { // lightSet
                     binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT| GPUShaderStage.COMPUTE,
-                    buffer: { type: "storage" }
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "read-only-storage" }
                 },
-                {// clusterSet
+                {//clusterSet
                     binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT| GPUShaderStage.COMPUTE,
-                    buffer: { type: "storage" }
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "read-only-storage" }
+
                 }
             ]
         });
@@ -76,9 +57,9 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     binding: 1,
                     resource: { buffer: this.lights.lightSetStorageBuffer }
                 },
-                {
+                {//clusterSet
                     binding: 2,
-                    resource: { buffer: this.clusterSetStorageBuffer }
+                    resource: { buffer: this.lights.clusterSetStorageBuffer }
                 }
             ]
         });
@@ -123,50 +104,17 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 ]
             }
         });
-        
-        this.computePipeline = renderer.device.createComputePipeline({
-            layout: renderer.device.createPipelineLayout({
-                label: "Forward+ compute pipeline layout",
-                bindGroupLayouts: [
-                    this.sceneUniformsBindGroupLayout
-                ]
-            }),
-            //createShaderModule create the compute shader.
-            //Pass the compute shader string to the code property
-            compute: {
-                module: renderer.device.createShaderModule({
-                    label: "Forward+ compute shader",
-                    code: shaders.clusteringComputeSrc
-                }),
-                entryPoint: "main"
-            }
-        });  
+    
     }
 
     
     override draw() {
         // TODO-2: run the Forward+ rendering pass:
         // - run the clustering compute shader
+        const computeEncoder = renderer.device.createCommandEncoder({label: "Forward+ compute pass encoder created"});  
+        this.lights.doLightClustering(computeEncoder);   
+
         // - run the main rendering pass, using the computed clusters for efficient lighting
-        
-        const computeEncoder = renderer.device.createCommandEncoder();        
-        // run the compute pass
-        const computePass = computeEncoder.beginComputePass({label: "Forward+ compute pass begin"}); 
-        computePass.setPipeline(this.computePipeline);
-
-        // group 0 only
-        computePass.setBindGroup(0, this.sceneUniformsBindGroup);
-
-        // computePass.dispatchWorkgroups(
-        //     Math.ceil(renderer.canvas.width / 64 / 16),
-        //     Math.ceil(renderer.canvas.height / 64 / 16),
-        //     64 // 64 slices for cluster in z
-        // );
-        computePass.dispatchWorkgroups(1, 1, 64);
-        
-        computePass.end();
-        renderer.device.queue.submit([computeEncoder.finish()]);
-
         const renderEncoder = renderer.device.createCommandEncoder();
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
         const renderPass = renderEncoder.beginRenderPass({
