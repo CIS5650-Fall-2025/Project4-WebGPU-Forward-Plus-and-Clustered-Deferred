@@ -3,8 +3,7 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    //readonly buffer = new ArrayBuffer(16 * 4);
-    //readonly buffer = new ArrayBuffer(16 * 4 + 4 * 4);
+
     readonly buffer = new ArrayBuffer(16 * 10);
     private readonly floatView = new Float32Array(this.buffer);
 
@@ -63,7 +62,7 @@ export class Camera {
     sensitivity: number = 0.15;
     cluterX: number = 16.0;
     clusterY: number = 16.0;
-    clusterZ: number = 64.0;
+    clusterZ: number = 32.0;
 
     static readonly nearPlane = 0.1;
     static readonly farPlane = 1000;
@@ -82,13 +81,6 @@ export class Camera {
         });
        
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
-        // this.uniforms.screenWidth = canvas.width;
-        // this.uniforms.screenHeight = canvas.height;
-        // this.uniforms.zNear = Camera.nearPlane;
-        // this.uniforms.zFar = Camera.farPlane;
-        // this.uniforms.clusterX = 16.0;
-        // this.uniforms.clusterY = 16.0;
-        // this.uniforms.clusterZ = 64.0;
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
@@ -189,7 +181,7 @@ export class Camera {
         this.uniforms.zFar = Camera.farPlane;
         this.uniforms.clusterX = this.cluterX;//16
         this.uniforms.clusterY = this.clusterY;//16
-        this.uniforms.clusterZ = this.clusterZ;//64
+        this.uniforms.clusterZ = this.clusterZ;//32
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`

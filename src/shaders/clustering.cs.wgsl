@@ -31,8 +31,8 @@ fn sphereIntersectsAABB(center: vec3f, radius: f32, aabbMin: vec3f, aabbMax: vec
 @compute
 //CUDA block size. Specify the size in the shader.
 //maxComputeInvocationsPerWorkgroup = 256
-// @workgroup_size(16, 16, 1)
-@workgroup_size(8, 8, 1)
+@workgroup_size(16, 16, 1)
+// @workgroup_size(8, 8, 1)
 //global_invocation_id is equivalent to blockIdx * blockdim + threadIdx
 fn main(@builtin(global_invocation_id) globalIdx: vec3u){
 // ------------------------------------
@@ -45,7 +45,7 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u){
 //     - Store the computed bounding box (AABB) for the cluster.
 
 // Basic setup
-//The grid size is 16 X 16 X 64
+//The grid size is 16 X 16 X 32
 let gridSize = vec3f(cameraUniforms.clusterX, cameraUniforms.clusterY, cameraUniforms.clusterZ);
 let tileIdx = globalIdx.x + (globalIdx.y * u32(gridSize.x)) + (globalIdx.z * u32(gridSize.x) * u32(gridSize.y));
 
