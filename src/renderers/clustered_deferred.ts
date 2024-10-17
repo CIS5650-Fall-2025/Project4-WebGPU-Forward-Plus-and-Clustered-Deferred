@@ -36,7 +36,7 @@ class GBuffer {
             label: "depth texture",
             size: {width: renderer.canvas.width, height: renderer.canvas.height},
             format: "depth24plus",
-            usage: GPUTextureUsage.RENDER_ATTACHMENT
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         });
         this.depthTextureView = this.depthTexture.createView();
 
@@ -219,6 +219,21 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     
     deferredPipelineLayout: GPUPipelineLayout;
     deferredPipeline: GPURenderPipeline;
+
+    renderedTexture: GPUTexture;
+    renderedTextureView: GPUTextureView;
+
+    postprocessedTexture: GPUTexture;
+    postprocessedTextureView: GPUTextureView;
+
+    postprocessingBindGroupLayout: GPUBindGroupLayout;
+    postprocessingBindGroup: GPUBindGroup;
+    postprocessingPipeline: GPUComputePipeline;
+
+    finalBindGroupLayout: GPUBindGroupLayout;
+    finalBindGroup: GPUBindGroup;
+    finalPipelineLayout: GPUPipelineLayout;
+    finalPipeline: GPURenderPipeline;
 
     constructor(stage: Stage) {
         super(stage);
@@ -411,6 +426,126 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 stripIndexFormat: "uint32"
             }
         });
+        
+        this.renderedTexture = device.createTexture({
+            size: {width: renderer.canvas.width, height: renderer.canvas.height},
+            format: renderer.canvasFormat,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+        });
+        this.renderedTextureView = this.renderedTexture.createView();
+
+        this.postprocessedTexture = device.createTexture({
+            size: {width: renderer.canvas.width, height: renderer.canvas.height},
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.postprocessedTextureView = this.postprocessedTexture.createView();
+
+        this.postprocessingBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                { 
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    texture: { 
+                        viewDimension: "2d", 
+                        sampleType: "float"
+                    }
+                },
+                { 
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE, 
+                    texture: {
+                        viewDimension: "2d", 
+                        sampleType: "depth" 
+                    }
+                },
+                { 
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE, 
+                    storageTexture: { 
+                        access: "write-only", 
+                        format: "rgba8unorm"
+                    }
+                }
+            ]
+        });
+        
+        this.postprocessingBindGroup = device.createBindGroup({
+            label: "postprocessing bind group",
+            layout: this.postprocessingBindGroupLayout,
+            entries: [
+                { 
+                    binding: 0, 
+                    resource: this.renderedTextureView
+                },
+                {
+                    binding: 1, 
+                    resource: this.gbuffer.depthTextureView
+                },
+                { 
+                    binding: 2, 
+                    resource: this.postprocessedTextureView 
+                }
+            ]
+        });
+
+        this.postprocessingPipeline = device.createComputePipeline({
+            label: "postprocessing pipeline",
+            layout: device.createPipelineLayout({
+                bindGroupLayouts: [this.postprocessingBindGroupLayout]
+            }),
+            compute: {
+                module: device.createShaderModule({
+                    label: "postprocessing compute shader",
+                    code: shaders.postprocessingComputeSrc
+                })
+            }
+        });
+
+        this.finalBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "2d", sampleType: "float" } },
+                { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: {} }
+            ]
+        });
+        
+        this.finalBindGroup = device.createBindGroup({
+            layout: this.finalBindGroupLayout,
+            entries: [
+                { 
+                    binding: 0, 
+                    resource: this.postprocessedTextureView 
+                },
+                { 
+                    binding: 1, 
+                    resource: device.createSampler({}) 
+                }
+            ]
+        });
+        
+        this.finalPipelineLayout = device.createPipelineLayout({
+            bindGroupLayouts: [this.finalBindGroupLayout]
+        });
+        
+        this.finalPipeline = device.createRenderPipeline({
+            layout: this.finalPipelineLayout,
+            vertex: {
+                module: device.createShaderModule({ code: shaders.clusteredDeferredFullscreenVertSrc }),
+                entryPoint: 'main',
+                buffers: [this.fullscreenQuadVertexBufferLayout]
+            },
+            fragment: {
+                module: device.createShaderModule({ code: shaders.finalFragSrc }),
+                entryPoint: 'main',
+                targets: [
+                    { format: renderer.canvasFormat }
+                ]
+            },
+            primitive: {
+                topology: 'triangle-strip',
+                stripIndexFormat: 'uint32'
+            }
+        });
     }
 
     override draw() {
@@ -429,21 +564,45 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             label: "deferred pass",
             colorAttachments: [
                 {
-                    view: renderer.context.getCurrentTexture().createView(),
+                    view: this.doToonShading ? this.renderedTextureView : renderer.context.getCurrentTexture().createView(),
                     loadOp: "clear",
                     storeOp: "store",
                     clearValue: [0, 0, 0, 1]
                 }
             ]
         });
-
         deferredPass.setVertexBuffer(0, this.fullscreenQuadVertexBuffer);
         deferredPass.setPipeline(this.deferredPipeline);
         deferredPass.setBindGroup(0, this.deferredBindGroup);
-
         deferredPass.draw(4, 1, 0, 0);
-
         deferredPass.end();
+
+        const computePass = encoder.beginComputePass();
+        computePass.setPipeline(this.postprocessingPipeline);
+        computePass.setBindGroup(0, this.postprocessingBindGroup);
+        const workGroupSize = 8;
+        const numWorkgroupsX = Math.ceil(renderer.canvas.width / workGroupSize);
+        const numWorkgroupsY = Math.ceil(renderer.canvas.height / workGroupSize);
+        computePass.dispatchWorkgroups(numWorkgroupsX, numWorkgroupsY);
+        computePass.end();
+
+        if (this.doToonShading) {
+            const finalPass = encoder.beginRenderPass({
+                colorAttachments: [
+                    {
+                        view: renderer.context.getCurrentTexture().createView(),
+                        loadOp: 'clear',
+                        storeOp: 'store',
+                        clearValue: [0.0, 0.0, 0.0, 1.0]
+                    }
+                ]
+            });
+            finalPass.setPipeline(this.finalPipeline);
+            finalPass.setBindGroup(0, this.finalBindGroup);
+            finalPass.setVertexBuffer(0, this.fullscreenQuadVertexBuffer);
+            finalPass.draw(4, 1, 0, 0);
+            finalPass.end();
+        }
 
         device.queue.submit([encoder.finish()]);
     }

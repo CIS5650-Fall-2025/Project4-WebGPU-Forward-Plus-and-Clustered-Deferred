@@ -111,6 +111,8 @@ export abstract class Renderer {
     private prevTime: number = 0;
     private frameRequestId: number;
 
+    protected doToonShading: boolean = false;
+
     constructor(stage: Stage) {
         this.scene = stage.scene;
         this.lights = stage.lights;
@@ -127,7 +129,7 @@ export abstract class Renderer {
     protected abstract draw(): void;
 
     // CHECKITOUT: this is the main rendering loop
-    private onFrame(time: number) {
+    private async onFrame(time: number) {
         if (this.prevTime == 0) {
             this.prevTime = time;
         }
@@ -138,11 +140,15 @@ export abstract class Renderer {
 
         this.stats.begin();
 
-        this.draw();
+        await this.draw();
 
         this.stats.end();
 
         this.prevTime = time;
         this.frameRequestId = requestAnimationFrame((t) => this.onFrame(t));
+    }
+
+    public setToonShading(value: boolean) {
+        this.doToonShading = value;
     }
 }

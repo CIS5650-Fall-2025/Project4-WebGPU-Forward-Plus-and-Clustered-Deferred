@@ -50,7 +50,35 @@ function setRenderer(mode: string) {
 }
 
 const renderModes = { naive: 'naive', forwardPlus: 'forward+', clusteredDeferred: 'clustered deferred' };
-let renderModeController = gui.add({ mode: renderModes.naive }, 'mode', renderModes);
+let renderModeController = gui.add({ mode: renderModes.clusteredDeferred }, 'mode', renderModes);
 renderModeController.onChange(setRenderer);
+
+let toonShadingEnabled = { enabled: false };
+let toonShadingController: dat.GUIController | undefined;
+
+function updateToonShadingController(mode: string) {
+    if (mode === renderModes.clusteredDeferred) {
+        if (!toonShadingController) {
+            toonShadingController = gui.add(toonShadingEnabled, 'enabled').name('Toon Shading');
+            toonShadingController.onChange((value: boolean) => {
+                if (renderer) {
+                    renderer.setToonShading(value);
+                }
+            });
+        }
+    } else {
+        if (toonShadingController) {
+            gui.remove(toonShadingController);
+            toonShadingController = undefined;
+        }
+    }
+}
+
+renderModeController.onChange((mode: string) => {
+    setRenderer(mode);
+    updateToonShadingController(mode);
+});
+
+updateToonShadingController(renderModeController.getValue());
 
 setRenderer(renderModeController.getValue());
