@@ -44,15 +44,19 @@ export async function initWebGPU() {
     }
 
     canTimestamp = adapter.features.has('timestamp-query');
+    const hasBGRA8unormStorage = adapter.features.has('bgra8unorm-storage');
     device = await adapter.requestDevice({
-        requiredFeatures: (canTimestamp ? ['timestamp-query'] : []),
+        requiredFeatures: (canTimestamp ? 
+                            (hasBGRA8unormStorage ? ['timestamp-query', 'bgra8unorm-storage'] : ['timestamp-query']) : 
+                            (hasBGRA8unormStorage ? ['bgra8unorm-storage'] : [])),
     });
 
     context = canvas.getContext("webgpu")!;
-    canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+    canvasFormat = hasBGRA8unormStorage ? navigator.gpu.getPreferredCanvasFormat() : 'bgra8unorm';
     context.configure({
         device: device,
         format: canvasFormat,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
     });
 
     console.log("WebGPU init successsful");
