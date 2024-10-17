@@ -61,8 +61,8 @@ export class Camera {
     moveSpeed: number = 0.004;
     sensitivity: number = 0.15;
     clusterX: number = 16.0;
-    clusterY: number = 16.0;
-    clusterZ: number = 32.0;
+    clusterY: number = 9.0;
+    clusterZ: number = 24.0;
 
     static readonly nearPlane = 0.1;
     static readonly farPlane = 1000;
@@ -180,8 +180,8 @@ export class Camera {
         this.uniforms.zNear = Camera.nearPlane;
         this.uniforms.zFar = Camera.farPlane;
         this.uniforms.clusterX = this.clusterX;//16
-        this.uniforms.clusterY = this.clusterY;//16
-        this.uniforms.clusterZ = this.clusterZ;//32
+        this.uniforms.clusterY = this.clusterY;//9
+        this.uniforms.clusterZ = this.clusterZ;//24
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`

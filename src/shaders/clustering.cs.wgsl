@@ -31,7 +31,8 @@ fn sphereIntersectsAABB(center: vec3f, radius: f32, aabbMin: vec3f, aabbMax: vec
 @compute
 //CUDA block size. Specify the size in the shader.
 //maxComputeInvocationsPerWorkgroup = 256
-@workgroup_size(16, 16, 1)
+// @workgroup_size(16, 16, 1)
+@workgroup_size(${clusterWorkgroupSize})
 //global_invocation_id is equivalent to blockIdx * blockdim + threadIdx
 fn main(@builtin(global_invocation_id) globalIdx: vec3u){
 // ------------------------------------
@@ -45,6 +46,11 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u){
 
 // Basic setup
 //The grid size is 16 X 16 X 32
+//The cluster size is 16 X 9 x 24 as in tutorial
+if(globalIdx.x >= u32(cameraUniforms.clusterX) || globalIdx.y >= u32(cameraUniforms.clusterY) || globalIdx.z >= u32(cameraUniforms.clusterZ)) {
+    return;
+}
+
 let gridSize = vec3f(cameraUniforms.clusterX, cameraUniforms.clusterY, cameraUniforms.clusterZ);
 let tileIdx = globalIdx.x + (globalIdx.y * u32(gridSize.x)) + (globalIdx.z * u32(gridSize.x) * u32(gridSize.y));
 
@@ -55,7 +61,7 @@ let screenHeight = cameraUniforms.screenHeight;
 let viewProjMat = cameraUniforms.viewProjMat;
 
 // Calculate the cluster's screen-space bounds in 2D (XY).
-let tileSize = vec2f(screenWidth / f32(gridSize.x), screenHeight / f32(gridSize.y));
+let tileSize = vec2f(screenWidth / gridSize.x, screenHeight / gridSize.y);
 // Get current thread index 
 let tileIdxX = globalIdx.x;
 let tileIdxY = globalIdx.y;

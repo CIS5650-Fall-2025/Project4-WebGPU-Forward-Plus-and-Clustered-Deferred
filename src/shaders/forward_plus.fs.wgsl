@@ -67,15 +67,18 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     // The grid size is 16 X 16 X 16
     let gridSize = vec3f(cameraUniforms.clusterX, cameraUniforms.clusterY, cameraUniforms.clusterZ);
     let tileSize = vec2f(cameraUniforms.screenWidth / f32(gridSize.x), cameraUniforms.screenHeight / f32(gridSize.y));
-    let tileIdxX = u32(fragCoordXY.x * 15.0); // 0-15 for 16 tiles
-    let tileIdxY = u32(fragCoordXY.y * 15.0); // 0-15 for 16 tiles
-    let depthSlice = u32((log2(abs(fragCoordZ) / cameraUniforms.zNear)* f32(gridSize.z)) / log2(cameraUniforms.zFar / cameraUniforms.zNear));
+    // let tileIdxX = u32(fragCoordXY.x * 15.0); // 0-15 for 16 tiles
+    // let tileIdxY = u32(fragCoordXY.y * 15.0); // 0-15 for 16 tiles
 
-    let clusterIdx = tileIdxX + (tileIdxY * u32(gridSize.x)) + (depthSlice * u32(gridSize.x) * u32(gridSize.y));
+    let depthSlice = u32((log2(abs(fragCoordZ) / cameraUniforms.zNear)* f32(gridSize.z)) / log2(cameraUniforms.zFar / cameraUniforms.zNear));
+    var tileIdx: vec3<u32> = vec3<u32>(vec2<u32>(fragCoordXY / tileSize),u32(depthSlice));
+    let clusterIdx = tileIdx.x + (tileIdx.y * u32(gridSize.x)) + (tileIdx.z * u32(gridSize.x) * u32(gridSize.y));
+
+    // let clusterIdx = tileIdxX + (tileIdxY * u32(gridSize.x)) + (depthSlice * u32(gridSize.x) * u32(gridSize.y));
 
     // Step 2: Retrieve the lights for this cluster
-    let cluster = clusterSet.clusters[4000];// I did able to get all the cluster but the idex seems to be incorrect
-    // let cluster = clusterSet.clusters[clusterIdx];
+    // let cluster = clusterSet.clusters[4000];// I did able to get all the cluster but the idex seems to be incorrect
+    let cluster = clusterSet.clusters[clusterIdx];
     var totalLightContrib = vec3f(0.0, 0.0, 0.0);
 
     // Step 3: Accumulate light contributions from lights affecting this fragment's cluster
