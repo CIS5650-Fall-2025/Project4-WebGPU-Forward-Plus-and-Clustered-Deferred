@@ -17,7 +17,7 @@ export class Lights {
     static readonly maxNumLights = 5000;
     static readonly numFloatsPerLight = 8; // vec3f is aligned at 16 byte boundaries
 
-    static readonly lightIntensity = 0.1;
+    static readonly lightIntensity = 0.25;
 
     lightsArray = new Float32Array(Lights.maxNumLights * Lights.numFloatsPerLight);
     lightSetStorageBuffer: GPUBuffer;
@@ -28,8 +28,6 @@ export class Lights {
     moveLightsComputeBindGroup: GPUBindGroup;
     moveLightsComputePipeline: GPUComputePipeline;
 
-    // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
-
     // create clusters array and buffer
     numClusters = shaders.constants.tileNumberX * shaders.constants.tileNumberY * shaders.constants.tileNumberZ;
     numFloatsPerCluster = shaders.constants.maxLightsNumPerCluster + 8;
@@ -37,6 +35,7 @@ export class Lights {
 
     clusterSetBuffer: GPUBuffer;
 
+    // light clustering
     lightClusteringBindGroupLayout: GPUBindGroupLayout;
     lightClusteringBindGroup: GPUBindGroup;
     lightClusteringPipeline: GPUComputePipeline;
@@ -104,9 +103,6 @@ export class Lights {
             }
         });
 
-        // TODO-2: initialize layouts, pipelines, textures, etc. needed for light clustering here
-        console.log(this.numClusters);
-
         // create buffer to store clusters set
         this.clusterSetBuffer = device.createBuffer({
             label: "clusters set",
@@ -163,6 +159,7 @@ export class Lights {
             ]
         });
 
+        // create light clustering pipeline
         this.lightClusteringPipeline = device.createComputePipeline({
             label: "light clustering compute pipeline",
             layout: device.createPipelineLayout({
@@ -195,7 +192,6 @@ export class Lights {
     }
 
     doLightClustering(encoder: GPUCommandEncoder) {
-        // TODO-2: run the light clustering compute pass(es) here
         // implementing clustering here allows for reusing the code in both Forward+ and Clustered Deferred
 
         const computePass = encoder.beginComputePass();
@@ -205,8 +201,8 @@ export class Lights {
         computePass.setBindGroup(0, this.lightClusteringBindGroup);
 
         computePass.dispatchWorkgroups(Math.ceil(shaders.constants.tileNumberX / 8), 
-                                       Math.ceil(shaders.constants.tileNumberY / 8), 
-                                       Math.ceil(shaders.constants.tileNumberZ / 4));
+                                       Math.ceil(shaders.constants.tileNumberY / 4), 
+                                       Math.ceil(shaders.constants.tileNumberZ / 8));
 
         computePass.end();
     }

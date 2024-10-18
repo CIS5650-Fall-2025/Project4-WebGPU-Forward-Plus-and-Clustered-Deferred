@@ -31,10 +31,10 @@ export const constants = {
     moveLightsWorkgroupSize: 128,
 
     tileNumberX: 16,
-    tileNumberY: 16,
+    tileNumberY: 8,
     tileNumberZ: 16,
     lightRadius: 2,
-    maxLightsNumPerCluster: 1024
+    maxLightsNumPerCluster: 256
 };
 
 // =================================

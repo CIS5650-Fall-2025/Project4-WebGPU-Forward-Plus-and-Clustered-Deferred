@@ -3,12 +3,11 @@ import * as shaders from '../shaders/shaders';
 import { Stage } from '../stage/stage';
 
 export class ClusteredDeferredRenderer extends renderer.Renderer {
-    // TODO-3: add layouts, pipelines, textures, etc. needed for Forward+ here
-    // you may need extra uniforms such as the camera view matrix and the canvas resolution
     
     sceneUniformsBindGroupLayout: GPUBindGroupLayout;
     sceneUniformsBindGroup: GPUBindGroup;
 
+    // G-buffer
     gBufferTextures: {
         albeto: GPUTexture;
         normal: GPUTexture;
@@ -29,9 +28,6 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
 
     constructor(stage: Stage) {
         super(stage);
-
-        // TODO-3: initialize layouts, pipelines, textures, etc. needed for Forward+ here
-        // you'll need two pipelines: one for the G-buffer pass and one for the fullscreen pass
 
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "scene uniforms bind group layout",
@@ -226,15 +222,16 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     }
 
     override draw() {
-        // TODO-3: run the Forward+ rendering pass:
         // - run the clustering compute shader
         // - run the G-buffer pass, outputting position, albedo, and normals
         // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
 
         const encoder = renderer.device.createCommandEncoder();
 
+        // light clustering pass
         this.lights.doLightClustering(encoder);
 
+        // G-buffer pass
         const forwardPass = encoder.beginRenderPass({
             label: "forward pass render pass",
             colorAttachments: [
@@ -274,6 +271,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         });
         forwardPass.end();
 
+        // fullscreen pass
         const deferredPass = encoder.beginRenderPass({
             label: "deferred pass render pass",
             colorAttachments: [{

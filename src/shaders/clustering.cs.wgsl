@@ -1,5 +1,3 @@
-// TODO-2: implement the light clustering compute shader
-
 // ------------------------------------
 // Calculating cluster bounds:
 // ------------------------------------
@@ -27,7 +25,7 @@
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
 @compute
-@workgroup_size(8, 8, 4)
+@workgroup_size(8, 4, 8)
 fn main(@builtin(global_invocation_id) workgroupID: vec3u) 
 {
     // tile index and cluster index
@@ -91,17 +89,6 @@ fn main(@builtin(global_invocation_id) workgroupID: vec3u)
         // light pos in camera
         let lightPosView = cameraUniforms.viewMat * vec4(light.pos, 1.0);
 
-        // // check intersect
-        // if (sphereIntersectionTest(lightPosView.xyz, ${lightRadius}, minPos, maxPos)) {
-        //     // add to cluster light index array
-        //     clusterSet.clusters[clusterIdx].lightInx[lightCount] = lightIdx;
-        //     lightCount++;
-        //     if (lightCount == ${maxLightsNumPerCluster}) {
-        //         // reach maximum lights number
-        //         break;
-        //     }
-        // }
-
         // find closest point on bbox
         let closestP = clamp(lightPosView.xyz, minPos, maxPos);
         let dis_squ = dot(closestP - lightPosView.xyz, closestP - lightPosView.xyz);
@@ -120,17 +107,4 @@ fn main(@builtin(global_invocation_id) workgroupID: vec3u)
 
     // set lights number
     clusterSet.clusters[clusterIdx].numLights = u32(lightCount);
-}
-
-fn sphereIntersectionTest(oriPos: vec3f, radius: f32, clusterBBoxMinPos: vec3f, clusterBBoxMaxPos: vec3f) -> bool
-{
-    let spherBBoxMinPos = oriPos - vec3f(radius, radius, radius);
-    let spherBBoxMaxPos = oriPos + vec3f(radius, radius, radius);
-
-    for (var i = 0u; i < 3u; i++) {
-        if (spherBBoxMinPos[i] > clusterBBoxMaxPos[i] || spherBBoxMaxPos[i] < clusterBBoxMinPos[i]) {
-            return false;
-        }
-    }
-    return true;
 }
