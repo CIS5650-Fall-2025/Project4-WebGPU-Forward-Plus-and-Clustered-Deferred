@@ -1,4 +1,4 @@
-WebGL Forward+ and Clustered Deferred Shading
+WebGPU Forward Clustered and Clustered Deferred Shading
 ======================
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
@@ -29,3 +29,14 @@ WebGL Forward+ and Clustered Deferred Shading
 - [dat.GUI](https://github.com/dataarts/dat.gui)
 - [stats.js](https://github.com/mrdoob/stats.js)
 - [wgpu-matrix](https://github.com/greggman/wgpu-matrix)
+
+* code reference
+- WebGPU API: detail about the function parameters and return types of [createSampler()](https://developer.mozilla.org/en-US/docs/Web/API/GPUDevice/createSampler)
+- WGSL: [Depth Texture Types](https://www.w3.org/TR/WGSL/#texture-depth)
+- Nividia CG Tutorial: gets really confusing while transforming among multiple spaces in shaders code, good to reference before starting writing [Coordinate Systems](https://developer.download.nvidia.com/CgTutorial/cg_tutorial_chapter04.html)
+- use as a reference for computing shader: https://github.com/toji/webgpu-clustered-shading/blob/main/js/webgpu-renderer/shaders/clustered-compute.js
+  ```
+    clusters.bounds[tileIndex].minAABB = min(min(minPointNear, minPointFar),min(maxPointNear, maxPointFar));
+    clusters.bounds[tileIndex].maxAABB = max(max(minPointNear, minPointFar),max(maxPointNear, maxPointFar));
+  ```
+
