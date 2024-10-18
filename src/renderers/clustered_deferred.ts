@@ -46,21 +46,21 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         // TODO-3: initialize layouts, pipelines, textures, etc. needed for Forward+ here
         // you'll need two pipelines: one for the G-buffer pass and one for the fullscreen pass
         
-        // Create texture for each G-buffer attribute
+        // G-buffer: Create texture for each attribute
         //normal
         this.normalTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba16float",
+            format: "rgba16float", // 16-bit float for normals (for better precision)
             usage: GPUTextureUsage.RENDER_ATTACHMENT| GPUTextureUsage.TEXTURE_BINDING
         });
         this.normalTextureView = this.normalTexture.createView({label: "normal texture view"});
-        console.log("Normal texture view: ", this.normalTextureView);
-        console.log("Normal texture size:", renderer.canvas.width, renderer.canvas.height);
+        // console.log("Normal texture view: ", this.normalTextureView);
+        // console.log("Normal texture size:", renderer.canvas.width, renderer.canvas.height);
 
         //albedo
         this.albedoTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba8unorm",
+            format: "rgba8unorm", // 8-bit normalized for colors (works)
             usage: GPUTextureUsage.RENDER_ATTACHMENT| GPUTextureUsage.TEXTURE_BINDING
         });
         this.albedoTextureView = this.albedoTexture.createView({label: "albedo texture view"});
@@ -68,12 +68,12 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         //position
         this.positionTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba16float",
+            format: "rgba16float", // 16-bit float for positions (for better precision)
             usage: GPUTextureUsage.RENDER_ATTACHMENT| GPUTextureUsage.TEXTURE_BINDING
         });
         this.positionTextureView = this.positionTexture.createView({label: "position texture view"});
 
-        // Create bind group layout
+
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "Deferred: scene uniforms bind group layout",
             entries: [
@@ -100,11 +100,11 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             label: "Deferred: scene uniforms bind group",
             layout: this.sceneUniformsBindGroupLayout,
             entries: [
-                {
+                {//camera uniforms
                     binding: 0,
                     resource: { buffer: this.camera.uniformsBuffer }
                 },
-                {
+                {//lightset
                     binding: 1,
                     resource: { buffer: this.lights.lightSetStorageBuffer }
                 },
@@ -115,7 +115,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             ]
         });
 
-        // G-buffer bind group layout
+        // G-buffer: Create bind group
         this.gbufferBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "G-buffer bind group layout",
             entries: [
@@ -165,6 +165,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             ]
         });
 
+        // G-buffer: Create pipeline
         this.gbufferPipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
                 label: "G-buffer pipeline layout",
@@ -205,12 +206,13 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             }
         });
         
-
+        // Fullscreen: Create pipeline
         this.fullscreenPipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
                 label: "Fullscreen pipeline layout",
                 bindGroupLayouts: [
                     this.sceneUniformsBindGroupLayout,
+                    // vertex info from G-buffer
                     this.gbufferBindGroupLayout
                 ]
             }),
@@ -241,22 +243,15 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     }
 
     override draw() {
-        // console.log("renderer.canvas.width: ",renderer.canvas.width);
-        // console.log("Normal texture view: ", this.normalTextureView);
-        // console.log("Albedo texture view: ", this.albedoTextureView);
-        // console.log("Position texture view: ", this.positionTextureView);
-        // console.log("Scene uniforms bind group: ", this.sceneUniformsBindGroup);
-
         // TODO-3: run the Forward+ rendering pass:
+
         // - run the clustering compute shader
-        // - run the G-buffer pass, outputting position, albedo, and normals
-        // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
         const computeEncoder = renderer.device.createCommandEncoder({label: "Forward+ compute pass encoder created"});  
         this.lights.doLightClustering(computeEncoder); 
         renderer.device.queue.submit([computeEncoder.finish()]);  
 
-        // - run the main rendering pass, using the computed clusters for efficient lighting
         const renderEncoder = renderer.device.createCommandEncoder();
+        // - run the G-buffer pass, outputting position, albedo, and normals
         const gbufferPass = renderEncoder.beginRenderPass({
             label: "G-buffer pass",
             colorAttachments: [
@@ -304,6 +299,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
 
         gbufferPass.end();
 
+        // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
         const fullscreenPass = renderEncoder.beginRenderPass({
             label: "full screen render pass",
@@ -324,10 +320,11 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         });
         fullscreenPass.setPipeline(this.fullscreenPipeline);
 
-        // // group 0
+        // Bind group 0
         fullscreenPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+        // Bind group 1
         fullscreenPass.setBindGroup(1, this.gbufferBindGroup);
-        fullscreenPass.draw(6);
+        fullscreenPass.draw(3,1,0,0); // 3 vertices, 1 instance, 0 vertex offset, 0 instance offset
         fullscreenPass.end();
 
         renderer.device.queue.submit([renderEncoder.finish()]);

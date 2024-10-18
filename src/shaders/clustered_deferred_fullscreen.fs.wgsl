@@ -20,9 +20,10 @@ struct FragmentInput
 @fragment
 fn main(in: FragmentInput) -> @location(0) vec4f
 {
+    // The UVs are flipped somehow
     let flippedUV = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
 
-    let normal = textureSample(normalTex, bufferSampler, flippedUV);
+    let normal = textureSample(normalTex, bufferSampler, flippedUV); // texture, sampler, uvcoord
     let albedo = textureSample(albedoTex, bufferSampler, flippedUV);
     let position = textureSample(positionTex, bufferSampler, flippedUV);
 
@@ -32,7 +33,7 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let fragCoordZ = viewSpacePos.z;
     var fragCoordXY = in.fragPos.xy;
 
-    // The grid size is 16 X 16 X 16
+    // The grid size is 16 X 9 X 24
     let gridSize = vec3f(cameraUniforms.clusterX, cameraUniforms.clusterY, cameraUniforms.clusterZ);
     let tileSize = vec2f(cameraUniforms.screenWidth / f32(gridSize.x), cameraUniforms.screenHeight / f32(gridSize.y));
 

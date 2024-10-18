@@ -21,7 +21,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         super(stage);
         
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
-            label: "forward: scene uniforms bind group layout",
+            label: "Forward+: scene uniforms bind group layout",
             entries: [
                 {// camera uniforms
                     binding: 0,
@@ -43,7 +43,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         });
 
         this.sceneUniformsBindGroup = renderer.device.createBindGroup({
-            label: "forward: scene uniforms bind group",
+            label: "Forward+: scene uniforms bind group",
             layout: this.sceneUniformsBindGroupLayout,
             entries: [
                 {
@@ -70,7 +70,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
         this.pipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
-                label: "forward: naive pipeline layout",
+                label: "Forward+: pipeline layout",
                 bindGroupLayouts: [
                     this.sceneUniformsBindGroupLayout,
                     renderer.modelBindGroupLayout,
@@ -84,14 +84,14 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             },
             vertex: {
                 module: renderer.device.createShaderModule({
-                    label: "forward: naive vert shader",
+                    label: "Forward+: use naive vert shader",
                     code: shaders.naiveVertSrc
                 }),
                 buffers: [ renderer.vertexBufferLayout ]
             },
             fragment: {
                 module: renderer.device.createShaderModule({
-                    label: "forward: naive frag shader",
+                    label: "Forward+: frag shader",
                     code: shaders.forwardPlusFragSrc,
                 }),
                 targets: [
@@ -116,7 +116,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         const renderEncoder = renderer.device.createCommandEncoder();
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
         const renderPass = renderEncoder.beginRenderPass({
-            label: "naive render pass",
+            label: "Forward+ render pass",
             colorAttachments: [
                 {
                     view: canvasTextureView,
