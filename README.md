@@ -8,7 +8,7 @@ WebGPU Forward+ and Clustered Deferred Shading
   *  [Personal Website](https://jichu.art/)
 * Tested on: Windows 11,  i7-13700K @ 3.40 GHz, 32GB, RTX 4090 24GB
 
-### Live Demo
+### <a name="p1">Live Demo</a>
 [https://jichumao.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/](https://jichumao.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
 ### Demo GIF
@@ -17,14 +17,14 @@ WebGPU Forward+ and Clustered Deferred Shading
 | ![](./img/f2.png)         |
 
 ## Table of Contents
-* Demo
-* Introduction
-  * Forward Shading(Naïve)
-  * Clustered Forward Shading(*Forward+)
-  * Clustered Deferred Shading
-* Performance Analysis
+* [Demo](#p1)
+* [Introduction](#pi)
+  * [Forward Shading(Naïve)](#p2)
+  * [Clustered Forward Shading(*Forward+)](#p3)
+  * [Clustered Deferred Shading](#p4)
+* [Performance Analysis](#p5)
 
-## Introduction
+## <a name="pi">Introduction</a>
 
 In this project, I implemented the Forward+ and Clustered Deferred shading methods using WebGPU. The scene features the Sponza Atrium model with a large number of dynamic point lights. The project compares different rendering methods in terms of performance and efficiency, especially in high-resolution settings with thousands of moving lights.
 
@@ -39,7 +39,7 @@ In this project, I implemented the Forward+ and Clustered Deferred shading metho
 
 Users can freely adjust the maximum number of lights. For performance reasons, the default limit is set to 5000, but this can be modified in `shaders.ts` as needed. Similarly, the maximum number of lights per cluster can also be customized in the same file.
 
-## Forward Shading(Naïve) 
+## <a name="p2">Forward Shading(Naïve)</a> 
 
 The main characteristic of Forward Shading is that the fragment shader computes the influence of all lights on each fragment individually. However, not all lights significantly affect every fragment, and many fragment computations are ultimately discarded due to depth testing. As a result, this method introduces substantial computational overhead, which is why it is considered the "naïve" approach.
 
@@ -49,7 +49,7 @@ In a 4K scene with 5000 randomly moving lights, the naïve Forward Shading metho
  |:--:|
  | <img src="./img/4knaive.jpg" > |
 
-## Clustered Forward Shading(Forward+)
+## <a name="p3">Clustered Forward Shading(Forward+)</a> 
 
 Clustered Forward Shading, also known as Forward+, improves upon the naïve approach by dividing the view frustum into a 3D grid of clusters and assigning lights to these clusters based on their spatial influence. During rendering, each fragment shader processes only the lights that affect its corresponding cluster, significantly reducing the number of light calculations per fragment.
 
@@ -57,13 +57,13 @@ Clustered Forward Shading, also known as Forward+, improves upon the naïve appr
 
 1. **Clustering Compute Shader**
 
- A compute shader divides the view frustum into clusters and determines which lights affect each cluster.
-  A key point here is the use of non-linear division along the z-axis (in this project, logarithmic splitting is used). Since lights have a stronger impact on the scene near the camera, using simple "uniform slices" along the z-axis can lead to precision issues, resulting in visual artifacts. Logarithmic division helps achieve denser clustering near the camera, which aligns with practical experience.
+ A [compute shader](https://webgpufundamentals.org/webgpu/lessons/webgpu-compute-shaders.html) divides the view frustum into clusters and determines which lights affect each cluster.
+  A key point here is the use of non-linear division along the z-axis (in this project, logarithmic splitting is used). Since lights have a stronger impact on the scene near the camera, using simple "uniform slices" along the z-axis can lead to precision issues, resulting in visual artifacts. Logarithmic division helps achieve denser clustering near the camera, which aligns with practical experience.(See details [here](https://www.aortiz.me/2018/12/21/CG.html))
 
 2. **Light Assignment**
 
 Lights are assigned to clusters by testing whether they intersect with the cluster boundaries. 
-The critical part here is the intersection test between the light and the AABB (Axis-Aligned Bounding Box) of the cluster. Since clusters in view space are not regular cubes, a more efficient method is needed for intersection testing.
+The critical part here is the intersection test between the light and the [AABB](https://en.wikipedia.org/wiki/Bounding_volume) (Axis-Aligned Bounding Box) of the cluster. Since clusters in view space are not regular cubes, a more efficient method is needed for intersection testing.
 
  Fortunately, clusters in NDC (Normalized Device Coordinates) space are cubes! Thus, I computed the x, y, and z ranges of each cluster in NDC space, and then transformed these back to view space. By finding the maximum and minimum coordinates of the cluster's vertices, I could easily determine the bounding box, which is then tested for intersection with the light's bounding sphere. If the bounding box intersects with the light, it indicates that the light affects this cluster, and the light is added to the cluster's light set.
 
@@ -90,7 +90,7 @@ The fragment shader accesses the list of relevant lights for its cluster, reduci
 
 This method balances performance and visual fidelity, achieving higher frame rates compared to the naïve approach, especially in scenes with a large number of lights. *[Credits for pics](https://www.aortiz.me/2018/12/21/CG.html)*
 
-## Clustered Deferred Shading
+## <a name="p4">Clustered Deferred Shading</a> 
 
 Clustered Deferred Shading further optimizes rendering by decoupling geometry processing from lighting calculations. The rendering pipeline consists of two main passes:
 1. **G-buffer Pass**:
@@ -130,17 +130,13 @@ Before the first stage, just like in Clustered Forward Shading, I pre-assign clu
 The key advantage of this approach is that it significantly reduces the cost of overdraw. In previous methods, many fragments undergo lighting calculations only to fail the depth test. Deferred shading ensures that we only perform shading for the final visible fragments on the screen. This results in another leap in shading efficiency and performance!
 
 
-## Performance Analysis
+## <a name="p5">Performance Analysis</a> 
 
 ### Test Benchmarks
   - Resolution: 3840 * 2560(4K)
   - Number of Lights in the Scene: 128($2^7$) - 4096($2^{12}$)
   - Metrics: Rendering time per frame (in milliseconds), Frames Per Second (FPS)
 
-
-
-
-* [Credits](#references)
 
 ## <a name="references">Credits</a>
 
