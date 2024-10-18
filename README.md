@@ -13,7 +13,7 @@ https://runjiezhao1.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferre
 
 ### Demo Video/GIF
 
-[![](img/cool.mp4)]
+![](img/cool.mp4)
 
 ### Feature
 
