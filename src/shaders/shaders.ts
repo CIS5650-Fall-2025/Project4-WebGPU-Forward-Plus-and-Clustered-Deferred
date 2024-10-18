@@ -24,7 +24,7 @@ import debugComputeRaw from "./debug.cs.wgsl?raw";
 
 import optimizedDeferredFragRaw from "./optimized_deferred.fs.wgsl?raw";
 import optimizedDeferredFullscreenFragRaw from "./optimized_deferred_fullscreen.fs.wgsl?raw";
-
+import optimizedDeferredFullscreenComputeRaw from "./optimized_deferred.cs.wgsl?raw";
 // CONSTANTS (for use in shaders)
 // =================================
 
@@ -80,3 +80,4 @@ export const debugComputeSrc: string = processShaderRaw(debugComputeRaw);
 
 export const optimizedDeferredFragSrc: string = processShaderRaw(optimizedDeferredFragRaw);
 export const optimizedDeferredFullscreenFragSrc: string = processShaderRaw(optimizedDeferredFullscreenFragRaw);
+export const optimizedDeferredFullscreenComputeSrc: string = processShaderRaw(optimizedDeferredFullscreenComputeRaw);

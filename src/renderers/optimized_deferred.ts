@@ -52,7 +52,8 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
     sceneLightsBindGroup: GPUBindGroup;
 
     // full screen compute pass
-    // pipelineFullscreenCompute: GPUComputePipeline;
+    sceneComputeBindGroupLayout: GPUBindGroupLayout;
+    pipelineFullscreenCompute: GPUComputePipeline;
 
     // full screen triangle
     vertexBuffer: GPUBuffer;
@@ -132,19 +133,19 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
             entries: [
                 {
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" },
                 },
                 {
                     // lightSet
                     binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" },
                 },
                 {
                     // unity texture
                     binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    visibility: GPUShaderStage.FRAGMENT,
                     texture: {
                         sampleType: "uint",
                         viewDimension: "2d",
@@ -168,6 +169,43 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
                 {
                     binding: 2,
                     resource: this.unityTextureView,
+                },
+            ],
+        });
+
+        // full screen compute pass bind group
+        this.sceneComputeBindGroupLayout = renderer.device.createBindGroupLayout({
+            label: "scene uniforms bind group layout",
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" },
+                },
+                {
+                    // lightSet
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
+                },
+                {
+                    // unity texture
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    texture: {
+                        sampleType: "uint",
+                        viewDimension: "2d",
+                    },
+                },
+                {
+                    // canvas framebuffer
+                    binding: 3,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "write-only",
+                        format: renderer.canvasFormat,
+                        viewDimension: "2d",
+                    },
                 },
             ],
         });
@@ -511,6 +549,18 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
                 ],
             },
         });
+
+        this.pipelineFullscreenCompute = renderer.device.createComputePipeline({
+            layout: renderer.device.createPipelineLayout({
+                bindGroupLayouts: [this.sceneComputeBindGroupLayout, this.sceneLightsBindGroupLayout],
+            }),
+            compute: {
+                module: renderer.device.createShaderModule({
+                    code: shaders.optimizedDeferredFullscreenComputeSrc,
+                }),
+                entryPoint: "computeMain",
+            },
+        });
     }
 
     override draw() {
@@ -520,6 +570,8 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
         // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
         const encoder = renderer.device.createCommandEncoder();
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
+
+        // const canvasTextureView = this.canvasTextureView;
 
         // geometry pass
         const renderPassGeometry = encoder.beginRenderPass({
@@ -586,25 +638,57 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
         lightCullPass.end();
 
         // render pass
-        const renderPass = encoder.beginRenderPass({
-            label: "optimized deferred render pass",
-            colorAttachments: [
+        // const renderPass = encoder.beginRenderPass({
+        //     label: "optimized deferred render pass",
+        //     colorAttachments: [
+        //         {
+        //             view: canvasTextureView,
+        //             clearValue: [0, 0, 0, 0],
+        //             loadOp: "clear",
+        //             storeOp: "store",
+        //         },
+        //     ],
+        // });
+
+        // renderPass.setPipeline(this.pipeline);
+        // renderPass.setBindGroup(0, this.sceneGbufferBindGroup);
+        // renderPass.setBindGroup(1, this.sceneLightsBindGroup);
+        // renderPass.setVertexBuffer(0, this.vertexBuffer);
+        // renderPass.draw(3);
+        // renderPass.end();
+
+        // full screen compute pass
+        const computePass = encoder.beginComputePass();
+        computePass.setPipeline(this.pipelineFullscreenCompute);
+        const sceneComputeBindGroup = renderer.device.createBindGroup({
+            layout: this.sceneComputeBindGroupLayout,
+            entries: [
                 {
-                    view: canvasTextureView,
-                    clearValue: [0, 0, 0, 0],
-                    loadOp: "clear",
-                    storeOp: "store",
+                    binding: 0,
+                    resource: { buffer: this.camera.uniformsBuffer },
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.lights.lightSetStorageBuffer },
+                },
+                {
+                    binding: 2,
+                    resource: this.unityTextureView,
+                },
+                {
+                    binding: 3,
+                    resource: canvasTextureView,
                 },
             ],
         });
-
-        renderPass.setPipeline(this.pipeline);
-        renderPass.setBindGroup(0, this.sceneGbufferBindGroup);
-        renderPass.setBindGroup(1, this.sceneLightsBindGroup);
-        renderPass.setVertexBuffer(0, this.vertexBuffer);
-        renderPass.draw(3);
-        renderPass.end();
-
+        computePass.setBindGroup(0, sceneComputeBindGroup);
+        computePass.setBindGroup(1, this.sceneLightsBindGroup);
+        computePass.dispatchWorkgroups(
+            Math.ceil(renderer.canvas.width / shaders.constants.lightCullBlockSize),
+            Math.ceil(renderer.canvas.height / shaders.constants.lightCullBlockSize),
+            1
+        );
+        computePass.end();
         renderer.device.queue.submit([encoder.finish()]);
     }
 }

@@ -27,8 +27,7 @@ export async function initWebGPU() {
 
     if (!navigator.gpu) {
         let errorMessageElement = document.createElement("h1");
-        errorMessageElement.textContent =
-            "This browser doesn't support WebGPU! Try using Google Chrome.";
+        errorMessageElement.textContent = "This browser doesn't support WebGPU! Try using Google Chrome.";
         errorMessageElement.style.paddingLeft = "0.4em";
         document.body.innerHTML = "";
         document.body.appendChild(errorMessageElement);
@@ -40,13 +39,20 @@ export async function initWebGPU() {
         throw new Error("no appropriate GPUAdapter found");
     }
 
-    device = await adapter.requestDevice();
+    // device = await adapter.requestDevice();
 
     context = canvas.getContext("webgpu")!;
-    canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+    // canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+
+    canvasFormat = adapter.features.has("bgra8unorm-storage") ? navigator.gpu.getPreferredCanvasFormat() : "rgba8unorm";
+    device = await adapter?.requestDevice({
+        requiredFeatures: canvasFormat === "bgra8unorm" ? ["bgra8unorm-storage"] : [],
+    });
+
     context.configure({
         device: device,
         format: canvasFormat,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.STORAGE_BINDING,
     });
 
     console.log("WebGPU init successsful");
