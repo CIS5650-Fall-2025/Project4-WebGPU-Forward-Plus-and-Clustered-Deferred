@@ -36,7 +36,7 @@ export const constants = {
     numClustersX: 16,
     numClustersY: 9,
     numClustersZ: 24,
-    maxLightsPerCluster: 100,
+    maxLightsPerCluster: 512,
 
     workgroupSizeX: 4,
     workgroupSizeY: 4,

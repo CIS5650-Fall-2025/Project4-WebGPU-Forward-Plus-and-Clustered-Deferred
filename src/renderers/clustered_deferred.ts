@@ -42,6 +42,10 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         const canvasWidth = renderer.canvas.width;
         const canvasHeight = renderer.canvas.height;
 
+        if (canvasWidth === 0 || canvasHeight === 0) {
+            console.error('Canvas dimensions are zero. Ensure the canvas is properly initialized.');
+        }
+
         // Position texture
         this.positionTexture = renderer.device.createTexture({
             size: [canvasWidth, canvasHeight],
@@ -253,11 +257,6 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     { format: renderer.canvasFormat },
                 ],
             },
-            depthStencil: {
-                depthWriteEnabled: false,
-                depthCompare: 'always',
-                format: 'depth24plus',
-            },
         });
     }
 
@@ -331,12 +330,6 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     clearValue: [0, 0, 0, 1],
                 },
             ],
-            depthStencilAttachment: {
-                view: this.depthTextureView,
-                depthLoadOp: 'clear',
-                depthStoreOp: 'store',
-                depthClearValue: 1.0,
-            },
         });
 
         // Set up the fullscreen pipeline and bind groups
