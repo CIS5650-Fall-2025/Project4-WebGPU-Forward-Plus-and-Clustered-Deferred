@@ -3,7 +3,7 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
+    readonly buffer = new ArrayBuffer(16 * 4 * 2);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -12,6 +12,9 @@ class CameraUniforms {
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
+    set inverseProjMat(mat: Float32Array) {
+        this.floatView.set(mat, 16);
+    }
 }
 
 export class Camera {
@@ -46,6 +49,7 @@ export class Camera {
         });
 
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
+        this.uniforms.inverseProjMat = mat4.invert(this.projMat);
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
