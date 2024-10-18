@@ -26,10 +26,6 @@
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
-const numClustersX = ${numClustersX};
-const numClustersY = ${numClustersY};
-const numClustersZ = ${numClustersZ};
-
 @compute @workgroup_size(${clusterWorkgroupSize})
 fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     let clusterIndex = globalIdx.x;
@@ -43,11 +39,11 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     let clusterZ = clusterIndex / (numClustersX * numClustersY);
 
     var lightCount = 0u;
-    for (var i = 0u; i < lightSet.lightCount; i += 1) {
+    for (var i = 0u; i < lightSet.numLights; i += 1) {
         let light = lightSet.lights[i];
 
-        var minCornerCluster = vec3i(2 << 30);
-        var maxCornerCluster = vec3i(-(2 << 30));
+        var minCornerCluster = vec3u(numClustersX, numClustersY, numClustersZ);
+        var maxCornerCluster = vec3u(0);
         for (var a = -1; a <= 1; a += 2) {
             for (var b = -1; b <= 1; b += 2) {
                 for (var c = -1; c <= 1; c += 2) {
@@ -56,7 +52,7 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
                         f32(b) * ${lightRadius},
                         f32(c) * ${lightRadius}
                     );
-                    let cornerCluster = getClusterIndex(corner);
+                    let cornerCluster = getClusterIndex(cameraUniforms, corner);
                     minCornerCluster = min(minCornerCluster, cornerCluster);
                     maxCornerCluster = max(maxCornerCluster, cornerCluster);
                 }
@@ -75,22 +71,4 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     }
 
     clusterSet.clusters[clusterIndex].lightCount = lightCount;
-}
-
-fn getClusterIndex(worldPos: vec3f) -> vec3i {
-    let clipPos = cameraUniforms.viewProj * vec4(worldPos, 1.f);
-    var screenPos = clipPos.xy;
-    if (clipPos.w > 0.f) {
-        screenPos /= clipPos.w;
-    }
-    let ndcPos = screenPos * 0.5f + 0.5f;
-
-    let depthRatio = log(clipPos.z / cameraUniforms.nearPlane);
-    let nearFarRatio = log(cameraUniforms.farPlane / cameraUniforms.nearPlane);
-    let depth = clamp(depthRatio / nearFarRatio, 0.f, 1.f);
-
-    let clusterX = i32(floor(ndcPos.x * f32(numClustersX)));
-    let clusterY = i32(floor(ndcPos.y * f32(numClustersY)));
-    let clusterZ = i32(floor(depth * f32(numClustersZ)));
-    return vec3i(clusterX, clusterY, clusterZ);
 }

@@ -46,3 +46,25 @@ fn calculateLightContrib(light: Light, posWorld: vec3f, nor: vec3f) -> vec3f {
     let lambert = max(dot(nor, normalize(vecToLight)), 0.f);
     return light.color * lambert * rangeAttenuation(distToLight);
 }
+
+const numClustersX: u32 = ${numClustersX};
+const numClustersY: u32 = ${numClustersY};
+const numClustersZ: u32 = ${numClustersZ};
+
+fn getClusterIndex(cameraUniforms: CameraUniforms, worldPos: vec3f) -> vec3u {
+    var screenPos = cameraUniforms.viewProj * vec4(worldPos, 1.f);
+
+    let depthRatio = log(screenPos.z / cameraUniforms.nearPlane);
+    let nearFarRatio = log(cameraUniforms.farPlane / cameraUniforms.nearPlane);
+    let depth = clamp(depthRatio / nearFarRatio, 0.f, 1.f);
+
+    if (screenPos.w > 0.f) {
+        screenPos /= screenPos.w;
+    }
+    let ndcPos = screenPos * 0.5f + 0.5f;
+
+    let clusterX = u32(floor(ndcPos.x * f32(numClustersX)));
+    let clusterY = u32(floor(ndcPos.y * f32(numClustersY)));
+    let clusterZ = u32(floor(depth * f32(numClustersZ)));
+    return vec3u(clusterX, clusterY, clusterZ);
+}

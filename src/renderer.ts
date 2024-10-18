@@ -49,7 +49,7 @@ export async function initWebGPU() {
         format: canvasFormat,
     });
 
-    console.log("WebGPU init successsful");
+    console.log("WebGPU init successful, device:", adapter.info);
 
     modelBindGroupLayout = device.createBindGroupLayout({
         label: "model bind group layout",
