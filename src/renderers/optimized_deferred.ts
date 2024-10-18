@@ -12,15 +12,14 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
     sceneUniformsBindGroup: GPUBindGroup;
 
     // G Buffers
+    gbufferSampler: GPUSampler;
+
     depthTexture: GPUTexture;
     depthTextureView: GPUTextureView;
-    albedoTexture: GPUTexture;
-    albedoTextureView: GPUTextureView;
-    normalTexture: GPUTexture;
-    normalTextureView: GPUTextureView;
-    positionTexture: GPUTexture;
-    positionTextureView: GPUTextureView;
-    gbufferSampler: GPUSampler;
+    unityTexture: GPUTexture;
+    unityTextureView: GPUTextureView;
+    debugTexture: GPUTexture;
+    debugTextureView: GPUTextureView;
 
     // scene bind group with gbuffer
     sceneGbufferBindGroupLayout: GPUBindGroupLayout;
@@ -51,6 +50,9 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
 
     sceneLightsBindGroupLayout: GPUBindGroupLayout;
     sceneLightsBindGroup: GPUBindGroup;
+
+    // full screen compute pass
+    // pipelineFullscreenCompute: GPUComputePipeline;
 
     // full screen triangle
     vertexBuffer: GPUBuffer;
@@ -95,6 +97,29 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
         });
 
         // gbuffer creation
+
+        this.gbufferSampler = renderer.device.createSampler({
+            magFilter: "nearest",
+            minFilter: "nearest",
+        });
+
+        // r: 0-15 bit for normal.x, 16-31 bit for normal.y
+        // g: 0-15 bit for normal.z, 16-31 bit for depth
+        // b: 0-7 bit for albedo.r, 8-15 bit for albedo.g, 16-23 bit for albedo.b, 24-31 bit for albedo.a
+        this.unityTexture = renderer.device.createTexture({
+            size: [renderer.canvas.width, renderer.canvas.height],
+            format: "rgba32uint",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+        });
+        this.unityTextureView = this.unityTexture.createView();
+
+        this.debugTexture = renderer.device.createTexture({
+            size: [renderer.canvas.width, renderer.canvas.height],
+            format: "rgba16float",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+        });
+        this.debugTextureView = this.debugTexture.createView();
+
         this.depthTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
             format: "depth24plus",
@@ -102,77 +127,28 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
         });
         this.depthTextureView = this.depthTexture.createView();
 
-        this.albedoTexture = renderer.device.createTexture({
-            size: [renderer.canvas.width, renderer.canvas.height],
-            format: renderer.canvasFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-        });
-        this.albedoTextureView = this.albedoTexture.createView();
-
-        this.normalTexture = renderer.device.createTexture({
-            size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba16float",
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-        });
-        this.normalTextureView = this.normalTexture.createView();
-
-        this.positionTexture = renderer.device.createTexture({
-            size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba16float",
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-        });
-        this.positionTextureView = this.positionTexture.createView();
-
-        this.gbufferSampler = renderer.device.createSampler({
-            magFilter: "linear",
-            minFilter: "linear",
-        });
-
         this.sceneGbufferBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "scene uniforms bind group layout",
             entries: [
                 {
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" },
                 },
                 {
                     // lightSet
                     binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
                     buffer: { type: "read-only-storage" },
                 },
                 {
-                    // albedo
+                    // unity texture
                     binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
                     texture: {
-                        sampleType: "float",
+                        sampleType: "uint",
                         viewDimension: "2d",
                     },
-                },
-                {
-                    // normal
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {
-                        sampleType: "float",
-                        viewDimension: "2d",
-                    },
-                },
-                {
-                    // depth
-                    binding: 4,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {
-                        sampleType: "float",
-                        viewDimension: "2d",
-                    },
-                },
-                {
-                    binding: 5,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: {},
                 },
             ],
         });
@@ -191,19 +167,7 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
                 },
                 {
                     binding: 2,
-                    resource: this.albedoTextureView,
-                },
-                {
-                    binding: 3,
-                    resource: this.normalTextureView,
-                },
-                {
-                    binding: 4,
-                    resource: this.positionTextureView,
-                },
-                {
-                    binding: 5,
-                    resource: this.gbufferSampler,
+                    resource: this.unityTextureView,
                 },
             ],
         });
@@ -211,44 +175,38 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
         // geometry pass
         this.pipelineGeometry = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
-                label: "deferred cluster geometry pipeline layout",
+                label: "optimized deferred geometry pipeline layout",
                 bindGroupLayouts: [
                     this.sceneUniformsBindGroupLayout,
                     renderer.modelBindGroupLayout,
                     renderer.materialBindGroupLayout,
                 ],
             }),
-            depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: "less",
-                format: "depth24plus",
-            },
             vertex: {
                 module: renderer.device.createShaderModule({
-                    label: "deferred cluster vert shader",
+                    label: "optimized deferred vert shader",
                     code: shaders.forwardPlusVertSrc,
                 }),
                 buffers: [renderer.vertexBufferLayout],
             },
             fragment: {
                 module: renderer.device.createShaderModule({
-                    label: "deferred cluster prez frag shader",
-                    code: shaders.clusteredDeferredFragSrc,
+                    label: "optimized deferred prez frag shader",
+                    code: shaders.optimizedDeferredFragSrc,
                 }),
                 targets: [
                     {
-                        format: renderer.canvasFormat,
+                        format: "rgba32uint",
                     },
                     {
                         format: "rgba16float",
-                    },
-                    {
-                        format: "rgba16float",
-                    },
-                    {
-                        format: renderer.canvasFormat,
                     },
                 ],
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less",
+                format: "depth24plus",
             },
         });
 
@@ -352,14 +310,14 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
         });
 
         this.pipelineBbox = renderer.device.createComputePipeline({
-            label: "deferred cluster light bounding box pipeline",
+            label: "optimized deferred light bounding box pipeline",
             layout: renderer.device.createPipelineLayout({
-                label: "deferred cluster light bounding box pipeline layout",
+                label: "optimized deferred light bounding box pipeline layout",
                 bindGroupLayouts: [this.bboxBindGroupLayout],
             }),
             compute: {
                 module: renderer.device.createShaderModule({
-                    label: "deferred cluster light bounding box shader",
+                    label: "optimized deferred light bounding box shader",
                     code: shaders.forwardPlusBboxSrc,
                 }),
                 entryPoint: "computeMain",
@@ -446,14 +404,14 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
         });
 
         this.pipelineLightCull = renderer.device.createComputePipeline({
-            label: "deferred cluster light cull pipeline",
+            label: "optimized deferred light cull pipeline",
             layout: renderer.device.createPipelineLayout({
-                label: "deferred cluster light cull pipeline layout",
+                label: "optimized deferred light cull pipeline layout",
                 bindGroupLayouts: [this.lightCullBindGroupLayout],
             }),
             compute: {
                 module: renderer.device.createShaderModule({
-                    label: "deferred cluster light cull shader",
+                    label: "optimized deferred light cull shader",
                     code: shaders.forwardPlusLightcullSrc,
                 }),
                 entryPoint: "computeMain",
@@ -467,22 +425,22 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
                 {
                     // resolution
                     binding: 0,
-                    visibility: GPUShaderStage.FRAGMENT,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" },
                 },
                 {
                     binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" },
                 },
                 {
                     binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
                     buffer: { type: "read-only-storage" },
                 },
                 {
                     binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
                     buffer: { type: "read-only-storage" },
                 },
             ],
@@ -531,25 +489,20 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
 
         this.pipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
-                label: "deferred cluster pipeline layout",
+                label: "optimized deferred pipeline layout",
                 bindGroupLayouts: [this.sceneGbufferBindGroupLayout, this.sceneLightsBindGroupLayout],
             }),
-            // depthStencil: {
-            //     depthWriteEnabled: true,
-            //     depthCompare: "less",
-            //     format: "depth24plus",
-            // },
             vertex: {
                 module: renderer.device.createShaderModule({
-                    label: "deferred cluster vert shader",
+                    label: "optimized deferred vert shader",
                     code: shaders.clusteredDeferredFullscreenVertSrc,
                 }),
                 buffers: [this.vertexBufferLayout],
             },
             fragment: {
                 module: renderer.device.createShaderModule({
-                    label: "deferred cluster frag shader",
-                    code: shaders.clusteredDeferredFullscreenFragSrc,
+                    label: "optimized deferred frag shader",
+                    code: shaders.optimizedDeferredFullscreenFragSrc,
                 }),
                 targets: [
                     {
@@ -570,31 +523,19 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
 
         // geometry pass
         const renderPassGeometry = encoder.beginRenderPass({
-            label: "deferred cluster render pass",
+            label: "optimized deferred render pass",
             colorAttachments: [
                 {
-                    view: this.albedoTextureView,
+                    view: this.unityTextureView,
                     loadOp: "clear",
                     storeOp: "store",
-                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                    clearValue: { r: 0, g: 0, b: 0, a: 0 },
                 },
                 {
-                    view: this.normalTextureView,
+                    view: this.debugTextureView,
                     loadOp: "clear",
                     storeOp: "store",
-                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
-                },
-                {
-                    view: this.positionTextureView,
-                    loadOp: "clear",
-                    storeOp: "store",
-                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
-                },
-                {
-                    view: canvasTextureView,
-                    clearValue: [0, 0, 0, 0],
-                    loadOp: "clear",
-                    storeOp: "store",
+                    clearValue: { r: 0, g: 0, b: 0, a: 0 },
                 },
             ],
             depthStencilAttachment: {
@@ -646,7 +587,7 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
 
         // render pass
         const renderPass = encoder.beginRenderPass({
-            label: "deferred cluster render pass",
+            label: "optimized deferred render pass",
             colorAttachments: [
                 {
                     view: canvasTextureView,
@@ -655,12 +596,6 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
                     storeOp: "store",
                 },
             ],
-            // depthStencilAttachment: {
-            //     view: this.depthTextureView,
-            //     depthClearValue: 1.0,
-            //     depthLoadOp: "load",
-            //     depthStoreOp: "store",
-            // },
         });
 
         renderPass.setPipeline(this.pipeline);

@@ -22,6 +22,9 @@ import clusteringComputeRaw from "./clustering.cs.wgsl?raw";
 
 import debugComputeRaw from "./debug.cs.wgsl?raw";
 
+import optimizedDeferredFragRaw from "./optimized_deferred.fs.wgsl?raw";
+import optimizedDeferredFullscreenFragRaw from "./optimized_deferred_fullscreen.fs.wgsl?raw";
+
 // CONSTANTS (for use in shaders)
 // =================================
 
@@ -74,3 +77,6 @@ export const moveLightsComputeSrc: string = processShaderRaw(moveLightsComputeRa
 export const clusteringComputeSrc: string = processShaderRaw(clusteringComputeRaw);
 
 export const debugComputeSrc: string = processShaderRaw(debugComputeRaw);
+
+export const optimizedDeferredFragSrc: string = processShaderRaw(optimizedDeferredFragRaw);
+export const optimizedDeferredFullscreenFragSrc: string = processShaderRaw(optimizedDeferredFullscreenFragRaw);

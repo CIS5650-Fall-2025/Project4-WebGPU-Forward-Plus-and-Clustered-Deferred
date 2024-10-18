@@ -15,28 +15,45 @@ struct FragmentInput
     @location(2) uv: vec2f
 }
 
-struct FragmentOutput {
-    @location(0) gbufferAlbedo: vec4<f32>,
-    @location(1) gbufferNormal: vec4<f32>,
-    @location(2) gbufferPosition: vec4<f32>,
-    @location(3) finalColor: vec4<f32>
+struct FragmentOutput
+{
+    @location(0) unity: vec4u,
+    @location(1) debug: vec4f
 }
-
 
 @fragment
 fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> FragmentOutput
 {
     var out: FragmentOutput;
 
-    let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
+    var diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
         discard;
     }
 
+    // var debugVal = fragCoord.z * f32(0xFFFF);
+    // debugVal.x = f32(u32(debugVal.x) & 0xFFFF) / f32(0xFFFF);
+    // debugVal.y = f32(u32(debugVal.y) & 0xFFFF) / f32(0xFFFF);
+    // debugVal.z = f32(u32(debugVal.z) & 0xFFFF) / f32(0xFFFF);
+    // out.debug = vec4(vec3(f32(fragCoord.z)), 1.0);
+
+
+
+    var maskfront = u32(0xFFFF0000);
+    var maskback = u32(0x0000FFFF);
+    var rmask = u32(0xFF000000);
+    var gmask = u32(0x00FF0000);
+    var bmask = u32(0x0000FF00);
+    var amask = u32(0x000000FF);
+
+    var nor = ((in.nor + 1.0) * 0.5) * f32(0xFFFF); // remember to pack the normal
+    diffuseColor = diffuseColor * f32(0xFF);
+    var depth = fragCoord.z * f32(0xFFFF);
     // populate G-buffer
-    out.gbufferPosition = vec4(in.pos, 1.0);
-    out.gbufferNormal = vec4(in.nor, 1.0);
-    out.gbufferAlbedo = vec4(diffuseColor.rgb, 1.0);
+    out.unity.r = ((u32(nor.x) << 16) & maskfront) | (u32(nor.y) & maskback);
+    out.unity.g = ((u32(nor.z) << 16) & maskfront) | (u32(depth) & maskback);
+    out.unity.b = ((u32(diffuseColor.r) << 24) & rmask) | ((u32(diffuseColor.g) << 16) & gmask) | ((u32(diffuseColor.b) << 8) & bmask) | (u32(diffuseColor.a) & amask);
+
 
     return out;
 }

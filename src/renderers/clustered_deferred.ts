@@ -655,12 +655,6 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     storeOp: "store",
                 },
             ],
-            // depthStencilAttachment: {
-            //     view: this.depthTextureView,
-            //     depthClearValue: 1.0,
-            //     depthLoadOp: "load",
-            //     depthStoreOp: "store",
-            // },
         });
 
         renderPass.setPipeline(this.pipeline);

@@ -70,6 +70,10 @@ fn calculateLightIntersection(lightPos: vec3f, minb: vec3f, maxb: vec3f) -> bool
     return lightDist < square(${lightRadius}); // assume light radius is 0.1 in ndc
 }
 
+fn clipToWorld(clipPos: vec4f, invViewProj: mat4x4f) -> vec3f {
+    var worldPos = invViewProj * clipPos;
+    return worldPos.xyz / worldPos.w;
+}
 
 fn clipToView(clipPos: vec4f, invProj: mat4x4f) -> vec3f {
     var viewPos = invProj * clipPos;
