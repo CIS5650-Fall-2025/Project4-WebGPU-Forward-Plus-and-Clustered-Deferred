@@ -40,3 +40,17 @@ fn calculateLightContrib(light: Light, posWorld: vec3f, nor: vec3f) -> vec3f {
     return light.color * lambert * rangeAttenuation(distToLight);
 }
 
+fn getClusterIndex(pos_world: vec3f, camera: CameraUniforms) -> u32 {
+    let pos4_ndc = camera.viewProjMat * vec4<f32>(pos_world, 1.0);
+    let pos_ndc = pos4_ndc.xyz / pos4_ndc.w;
+
+    let xIndex = u32((pos_ndc.x * 0.5 + 0.5) * ${clusteringCountX});
+    let yIndex = u32((pos_ndc.y * 0.5 + 0.5) * ${clusteringCountY});
+
+    let Z_view = (camera.viewMat * vec4<f32>(pos_world, 1.0)).z;
+    let zIndex = u32(log(Z_view / -f32(${nearClip})) / log(f32(${farClip}) / f32(${nearClip})) * f32(${clusteringCountZ}));
+    let index = xIndex + yIndex * ${clusteringCountX} + zIndex * ${clusteringCountX} * ${clusteringCountY};
+
+    return index;
+}
+

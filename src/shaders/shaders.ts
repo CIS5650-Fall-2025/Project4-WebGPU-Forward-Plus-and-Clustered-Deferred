@@ -27,20 +27,20 @@ export const constants = {
     bindGroup_model: 1,
     bindGroup_material: 2,
 
-    moveLightsWorkgroupSize: 128,
+    moveLightsWorkgroupSize: 256,
     clusteringWorkgroupSizeX: 16,
-    clusteringWorkgroupSizeY: 9,
+    clusteringWorkgroupSizeY: 12,
     clusteringWorkgroupSizeZ: 1,
 
     // For clustering
     clusteringCountX: 16,
-    clusteringCountY: 9,
-    clusteringCountZ: 24,
-    clusteringCountTotal: 16 * 9 * 24,
-    maxNumLightsPerCluster: 256,
+    clusteringCountY: 12,
+    clusteringCountZ: 100,
+    clusteringCountTotal: 16 * 12 * 100,
+    maxNumLightsPerCluster: 500,
 
     farClip: 20.0,
-    nearClip: 2.0,
+    nearClip: 3.0,
 
     lightRadius: 2.0
 };

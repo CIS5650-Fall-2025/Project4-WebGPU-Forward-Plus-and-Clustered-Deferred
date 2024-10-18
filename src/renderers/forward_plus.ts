@@ -150,11 +150,5 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         renderPass.end();
 
         renderer.device.queue.submit([encoder.finish()]);
-
-        
-
-
-
-
     }
 }
