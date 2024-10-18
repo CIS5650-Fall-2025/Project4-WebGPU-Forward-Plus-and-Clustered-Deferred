@@ -4,7 +4,7 @@ import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
     // Last 4 x 4 bytes include padding for alignment
-    readonly buffer = new ArrayBuffer((16 + 16 + 16 + 2 + 1 + 1 + 1) * 4);
+    readonly buffer = new ArrayBuffer((16 + 16 + 16 + 16 + 2 + 1 + 1 + 1) * 4);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -19,20 +19,24 @@ class CameraUniforms {
         this.floatView.set(mat, 32);
     }
 
+    set invViewMat(mat: Float32Array) {
+        this.floatView.set(mat, 48);
+    }
+
     set screenDimensions(dimensions: Float32Array) {
-        this.floatView.set(dimensions, 48);
+        this.floatView.set(dimensions, 64);
     }
 
     set near(near: number) {
-        this.floatView[50] = near;
+        this.floatView[66] = near;
     }
 
     set far(far: number) {
-        this.floatView[51] = far;
+        this.floatView[67] = far;
     }
 
     set logFarOverNear(logFarOverNear: number) {
-        this.floatView[52] = logFarOverNear;
+        this.floatView[68] = logFarOverNear;
     }
 }
 
@@ -150,9 +154,11 @@ export class Camera {
 
         const lookPos = vec3.add(this.cameraPos, vec3.scale(this.cameraFront, 1));
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
+        const invViewMat = mat4.invert(viewMat);
         const viewProjMat = mat4.mul(this.projMat, viewMat);
         const invProjMat = mat4.invert(this.projMat);
         this.uniforms.viewProjMat = viewProjMat;
+        this.uniforms.invViewMat = invViewMat;
         this.uniforms.invProjMat = invProjMat;
         this.uniforms.screenDimensions = new Float32Array([canvas.width, canvas.height]);
         this.uniforms.near = Camera.nearPlane;
