@@ -16,7 +16,9 @@ https://zhiqing-r.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/
 
 ## Introduction
 
-In this assignment, I implemented both clustered forward shading and clustered deferred shading. I achieved 30+ fps with 8192 lights and 2k resolution. The project contains the following features:
+In this assignment, I implemented both clustered forward shading and clustered deferred shading.
+
+I achieved ***30+*** fps with ***8192 lights*** and ***2k resolution***. The project contains the following features:
 - Naive forward shading pipeline
 - Clustered forward (forward +) shading pipeline
 - Clustered deferred shading pipeline
