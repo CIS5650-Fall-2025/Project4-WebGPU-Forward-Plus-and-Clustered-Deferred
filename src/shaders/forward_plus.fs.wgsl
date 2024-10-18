@@ -35,15 +35,16 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     if (diffuseColor.a < 0.5f) {
         discard;
     }
-
-    let clipPos = (cameraUniforms.viewProjMat * vec4(in.pos, 1.0)).xyz;
-    let ndc = clipPos.xy / clipPos.z;
-    let clusterX = u32(floor((0.5 + ndc.x * 0.5) * f32(clusterSet.nx)));
-    let clusterY = u32(floor((0.5 + ndc.y * 0.5) * f32(clusterSet.ny)));
-    let zNear = cameraUniforms.nearClip;
-    let zFar = cameraUniforms.farClip;
+    let epsilon = 1e-5;
+    let clipPos = cameraUniforms.viewProjMat * vec4(in.pos, 1.0);
+    let ndc = clipPos.xyz / clipPos.w;
+    let ndcX = clamp(0.5 + ndc.x * 0.5, 0.0, 1.0 - epsilon);
+    let ndcY = clamp(0.5 + ndc.y * 0.5, 0.0, 1.0 - epsilon);
+    let ndcZ = clamp(ndc.z, 0.0, 1.0 - epsilon);
+    let clusterX = u32(floor(ndcX * f32(clusterSet.nx)));
+    let clusterY = u32(floor(ndcY * f32(clusterSet.ny)));
     let nz = f32(clusterSet.nz);
-    let clusterZ = u32(floor(f32(clusterSet.nz) * log(clipPos.z / zNear) / log(zFar / zNear)));
+    let clusterZ = u32(floor(ndcZ * nz));
 
     let idx = clusterX + clusterY * clusterSet.nx + clusterZ * clusterSet.nx * clusterSet.ny;
     let cluster = clusterSet.clusters[idx];

@@ -26,8 +26,12 @@
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
-@compute @workgroup_size(8, 8, 1)
+@compute @workgroup_size(16, 9, 1)
 fn main(@builtin(global_invocation_id) index: vec3u) {
+    if (index.x >= clusterSet.nx || index.y >= clusterSet.ny || index.z >= clusterSet.nz) {
+        return;
+    }
+
     let idx = index.x +
               index.y * clusterSet.nx +
               index.z * clusterSet.nx * clusterSet.ny;
@@ -36,23 +40,24 @@ fn main(@builtin(global_invocation_id) index: vec3u) {
     // Compute cluster bounds
     // ----------------------
     // Prefetch and precomputations
+    let epsilon = 1e-5;
     let zNear = cameraUniforms.nearClip;
     let zFar = cameraUniforms.farClip;
     let zIdx = f32(index.z);
-    let nz = f32(clusterSet.nz);
     let invViewProjMat = cameraUniforms.invViewProjMat;
     let clusterDimX = 2.0 / f32(clusterSet.nx);
     let clusterDimY = 2.0 / f32(clusterSet.ny);
+    let clusterDimZ = 1.0 / f32(clusterSet.nz);
 
     // X and Y span in NDC of one cluster
     let minNdcX = -1.0 + f32(index.x) * clusterDimX;
     let minNdcY = -1.0 + f32(index.y) * clusterDimY;
-    let maxNdcX = minNdcX + clusterDimX;
-    let maxNdcY = minNdcY + clusterDimY;
+    let maxNdcX = min(minNdcX + clusterDimX, 1.0 - epsilon);
+    let maxNdcY = min(minNdcY + clusterDimY, 1.0 - epsilon);
 
     // Z span in NDC
-    let minNdcZ = zNear * pow(zFar / zNear, zIdx / nz);
-    let maxNdcZ = zNear * pow(zFar / zNear, (zIdx + 1.0) / nz);
+    let minNdcZ = zIdx * clusterDimZ;
+    let maxNdcZ = min(minNdcZ + clusterDimZ, 1.0);
     
     // Retrieve the world coordinates of the frustum
     let vtxLeftBottomNear : vec3f = ndcToWorld(minNdcX, minNdcY, minNdcZ, invViewProjMat);
@@ -77,10 +82,10 @@ fn main(@builtin(global_invocation_id) index: vec3u) {
     // ----------------------
     // Add lights to clusters
     // ----------------------
-    let n: lightCount = 0;
+    var lightCount: u32 = 0;
 
     for (var i: u32 = 0; i < lightSet.numLights; i++) {
-        let light: Light = lightSet[i];
+        let light: Light = lightSet.lights[i];
         let pos = light.pos;
         if (lightCount >= ${maxLightInCluster}) { break; }
         if (sphereAABBIntersection(pos, ${lightRadius}, aabbMinBounds, aabbMaxBounds)) {
