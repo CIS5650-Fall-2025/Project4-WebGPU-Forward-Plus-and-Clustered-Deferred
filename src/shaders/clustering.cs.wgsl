@@ -44,7 +44,8 @@ fn main(@builtin(global_invocation_id) index: vec3u) {
     let zNear = cameraUniforms.nearClip;
     let zFar = cameraUniforms.farClip;
     let zIdx = f32(index.z);
-    let invViewProjMat = cameraUniforms.invViewProjMat;
+    let invProjMat = cameraUniforms.invProjMat;
+    let logZFarNearRatio = log(zFar / zNear);
     let clusterDimX = 2.0 / f32(clusterSet.nx);
     let clusterDimY = 2.0 / f32(clusterSet.ny);
     let clusterDimZ = 1.0 / f32(clusterSet.nz);
@@ -55,19 +56,21 @@ fn main(@builtin(global_invocation_id) index: vec3u) {
     let maxNdcX = min(minNdcX + clusterDimX, 1.0 - epsilon);
     let maxNdcY = min(minNdcY + clusterDimY, 1.0 - epsilon);
 
-    // Z span in NDC
-    let minNdcZ = zIdx * clusterDimZ;
-    let maxNdcZ = min(minNdcZ + clusterDimZ, 1.0);
+    // Z span in View
+    let minViewZ = -zNear * exp(zIdx * logZFarNearRatio * clusterDimZ);
+    let maxViewZ = -zNear * exp((zIdx + 1.0) * logZFarNearRatio * clusterDimZ);
+    let minNdcZ = viewToNdcZ(minViewZ, cameraUniforms.projMat);
+    let maxNdcZ = viewToNdcZ(maxViewZ, cameraUniforms.projMat);
     
     // Retrieve the world coordinates of the frustum
-    let vtxLeftBottomNear : vec3f = ndcToWorld(minNdcX, minNdcY, minNdcZ, invViewProjMat);
-    let vtxLeftTopNear : vec3f = ndcToWorld(minNdcX, maxNdcY, minNdcZ, invViewProjMat);
-    let vtxRightBottomNear : vec3f = ndcToWorld(maxNdcX, minNdcY, minNdcZ, invViewProjMat);
-    let vtxRightTopNear : vec3f = ndcToWorld(maxNdcX, maxNdcY, minNdcZ, invViewProjMat);
-    let vtxLeftBottomFar : vec3f = ndcToWorld(minNdcX, minNdcY, maxNdcZ, invViewProjMat);
-    let vtxLeftTopFar : vec3f = ndcToWorld(minNdcX, maxNdcY, maxNdcZ, invViewProjMat);
-    let vtxRightBottomFar : vec3f = ndcToWorld(maxNdcX, minNdcY, maxNdcZ, invViewProjMat);
-    let vtxRightTopFar : vec3f = ndcToWorld(maxNdcX, maxNdcY, maxNdcZ, invViewProjMat);
+    let vtxLeftBottomNear :  vec3f = ndcToView(minNdcX, minNdcY, minNdcZ, invProjMat);
+    let vtxLeftTopNear :     vec3f = ndcToView(minNdcX, maxNdcY, minNdcZ, invProjMat);
+    let vtxRightBottomNear : vec3f = ndcToView(maxNdcX, minNdcY, minNdcZ, invProjMat);
+    let vtxRightTopNear :    vec3f = ndcToView(maxNdcX, maxNdcY, minNdcZ, invProjMat);
+    let vtxLeftBottomFar :   vec3f = ndcToView(minNdcX, minNdcY, maxNdcZ, invProjMat);
+    let vtxLeftTopFar :      vec3f = ndcToView(minNdcX, maxNdcY, maxNdcZ, invProjMat);
+    let vtxRightBottomFar :  vec3f = ndcToView(maxNdcX, minNdcY, maxNdcZ, invProjMat);
+    let vtxRightTopFar :     vec3f = ndcToView(maxNdcX, maxNdcY, maxNdcZ, invProjMat);
 
     // Simply get AABB of the frustum
     let aabbMinBounds = min(min(min(vtxLeftBottomFar, vtxLeftBottomNear),   min(vtxLeftTopFar, vtxLeftTopNear)), 
@@ -86,9 +89,9 @@ fn main(@builtin(global_invocation_id) index: vec3u) {
 
     for (var i: u32 = 0; i < lightSet.numLights; i++) {
         let light: Light = lightSet.lights[i];
-        let pos = light.pos;
+        let lightViewPos = (cameraUniforms.viewMat * vec4(light.pos, 1.0)).xyz;
         if (lightCount >= ${maxLightInCluster}) { break; }
-        if (sphereAABBIntersection(pos, ${lightRadius}, aabbMinBounds, aabbMaxBounds)) {
+        if (sphereAABBIntersection(lightViewPos, ${lightRadius}, aabbMinBounds, aabbMaxBounds)) {
             clusterSet.clusters[idx].lightIndices[lightCount] = i;
             lightCount++;
         }
@@ -102,8 +105,12 @@ fn sphereAABBIntersection(pos: vec3f, radius: f32, aabbMinBounds: vec3f, aabbMax
     return d <= radius;
 }
 
-fn ndcToWorld(x: f32, y: f32, z: f32, invViewProjMat: mat4x4f) -> vec3f {
+fn viewToNdcZ(zView: f32, projMat: mat4x4f) -> f32 {
+    return (projMat[2][2] * zView + projMat[3][2]) / (projMat[2][3] * zView + projMat[3][3]);
+}
+
+fn ndcToView(x: f32, y: f32, z: f32, invProjMat: mat4x4f) -> vec3f {
     let ndc = vec4(x, y, z, 1.0);
-    let world = invViewProjMat * ndc;
-    return world.xyz / world.w;
+    let view = invProjMat * ndc;
+    return view.xyz / view.w;
 }
