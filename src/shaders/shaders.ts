@@ -33,7 +33,7 @@ export const constants = {
     lightRadius: 2,
 
     // Clustering constants
-    maxLightsPerCluster: 128,
+    maxLightsPerCluster: 1024,
     clusterDimensions: [16, 16, 16],
     computeClustersWorkgroupSize: [16, 16, 1],
 };
