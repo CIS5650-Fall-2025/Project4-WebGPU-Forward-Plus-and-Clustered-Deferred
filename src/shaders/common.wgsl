@@ -20,7 +20,6 @@ struct AABB {
 
 struct Cluster {
     viewSpaceBbox: AABB,
-    screenSpaceBounds: vec2f,
     numLights: u32,
     lightIndices: array<u32, ${maxLightsPerCluster}u>
 }

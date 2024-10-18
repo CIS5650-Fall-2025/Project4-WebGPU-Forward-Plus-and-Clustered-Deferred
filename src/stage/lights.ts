@@ -35,16 +35,10 @@ export class Lights {
     sceneUniformsBindGroupLayout: GPUBindGroupLayout;
     sceneUniformsBindGroup: GPUBindGroup;
 
-    // static readonly numGridsPerCluster = 11 + shaders.constants.maxLightsPerCluster; // Given that we store idx of the lights, so 1 light'idx (in u32) is 1 grid
-    // clustersArray = new Float32Array(shaders.constants.numOfClusters * Lights.numGridsPerCluster);
-    // clusterArray = new ArrayBuffer(roundToNextMultipleOf16(44 + 4 * shaders.constants.maxLightsPerCluster));
-    // private readonly viewSpaceBboxMin = new Float32Array(this.clusterArray, 0, 3);
-    // private readonly viewSpaceBboxMax = new Float32Array(this.clusterArray, 16, 3);
-    // private readonly screenSpaceBounds = new Float32Array(this.clusterArray, 32, 2)
-    // private readonly numLightsPerCluster =  new Uint32Array(this.clusterArray, 40, 1)
-    // private readonly lightIndices = new Uint32Array(this.clusterArray, 44, shaders.constants.maxLightsPerCluster);
-
-    clustersArray = new ArrayBuffer(shaders.constants.numOfClusters * roundToNextMultipleOf16(44 + 4 * shaders.constants.maxLightsPerCluster));
+    // First 44 are for bbox, screenspace bounds, and num lights. Then it's just the bytes needed to store light indices
+    byteLengthOfACluster = roundToNextMultipleOf16(36 + 4 * shaders.constants.maxLightsPerCluster);
+    // Note that to initialise ArrayBuffer you pass in byte length NOT length!
+    clustersArray = new ArrayBuffer(shaders.constants.numOfClusters * this.byteLengthOfACluster);
     clusterSetStorageBuffer: GPUBuffer;
 
     clusterComputePipeline: GPUComputePipeline;
@@ -113,7 +107,6 @@ export class Lights {
         });
 
         // TODO-2: initialize layouts, pipelines, textures, etc. needed for light clustering here
-        this.initialisecCusterArray();
         this.clusterSetStorageBuffer = device.createBuffer({
             label: "clusterSetStorageBuffer creation in lights.ts",
             size: 16 + this.clustersArray.byteLength,
@@ -189,7 +182,6 @@ export class Lights {
             const lightColor = vec3.scale(hueToRgb(Math.random()), Lights.lightIntensity);
             this.lightsArray.set(lightColor, (lightIdx * Lights.numFloatsPerLight) + 4);
         }
-
         device.queue.writeBuffer(this.lightSetStorageBuffer, 16, this.lightsArray);
     }
 
@@ -197,24 +189,9 @@ export class Lights {
         device.queue.writeBuffer(this.lightSetStorageBuffer, 0, new Uint32Array([this.numLights]));
     }
 
-    // private initialisecCusterArray() {
-    //     this.viewSpaceBboxMax.fill(-Infinity);
-    //     this.viewSpaceBboxMin.fill(Infinity);
-    //     this.screenSpaceBounds.fill(Infinity);
-    //     this.numLightsPerCluster.fill(0);
-    //     this.lightIndices.fill(-1);
-    // }
-
     private updateNumberOfClusters() {
+        this.clusterSetStorageBuffer.unmap();  // Unmap it before writing data
         device.queue.writeBuffer(this.clusterSetStorageBuffer, 0, new Uint32Array([shaders.constants.numOfClusters]));
-    }
-
-    private populateClustersBuffer() {
-        for (let clusterIdx = 0; clusterIdx < shaders.constants.numOfClusters; ++clusterIdx) {
-            
-        }
-
-        device.queue.writeBuffer(this.clusterSetStorageBuffer, 16, this.clustersArray);
     }
 
     doLightMove(time: number) {
