@@ -1,5 +1,4 @@
 // CHECKITOUT: code that you add here will be prepended to all shaders
-
 struct Light {
     pos: vec3f,
     color: vec3f
