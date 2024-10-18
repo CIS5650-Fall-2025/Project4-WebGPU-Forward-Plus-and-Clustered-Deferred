@@ -30,7 +30,7 @@ WebGPU Forward Clustered and Clustered Deferred Shading
 - [stats.js](https://github.com/mrdoob/stats.js)
 - [wgpu-matrix](https://github.com/greggman/wgpu-matrix)
 
-* code reference
+#### code reference
 - WebGPU API: detail about the function parameters and return types of [createSampler()](https://developer.mozilla.org/en-US/docs/Web/API/GPUDevice/createSampler)
 - WGSL: [Depth Texture Types](https://www.w3.org/TR/WGSL/#texture-depth)
 - Nividia CG Tutorial: gets really confusing while transforming among multiple spaces in shaders code, good to reference before starting writing [Coordinate Systems](https://developer.download.nvidia.com/CgTutorial/cg_tutorial_chapter04.html)
