@@ -3,6 +3,11 @@ import * as shaders from '../shaders/shaders';
 import { Stage } from '../stage/stage';
 
 export class ClusteredDeferredRenderer extends renderer.Renderer {
+    gBufferPassBundleEncoder: GPURenderBundleEncoder;
+    gBufferPassBundle: GPURenderBundle;
+    deferredPassBundleEncoder: GPURenderBundleEncoder;
+    deferredPassBundle: GPURenderBundle;
+
     gBufferColorTexture: GPUTexture;
     gBufferColorTextureView: GPUTextureView;
 
@@ -118,6 +123,14 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             }
         });
 
+        this.gBufferPassBundleEncoder = renderer.device.createRenderBundleEncoder({
+            colorFormats: [ 'bgra8unorm', 'rgba32float' ],
+            depthStencilFormat: 'depth24plus'
+        });
+
+        this.encodeGbufferPassRenderBundle(this.gBufferPassBundleEncoder);
+        this.gBufferPassBundle = this.gBufferPassBundleEncoder.finish();
+
         /* Set up for reading from g-buffer / deferred rendering */
 
         this.gBufferTexturesBindGroupLayout = renderer.device.createBindGroupLayout({
@@ -215,6 +228,33 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             }
         });
 
+        this.deferredPassBundleEncoder = renderer.device.createRenderBundleEncoder({
+            colorFormats: [ renderer.canvasFormat ]
+        });
+
+        this.encodeDeferredPassRenderBundle(this.deferredPassBundleEncoder);
+        this.deferredPassBundle = this.deferredPassBundleEncoder.finish();
+    }
+
+    encodeGbufferPassRenderBundle(encoder: GPURenderBundleEncoder) {
+        encoder.setPipeline(this.gBufferPipeline);
+        encoder.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
+
+        this.scene.iterate(node => {
+            encoder.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+        }, material => {
+            encoder.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+        }, primitive => {
+            encoder.setVertexBuffer(0, primitive.vertexBuffer);
+            encoder.setIndexBuffer(primitive.indexBuffer, 'uint32');
+            encoder.drawIndexed(primitive.numIndices);
+        });
+    }
+
+    encodeDeferredPassRenderBundle(encoder: GPURenderBundleEncoder) {
+        encoder.setPipeline(this.canvasPipeline);
+        encoder.setBindGroup(shaders.constants.bindGroup_scene, this.gBufferTexturesBindGroup);
+        encoder.draw(6); // Draw 6 vertices (2 triangles) for a fullscreen quad
     }
 
     override draw() {
@@ -250,20 +290,10 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             }
         });
 
-        gBufferPass.setPipeline(this.gBufferPipeline);
-        gBufferPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
-
-        this.scene.iterate(node => {
-            gBufferPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
-        }, material => {
-            gBufferPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
-        }, primitive => {
-            gBufferPass.setVertexBuffer(0, primitive.vertexBuffer);
-            gBufferPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
-            gBufferPass.drawIndexed(primitive.numIndices);
-        });
-
+        gBufferPass.executeBundles([this.gBufferPassBundle]);
         gBufferPass.end();
+
+        /* Deferred rendering pass */
 
         const canvasRenderPass = encoder.beginRenderPass({
             label: "canvas render pass",
@@ -276,12 +306,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             ]
         });
 
-        /* Deferred rendering pass */
-
-        canvasRenderPass.setPipeline(this.canvasPipeline);
-        canvasRenderPass.setBindGroup(shaders.constants.bindGroup_scene, this.gBufferTexturesBindGroup);
-        canvasRenderPass.draw(6); // Draw 6 vertices (2 triangles) for a fullscreen quad
-
+        canvasRenderPass.executeBundles([this.deferredPassBundle]);
         canvasRenderPass.end();
 
         renderer.device.queue.submit([encoder.finish()]);
