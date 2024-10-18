@@ -45,7 +45,7 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     zTile = floor(zTile * cameraUniforms.tileCountZ);
 
     var tilePixelSize_X = cameraUniforms.canvasSizeX / cameraUniforms.tileCountX;
-    var tilePixelSize_Y = f32(1368) / f32(cameraUniforms.tileCountY);
+    var tilePixelSize_Y = cameraUniforms.canvasSizeY / f32(cameraUniforms.tileCountY);
 
     var tileXYZ = vec3u(
         min(u32(cameraUniforms.tileCountX) - 1u, u32(in.fragCoord.x / f32(tilePixelSize_X) )),
@@ -58,7 +58,7 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     var numLights = clusterSet.clusters[tileIdx].lightCount; 
 
     // For each light in the cluster
-    for (var lightIdx = 0u; lightIdx < numLights; lightIdx++) {
+    for (var lightIdx = 0u; lightIdx < clusterSet.clusters[tileIdx].lightCount; lightIdx++) {
         let light = lightSet.lights[clusterSet.clusters[tileIdx].lightIndices[lightIdx]];
         totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
     }

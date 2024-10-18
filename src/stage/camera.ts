@@ -4,7 +4,7 @@ import * as shaders from '../shaders/shaders';
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 14);
+    readonly buffer = new ArrayBuffer(16 * 18);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -21,37 +21,42 @@ class CameraUniforms {
         this.floatView.set(mat, 32);
     }
 
+    set invViewMat(mat: Float32Array) {
+        this.floatView.set(mat, 48);
+    }
+
     set zNear(value: number) {
-        this.floatView[48] = value;
+        this.floatView[64] = value;
     }
 
     set zFar(value: number) {
-        this.floatView[49] = value;
+        this.floatView[65] = value;
     }
 
     set tileSize(value: number) {
-        this.floatView[50] = value;
+        this.floatView[66] = value;
     }
 
     set tileCountX(value: number) {
-        this.floatView[51] = value;
+        this.floatView[67] = value;
     }
 
     set tileCountY(value: number) {
-        this.floatView[52] = value;
+        this.floatView[68] = value;
     }
 
     set tileCountZ(value: number) {
-        this.floatView[53] = value;
+        this.floatView[69] = value;
     }
 
     set canvasSizeX(size: number) {
-        this.floatView[54] = size;
+        this.floatView[70] = size;
     }
 
     set canvasSizeY(size: number) {
-        this.floatView[55] = size;
+        this.floatView[71] = size;
     }
+
 
 
 }
@@ -189,6 +194,7 @@ export class Camera {
         // TODO-2: write to extra buffers needed for light clustering here
         this.uniforms.inverseProjMat = mat4.inverse(this.projMat);
         this.uniforms.viewMat = viewMat;
+        this.uniforms.invViewMat = mat4.inverse(viewMat);
         this.uniforms.zNear = Camera.nearPlane;
         this.uniforms.zFar = Camera.farPlane;
         this.uniforms.tileCountX = this.tileCountX;// Math.ceil(canvas.height / shaders.constants.clusterTileSize_X);
