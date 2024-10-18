@@ -3,9 +3,12 @@ WebGL Forward+ and Clustered Deferred Shading
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) **Google Chrome 222.2** on
-  Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Nadine Adnane
+  * [LinkedIn](https://www.linkedin.com/in/nadnane/)
+* Tested on my personal laptop (ASUS ROG Zephyrus M16):
+* **OS:** Windows 11
+* **Processor:** 12th Gen Intel(R) Core(TM) i9-12900H, 2500 Mhz, 14 Core(s), 20 Logical Processor(s) 
+* **GPU:** NVIDIA GeForce RTX 3070 Ti Laptop GPU
 
 ### Live Demo
 
@@ -17,11 +20,6 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ### (TODO: Your README)
 
-*DO NOT* leave the README to the last minute! It is a crucial part of the
-project, and we will not be able to grade you without a good README.
-
-This assignment has a considerable amount of performance analysis compared
-to implementation work. Complete the implementation early to leave time!
 
 ### Credits
 
