@@ -3,7 +3,7 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(224);
+    readonly buffer = new ArrayBuffer(272);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -20,21 +20,21 @@ class CameraUniforms {
         // Set the next 16 elements of `this.floatView` to the input `mat`
         this.floatView.set(mat.slice(0, 16), 32);
     }
-    set clusterGridSize(gridSize: [number, number, number]) {
-        const offset = 48;
-        this.floatView.set(gridSize, offset);
+    set invViewMat( mat: Float32Array ) {
+
+        this.floatView.set(mat.slice(0, 16), 48);
     }
     set canvasResolution(resolution: [number, number]) {
-        const offset = 52;
+        const offset = 64;
         this.floatView.set(resolution, offset);
     }
     set nearPlane(value: number) {
-        const offset = 54;
+        const offset = 66;
         this.floatView[offset] = value;
     }
 
     set farPlane(value: number) {
-        const offset = 55;
+        const offset = 67;
         this.floatView[offset] = value;
     }
     
@@ -76,7 +76,7 @@ export class Camera {
         })
         
         
-        console.log(this.uniforms.clusterGridSize);
+       
         this.uniforms.farPlane = Camera.farPlane;
         this.uniforms.nearPlane = Camera.nearPlane;
 
@@ -173,6 +173,7 @@ export class Camera {
         const viewProjMat = mat4.mul(this.projMat, viewMat);
         // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
         this.uniforms.viewMat = viewMat;
+        this.uniforms.invViewMat = mat4.inverse(viewMat);
         this.uniforms.viewProjMat = viewProjMat;
         // TODO-2: write to extra buffers needed for light clustering here
         
