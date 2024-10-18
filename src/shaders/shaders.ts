@@ -39,7 +39,7 @@ export const constants = {
     clusterCountX: 10,
     clusterCountY: 10,
     clusterCountZ: 32,
-    maxLightsPerCluster: 500,
+    maxLightsPerCluster: 1000,
 };
 
 // =================================
