@@ -4,7 +4,8 @@ import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
 
-    readonly buffer = new ArrayBuffer(16 * 10);
+    // readonly buffer = new ArrayBuffer(16 * 10);  
+    readonly buffer = new ArrayBuffer(16 * 14)
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -13,38 +14,43 @@ class CameraUniforms {
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
+    set viewMat(mat: Float32Array) {
+        // Set the next 16 elements for viewMat
+        this.floatView.set(mat, 16);  // Offset 16 for viewMat
+    }
+    
     set invProjMat(mat: Float32Array) {
-        this.floatView.set(mat, 16);
+        // Set the next 16 elements for invProjMat
+        this.floatView.set(mat, 32);  // Offset 32 for invProjMat
     }
-
+    
     set screenWidth(value: number) {
-        this.floatView[32] = value;
+        this.floatView[48] = value;  // Offset 48
     }
-
+    
     set screenHeight(value: number) {
-        this.floatView[33] = value;
+        this.floatView[49] = value;  // Offset 49
     }
-
+    
     set zNear(value: number) {
-        this.floatView[34] = value;
+        this.floatView[50] = value;  // Offset 50
     }
-
+    
     set zFar(value: number) {
-        this.floatView[35] = value;
+        this.floatView[51] = value;  // Offset 51
     }
-
+    
     set clusterX(value: number) {
-        this.floatView[36] = value;
+        this.floatView[52] = value;  // Offset 52
     }
-
+    
     set clusterY(value: number) {
-        this.floatView[37] = value;
+        this.floatView[53] = value;  // Offset 53
     }
-
+    
     set clusterZ(value: number) {
-        this.floatView[38] = value;
+        this.floatView[54] = value;  // Offset 54
     }
-
 }
 
 export class Camera {
@@ -173,6 +179,7 @@ export class Camera {
         this.uniforms.viewProjMat = viewProjMat;
 
         // TODO-2: write to extra buffers needed for light clustering here
+        this.uniforms.viewMat = viewMat;
         const invProjMat = mat4.invert(this.projMat);
         this.uniforms.invProjMat = invProjMat;
         this.uniforms.screenWidth = canvas.width;

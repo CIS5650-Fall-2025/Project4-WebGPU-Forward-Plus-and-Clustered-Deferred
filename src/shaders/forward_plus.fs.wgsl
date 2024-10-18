@@ -26,6 +26,7 @@
 
 struct FragmentInput
 {
+    @builtin(position) fragPos: vec4f,
     @location(0) pos: vec3f,
     @location(1) nor: vec3f,
     @location(2) uv: vec2f 
@@ -51,7 +52,6 @@ fn random1(value: u32) -> vec3f {
     return vec3f(x, y, z);               
 }
 
-
 @fragment
 fn main(in: FragmentInput) -> @location(0) vec4f {
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
@@ -61,23 +61,19 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
 
     // Step 1: Determine which cluster the current fragment is in
     let screenPos = (cameraUniforms.viewProjMat * vec4(in.pos, 1.0)).xyz; 
-    var fragCoordXY = (screenPos.xy / screenPos.z) * 0.5 + 0.5;            // Normalize to [0, 1] for XY
-    let fragCoordZ = screenPos.z; // Use Z-depth in view space
+    let viewSpacePos = (cameraUniforms.viewMat * vec4(in.pos, 1.0)).xyz;
+    let fragCoordZ = viewSpacePos.z;
+    var fragCoordXY = in.fragPos.xy;
 
     // The grid size is 16 X 16 X 16
     let gridSize = vec3f(cameraUniforms.clusterX, cameraUniforms.clusterY, cameraUniforms.clusterZ);
     let tileSize = vec2f(cameraUniforms.screenWidth / f32(gridSize.x), cameraUniforms.screenHeight / f32(gridSize.y));
-    // let tileIdxX = u32(fragCoordXY.x * 15.0); // 0-15 for 16 tiles
-    // let tileIdxY = u32(fragCoordXY.y * 15.0); // 0-15 for 16 tiles
 
     let depthSlice = u32((log2(abs(fragCoordZ) / cameraUniforms.zNear)* f32(gridSize.z)) / log2(cameraUniforms.zFar / cameraUniforms.zNear));
     var tileIdx: vec3<u32> = vec3<u32>(vec2<u32>(fragCoordXY / tileSize),u32(depthSlice));
     let clusterIdx = tileIdx.x + (tileIdx.y * u32(gridSize.x)) + (tileIdx.z * u32(gridSize.x) * u32(gridSize.y));
 
-    // let clusterIdx = tileIdxX + (tileIdxY * u32(gridSize.x)) + (depthSlice * u32(gridSize.x) * u32(gridSize.y));
-
     // Step 2: Retrieve the lights for this cluster
-    // let cluster = clusterSet.clusters[4000];// I did able to get all the cluster but the idex seems to be incorrect
     let cluster = clusterSet.clusters[clusterIdx];
     var totalLightContrib = vec3f(0.0, 0.0, 0.0);
 
@@ -91,27 +87,5 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
 
     // Step 4: Multiply the diffuse color by the accumulated light contribution
     var finalColor = diffuseColor.rgb * totalLightContrib;
-
-//    //Test buffer
-//     let camWidth = cameraUniforms.screenWidth / 2560.0; // correct
-//     let camHei = cameraUniforms.screenHeight / 1398.0; // correct
-//     let camClus = cameraUniforms.clusterZ / 16.0; // correct
-//     let camZnear = cameraUniforms.zNear / 0.1; // correct
-
-//     //Test Cluster buffer
-//     let clusMinPos = cluster.minPos.xyz;  // correct
-//     let clusMaxPos = cluster.maxPos.xyz;  // correct
-//     let clusLightNum = f32(cluster.numLights) / 500.0;  // correct
-
-//     let red3 = f32(cluster.numLights)/10.3; // wrong
-//     let green3 = f32(clusterIdx); // wrong
-//     let red4 = cluster.minPos.x;
-//     let test = diffuseColor.rgb + vec3f(red4, 0.0, 0.0);
-//     let test2 = random2(vec2f(f32(tileIdxX), f32(tileIdxY)));
-//     let test1 =  random1(clusterIdx);
-//     let depthSliceVis = f32(depthSlice) / f32(gridSize.z);  // Normalize depthSlice to [0, 1]
-    // return vec4(depthSliceVis,depthSliceVis,depthSliceVis, 1.0);
-    // return vec4(clusLightNum,0.0,0.0, 1.0);
-    // return vec4(clusMinPos, 1.0);
     return vec4(finalColor, 1);
 }

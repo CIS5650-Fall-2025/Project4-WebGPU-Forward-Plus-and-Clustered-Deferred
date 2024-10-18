@@ -30,10 +30,9 @@ export class Lights {
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
     // add buffers for clusterSet
-    // static readonly numClusters = 4096;
     static readonly numClusters = 16 * 9 * 24;
     static readonly numFloatsPerCluster = 509;
-
+    
     clusterArray = new Float32Array(Lights.numClusters * Lights.numFloatsPerCluster);
     clusterSetStorageBuffer: GPUBuffer;
 
@@ -48,7 +47,7 @@ export class Lights {
         this.clusterSetStorageBuffer = device.createBuffer({
             label: "cluster set buffer in light class",
             size: this.clusterArray.byteLength, // check pedding later
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST |  GPUBufferUsage.COPY_SRC
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
         });
         this.populateClusterBuffer();
 
@@ -119,7 +118,7 @@ export class Lights {
                 { // lightSet
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "storage" }
+                    buffer: { type: "read-only-storage" }
                 },
                 { // camera
                     binding: 1,
@@ -198,7 +197,10 @@ export class Lights {
         computePass.setPipeline(this.computePipeline);
         computePass.setBindGroup(0, this.clusterComputeBindGroup);
         // computePass.dispatchWorkgroups(1,1,32);
-        computePass.dispatchWorkgroups(Math.ceil(shaders.constants.clusterXNum/shaders.constants.clusterWorkgroupSize[0]), Math.ceil(shaders.constants.clusterYNum/shaders.constants.clusterWorkgroupSize[1]), Math.ceil(shaders.constants.clusterZNum/shaders.constants.clusterWorkgroupSize[2]));
+        computePass.dispatchWorkgroups(
+            Math.ceil(shaders.constants.clusterXNum/shaders.constants.clusterWorkgroupSize[0]),
+            Math.ceil(shaders.constants.clusterYNum/shaders.constants.clusterWorkgroupSize[1]),
+            Math.ceil(shaders.constants.clusterZNum/shaders.constants.clusterWorkgroupSize[2]));
         computePass.end();
         device.queue.submit([encoder.finish()]);
     }
