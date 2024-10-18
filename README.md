@@ -12,11 +12,11 @@ WebGPU Forward Clustered and Clustered Deferred Shading
 [Live Demo Link](https://lanbiubiu1.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
 ### Demo Video/GIF
-#### 2000 Lights
-![](img/demo3.gif)
+#### 5000 Lights
+![](img/demo4.gif)
 
-#### 500 Lights
-![](img/demo2.gif)
+#### 5000 Lights, interactive
+![](img/demo6.gif)
 
 
 
