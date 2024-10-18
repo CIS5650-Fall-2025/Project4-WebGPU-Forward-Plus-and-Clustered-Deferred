@@ -109,11 +109,9 @@ export class Lights {
         // TODO-2: initialize layouts, pipelines, textures, etc. needed for light clustering here
         this.clusterSetStorageBuffer = device.createBuffer({
             label: "clusterSetStorageBuffer creation in lights.ts",
-            size: 16 + this.clustersArray.byteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-            mappedAtCreation: true,  // Map it to write data initially
+            size: this.clustersArray.byteLength,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
-        this.updateNumberOfClusters();
 
         this.sceneUniformsBindGroupLayout = device.createBindGroupLayout({
             label: "scene uniforms bind group layout in lights.ts",
@@ -187,11 +185,6 @@ export class Lights {
 
     updateLightSetUniformNumLights() {
         device.queue.writeBuffer(this.lightSetStorageBuffer, 0, new Uint32Array([this.numLights]));
-    }
-
-    private updateNumberOfClusters() {
-        this.clusterSetStorageBuffer.unmap();  // Unmap it before writing data
-        device.queue.writeBuffer(this.clusterSetStorageBuffer, 0, new Uint32Array([shaders.constants.numOfClusters]));
     }
 
     doLightMove(time: number) {

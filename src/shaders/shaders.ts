@@ -37,7 +37,7 @@ export const constants = {
     // clustering compute shader vars
     clusterDimensions: clusterDimensions,
     numOfClusters: clusterDimensions.x * clusterDimensions.y * clusterDimensions.z,
-    maxLightsPerCluster: 100,
+    maxLightsPerCluster: 500,
     lightCluserWorkgroupSize: 128
 };
 
