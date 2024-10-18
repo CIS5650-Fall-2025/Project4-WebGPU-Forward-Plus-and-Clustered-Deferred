@@ -52,8 +52,8 @@ Deferred clustered lighting builds upon deferred rendering by integrating cluste
 In dividing the view frustum into clusters along the Z-axis (depth), there are two common methods: uniform Z slicing and logarithmic Z slicing.
 
 <img src="img//zs1.png" width="400"/> <img src="img//zs2.png" width="400"/> 
-* left is uniform Z slicing
-* right is logarithmic Z slicing
+* left is uniform Z-slicing
+* right is logarithmic Z-slicing
 
 
 1st is uniform Z slicing. In uniform Z slicing, the view frustum is divided into equal intervals along the depth axis. This approach is simple to implement but can lead to inefficient clustering and problems. It mainly slicing the depth into very "thin" slices. Once there are a large number of lights in each cluster, the problem appears as follows, there is a cross-black-boundary on the screen:
@@ -62,6 +62,17 @@ In dividing the view frustum into clusters along the Z-axis (depth), there are t
 2nd is Logarithmic Z slicing. It divides the view frustum into slices that increase in size logarithmically with distance from the camera. Logarithmic slicing ensures a better balance of cluster density and light assignment, particularly in large scenes
 
 ### Performance Analysis
+
+![](img/PA_1.png)
+
+The graph displays the frames per second (FPS) achieved by three different rendering approaches (Naive Forward, Forward Clustered, and Deferred Clustered) as the number of lights in the scene increases. 
+* The Naive Forward approach (red line) demonstrates a significant drop in FPS as the number of lights increases. As the number of lights doubled, the number of calculations for each fragment also doubled. At 500 lights, it starts at 25 FPS and quickly degrades to 3 FPS as the number of lights reaches 2000 and above. This poor performance is expected for the Naive Forward method, as it requires each light to be evaluated for each fragment, making the complexity grow rapidly with the number of lights. This approach is not scalable for scenes with many lights, resulting in unacceptable FPS values beyond 1000 lights.
+* The Forward Clustered approach (blue line) performs significantly better compared to the Naive Forward approach. At 500 lights, it achieves 220 FPS, but it also shows a declining trend as the number of lights increases. By the time it reaches 5000 lights, the FPS drops to 28. This optimization offers better performance than the Naive Forward approach, but the decline in FPS with increasing lights indicates that the Forward Clustered approach still struggles to manage very large numbers of lights efficiently, which is also understandable. Even the maximum number of lights is 1024 for each cluster and 16 * 9 * 24 clusters, meaning it is enough to handle a large number of lights. But once the number of lights goes up, more and more light is assigned to each cluster, so each cluster faces the same challenge the fragment in the naive approach faced. The number of lighting calculations for each cluster increases drastically, especially the cluster near the camera since it uses logarithm depth slicing.
+  * Also, the forward approach overall faces an overdraw problem, which doing calculations for color that will not show on the screen. For example, one object blocks the other one behind. If there is a light source on the roof, both objects will be included in the calculation, but only the front of the object will show on the final screen image.
+  
+* The Deferred Clustered approach (green line) provides the best performance among the three methods. Starting at 360 FPS with 500 lights, it maintains a high FPS even as the number of lights increases, dropping to 90 FPS at 5000 lights. The Deferred Clustered approach allows it to manage complex lighting scenarios by grouping lights into clusters and only processing them where necessary. One of the key reasons why deferred clustered lighting achieves superior performance is the decoupling of light calculations from other rendering stages. In deferred shading, the scene geometry is first rendered to multiple G-buffers. Once this data is collected, the lighting calculations are performed as a separate pass, using the data stored in the G-buffers. This separation means that lighting calculations are only applied to the pixels visible on the screen, avoiding over-draw issues in the forward shading approach.
+
+For real-time applications with complex lighting, the Deferred Clustered approach is the recommended choice, as it provides a much higher FPS, ensuring smoother visual experiences.
 
 ### Credits
 
