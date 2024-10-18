@@ -65,13 +65,13 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     if clusterIdx >= numClusters {
         discard;
     }
-    let cluster = clusterSet.clusters[clusterIdx];
+    let clusterNumLights = clusterSet.clusters[clusterIdx].numLights;
 
     var totalLightContrib = vec3f(f32(0.0), f32(0.0), f32(0.0));
 
-    for (var lightIdx = 0u; lightIdx < cluster.numLights; lightIdx++) {
+    for (var lightIdx = 0u; lightIdx < clusterNumLights; lightIdx++) {
         //totalLightContrib += vec3f(f32(0.01), f32(0.01), f32(0.01));
-        let light = lightSet.lights[cluster.lights[lightIdx]];
+        let light = lightSet.lights[clusterSet.clusters[clusterIdx].lights[lightIdx]];
         totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
     }
     //totalLightContrib = vec3f(f32(xIdx) / f32(clusterSet.numClustersX), f32(0), f32(0));

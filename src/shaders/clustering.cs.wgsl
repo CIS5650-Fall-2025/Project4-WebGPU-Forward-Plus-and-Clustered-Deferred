@@ -33,7 +33,7 @@ fn getZNDCFromZView(linZ: f32) -> f32 {
 @group(0) @binding(2) var<uniform> camUniforms: CameraUniforms;
 
 @compute
-@workgroup_size(${clusterLightsWorkgroupSize}, ${clusterLightsWorkgroupSize}, ${numZBins})
+@workgroup_size(${clusterLightsWorkgroupSize}, ${clusterLightsWorkgroupSize}, ${clusterLightsWorkgroupSize})
 fn main(@builtin(global_invocation_id) globalIdx: vec3u, @builtin(workgroup_id) group_id: vec3u) {
     let numXClusters = clusterSet.numClustersX;
     let numYClusters = clusterSet.numClustersY;
@@ -100,8 +100,7 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u, @builtin(workgroup_id) 
     let maxClusterLights = ${clusterMaxLights};
     let numLights = lightSet.numLights;
     for(var i: u32 = 0; i < numLights; i++) {
-        let light = lightSet.lights[i];
-        let lightPos = light.pos;
+        let lightPos = lightSet.lights[i].pos;
         let lightCamPos4 = camUniforms.viewMat * vec4(lightPos, 1.0);
         //check this, should I be dividing by w?
         let lightCamPos = lightCamPos4.xyz;// / lightCamPos4.w;
@@ -123,8 +122,8 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u, @builtin(workgroup_id) 
 
     }
     clusterSet.clusters[linearIdx].numLights = u32(numClustersAdded); 
-    clusterSet.clusters[linearIdx].minBoundingBox = vec3f(AABBVec[0].x, AABBVec[1].x, AABBVec[2].x);
-    clusterSet.clusters[linearIdx].maxBoundingBox = vec3f(AABBVec[0].y, AABBVec[1].y, AABBVec[2].y);
+    //clusterSet.clusters[linearIdx].minBoundingBox = vec3f(AABBVec[0].x, AABBVec[1].x, AABBVec[2].x);
+    //clusterSet.clusters[linearIdx].maxBoundingBox = vec3f(AABBVec[0].y, AABBVec[1].y, AABBVec[2].y);
     //some printing for testing
     //clusterSet.clusters[linearIdx].maxBoundingBox = vec3f(f32(globalIdx.x)/f32(numXClusters), 0, 0);
     //clusterSet.clusters[linearIdx].maxBoundingBox = vec3f(0, f32(globalIdx.y)/f32(numYClusters), 0);

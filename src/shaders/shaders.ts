@@ -32,10 +32,10 @@ export const constants = {
     moveLightsWorkgroupSize: 128,
     lightRadius: 2.0,
 
-    clusterSize: 32,
-    clusterLightsWorkgroupSize: 2,
+    clusterSize: 128,
+    clusterLightsWorkgroupSize: 4,
     numZBins: 40,
-    clusterMaxLights: 512,
+    clusterMaxLights: 2048,
 
     nearZ: 0.1,
     farZ: 25,

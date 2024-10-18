@@ -34,7 +34,10 @@ export class Lights {
     numXClusters: number;
     numYClusters: number;
     numZClusters: number;
-    clusterDataSize = (12 + this.numLights);
+    numXClustersLaunch: number;
+    numYClustersLaunch: number;
+    numZClustersLaunch: number;
+    clusterDataSize = (12 + shaders.constants.clusterMaxLights);
     clusterSetStorageBuffer: GPUBuffer;
     clusterBindGroupLayout: GPUBindGroupLayout;
     clusterBindGroup: GPUBindGroup;
@@ -44,8 +47,10 @@ export class Lights {
         this.camera = camera;
         this.numXClusters = Math.ceil(canvas.width / shaders.constants.clusterSize);
         this.numYClusters = Math.ceil(canvas.height / shaders.constants.clusterSize);
-        //this.numZClusters = Math.ceil(shaders.constants.numZBins / shaders.constants.clusterSize);
         this.numZClusters = shaders.constants.numZBins;
+        this.numXClustersLaunch = Math.ceil(this.numXClusters / shaders.constants.clusterLightsWorkgroupSize);
+        this.numYClustersLaunch = Math.ceil(this.numYClusters / shaders.constants.clusterLightsWorkgroupSize);
+        this.numZClustersLaunch = Math.ceil(this.numZClusters / shaders.constants.clusterLightsWorkgroupSize);
 
         this.lightSetStorageBuffer = device.createBuffer({
             label: "lights",
@@ -216,7 +221,7 @@ export class Lights {
         const computePass = encoder.beginComputePass();
         computePass.setPipeline(this.clusterPipeline);
         computePass.setBindGroup(0, this.clusterBindGroup);
-        computePass.dispatchWorkgroups(this.numXClusters, this.numYClusters, 1);
+        computePass.dispatchWorkgroups(this.numXClustersLaunch, this.numYClustersLaunch, this.numZClustersLaunch);
         computePass.end()
     }
 
