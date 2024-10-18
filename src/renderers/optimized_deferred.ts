@@ -22,10 +22,6 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
     debugTextureView: GPUTextureView;
 
     // scene bind group with gbuffer
-    sceneGbufferBindGroupLayout: GPUBindGroupLayout;
-    sceneGbufferBindGroup: GPUBindGroup;
-
-    pipeline: GPURenderPipeline;
 
     // light culling
     numTilesX: number;
@@ -54,10 +50,6 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
     // full screen compute pass
     sceneComputeBindGroupLayout: GPUBindGroupLayout;
     pipelineFullscreenCompute: GPUComputePipeline;
-
-    // full screen triangle
-    vertexBuffer: GPUBuffer;
-    vertexBufferLayout: GPUVertexBufferLayout;
 
     constructor(stage: Stage) {
         super(stage);
@@ -128,51 +120,6 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
         });
         this.depthTextureView = this.depthTexture.createView();
 
-        this.sceneGbufferBindGroupLayout = renderer.device.createBindGroupLayout({
-            label: "scene uniforms bind group layout",
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { type: "uniform" },
-                },
-                {
-                    // lightSet
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: "read-only-storage" },
-                },
-                {
-                    // unity texture
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {
-                        sampleType: "uint",
-                        viewDimension: "2d",
-                    },
-                },
-            ],
-        });
-
-        this.sceneGbufferBindGroup = renderer.device.createBindGroup({
-            label: "scene uniforms bind group",
-            layout: this.sceneGbufferBindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: { buffer: this.camera.uniformsBuffer },
-                },
-                {
-                    binding: 1,
-                    resource: { buffer: this.lights.lightSetStorageBuffer },
-                },
-                {
-                    binding: 2,
-                    resource: this.unityTextureView,
-                },
-            ],
-        });
-
         // full screen compute pass bind group
         this.sceneComputeBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "scene uniforms bind group layout",
@@ -235,9 +182,6 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
                 targets: [
                     {
                         format: "rgba32uint",
-                    },
-                    {
-                        format: "rgba16float",
                     },
                 ],
             },
@@ -507,49 +451,6 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
             ],
         });
 
-        this.vertexBuffer = renderer.device.createBuffer({
-            label: "screen size triangle vertex buffer",
-            size: vertexBufferData.byteLength,
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-        });
-        renderer.device.queue.writeBuffer(this.vertexBuffer, 0, vertexBufferData);
-
-        this.vertexBufferLayout = {
-            arrayStride: 2 * Float32Array.BYTES_PER_ELEMENT,
-            attributes: [
-                {
-                    format: "float32x2",
-                    offset: 0,
-                    shaderLocation: 0,
-                },
-            ],
-        };
-
-        this.pipeline = renderer.device.createRenderPipeline({
-            layout: renderer.device.createPipelineLayout({
-                label: "optimized deferred pipeline layout",
-                bindGroupLayouts: [this.sceneGbufferBindGroupLayout, this.sceneLightsBindGroupLayout],
-            }),
-            vertex: {
-                module: renderer.device.createShaderModule({
-                    label: "optimized deferred vert shader",
-                    code: shaders.clusteredDeferredFullscreenVertSrc,
-                }),
-                buffers: [this.vertexBufferLayout],
-            },
-            fragment: {
-                module: renderer.device.createShaderModule({
-                    label: "optimized deferred frag shader",
-                    code: shaders.optimizedDeferredFullscreenFragSrc,
-                }),
-                targets: [
-                    {
-                        format: renderer.canvasFormat,
-                    },
-                ],
-            },
-        });
-
         this.pipelineFullscreenCompute = renderer.device.createComputePipeline({
             layout: renderer.device.createPipelineLayout({
                 bindGroupLayouts: [this.sceneComputeBindGroupLayout, this.sceneLightsBindGroupLayout],
@@ -579,12 +480,6 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
             colorAttachments: [
                 {
                     view: this.unityTextureView,
-                    loadOp: "clear",
-                    storeOp: "store",
-                    clearValue: { r: 0, g: 0, b: 0, a: 0 },
-                },
-                {
-                    view: this.debugTextureView,
                     loadOp: "clear",
                     storeOp: "store",
                     clearValue: { r: 0, g: 0, b: 0, a: 0 },
@@ -636,26 +531,6 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
             this.numTilesZ
         );
         lightCullPass.end();
-
-        // render pass
-        // const renderPass = encoder.beginRenderPass({
-        //     label: "optimized deferred render pass",
-        //     colorAttachments: [
-        //         {
-        //             view: canvasTextureView,
-        //             clearValue: [0, 0, 0, 0],
-        //             loadOp: "clear",
-        //             storeOp: "store",
-        //         },
-        //     ],
-        // });
-
-        // renderPass.setPipeline(this.pipeline);
-        // renderPass.setBindGroup(0, this.sceneGbufferBindGroup);
-        // renderPass.setBindGroup(1, this.sceneLightsBindGroup);
-        // renderPass.setVertexBuffer(0, this.vertexBuffer);
-        // renderPass.draw(3);
-        // renderPass.end();
 
         // full screen compute pass
         const computePass = encoder.beginComputePass();

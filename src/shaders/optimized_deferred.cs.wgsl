@@ -1,7 +1,7 @@
 @group(0) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
 @group(0) @binding(1) var<storage, read> lightSet: LightSet;
 @group(0) @binding(2) var unityTex: texture_2d<u32>;
-@group(0) @binding(3) var outputTex: texture_storage_2d<bgra8unorm, write>;
+@group(0) @binding(3) var outputTex: texture_storage_2d<bgra8unorm, write>; // the format could be wrong
 
 @group(1) @binding(0) var<uniform> res: Resolution;
 @group(1) @binding(1) var<uniform> tileInfo: TileInfo;
