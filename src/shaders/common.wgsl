@@ -16,8 +16,8 @@ struct Cluster {
     minPos: vec4f, //16 bytes
     maxPos: vec4f, //16 bytes
     numLights: u32, //4 bytes
-    lightIndices: array<u32,500> // 2000 bytes
-    // total 2036 bytes per cluster
+    lightIndices: array<u32,503> // 2000 bytes
+    // total 2048 bytes per cluster
 }
 
 struct ClusterSet {

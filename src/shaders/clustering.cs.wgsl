@@ -10,7 +10,7 @@
 // screen to view space (camera space)
 fn screenToView(screenCoord: vec2f) -> vec3f {
     var ndc = vec4f((screenCoord.x / cameraUniforms.screenWidth) * 2.0 - 1.0, (screenCoord.y / cameraUniforms.screenHeight) * 2.0 - 1.0, -1.0, 1.0); 
-    ndc.y = -ndc.y;
+    ndc.y = -ndc.y; // WEBGPU ndc.y is inverted?
     var viewPos = cameraUniforms.invProjMat * ndc;
     viewPos /= viewPos.w;
     return viewPos.xyz;
@@ -25,7 +25,7 @@ fn lineIntersectionWithZPlane(startPoint: vec3f, endPoint: vec3f, zPlane: f32) -
 }
 
 fn sphereIntersectsAABB(center: vec3f, aabbMin: vec3f, aabbMax: vec3f) -> bool {
-    let radius = 2.0;
+    let radius = f32(${lightRadius}); // shader.ts
     // closest point on the AABB to the sphere center
     let closestPoint = clamp(center, aabbMin, aabbMax);
     // distance between the sphere center and this closest point
@@ -34,11 +34,8 @@ fn sphereIntersectsAABB(center: vec3f, aabbMin: vec3f, aabbMax: vec3f) -> bool {
 }
 
 @compute
-//CUDA block size. Specify the size in the shader.
-//maxComputeInvocationsPerWorkgroup = 256
-@workgroup_size(${clusterWorkgroupSize})
-//global_invocation_id is equivalent to blockIdx * blockdim + threadIdx
-fn main(@builtin(global_invocation_id) globalIdx: vec3u){
+@workgroup_size(${clusterWorkgroupSize}) //maxComputeInvocationsPerWorkgroup = 256
+fn main(@builtin(global_invocation_id) globalIdx: vec3u){ //global_invocation_id is equivalent to blockIdx * blockdim + threadIdx
 // ------------------------------------
 // Calculating cluster bounds:
 // ------------------------------------
@@ -104,12 +101,10 @@ clusterSet.clusters[tileIdx].maxPos = maxPos;
 
 // Initialize a counter for the number of lights in this cluster.
 var lightNum: u32 = 0u;
-clusterSet.clusters[tileIdx].numLights = 0u;
-
 
 for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
     // Stop adding lights if the maximum number of lights is reached.
-    if (lightNum >= 500u) {
+    if (lightNum >= 503u) {
         break;
     }
     

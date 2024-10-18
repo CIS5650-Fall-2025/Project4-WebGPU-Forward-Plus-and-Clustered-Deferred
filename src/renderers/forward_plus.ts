@@ -46,9 +46,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             label: "forward: scene uniforms bind group",
             layout: this.sceneUniformsBindGroupLayout,
             entries: [
-                // TODO-1.2: add an entry for camera uniforms at binding 0
-                // you can access the camera using this.camera
-                // if you run into TypeScript errors, you're probably trying to upload the host buffer instead
                 {
                     binding: 0,
                     resource: { buffer: this.camera.uniformsBuffer }
@@ -113,7 +110,8 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         // - run the clustering compute shader
         const computeEncoder = renderer.device.createCommandEncoder({label: "Forward+ compute pass encoder created"});  
         this.lights.doLightClustering(computeEncoder);   
-
+        renderer.device.queue.submit([computeEncoder.finish()]);
+        
         // - run the main rendering pass, using the computed clusters for efficient lighting
         const renderEncoder = renderer.device.createCommandEncoder();
         const canvasTextureView = renderer.context.getCurrentTexture().createView();

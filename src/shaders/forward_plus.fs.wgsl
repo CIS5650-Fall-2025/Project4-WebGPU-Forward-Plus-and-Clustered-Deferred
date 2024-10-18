@@ -74,12 +74,12 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     let clusterIdx = tileIdx.x + (tileIdx.y * u32(gridSize.x)) + (tileIdx.z * u32(gridSize.x) * u32(gridSize.y));
 
     // Step 2: Retrieve the lights for this cluster
-    let cluster = clusterSet.clusters[clusterIdx];
+    // let cluster = clusterSet.clusters[clusterIdx]; // why this make me so slow?
     var totalLightContrib = vec3f(0.0, 0.0, 0.0);
 
     // Step 3: Accumulate light contributions from lights affecting this fragment's cluster
-    for (var lightIdx = 0u; lightIdx < cluster.numLights; lightIdx++) {
-        let lightIndex = cluster.lightIndices[lightIdx];
+    for (var lightIdx = 0u; lightIdx < clusterSet.clusters[clusterIdx].numLights; lightIdx++) {
+        let lightIndex = clusterSet.clusters[clusterIdx].lightIndices[lightIdx];
         let light = lightSet.lights[lightIndex];
         // Compute the light contribution for this fragment using a basic Lambertian model
         totalLightContrib += calculateLightContrib(light, in.pos, in.nor);

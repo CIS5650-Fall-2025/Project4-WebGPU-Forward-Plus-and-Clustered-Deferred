@@ -56,7 +56,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         this.normalTextureView = this.normalTexture.createView({label: "normal texture view"});
         console.log("Normal texture view: ", this.normalTextureView);
         console.log("Normal texture size:", renderer.canvas.width, renderer.canvas.height);
-        
+
         //albedo
         this.albedoTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
@@ -252,7 +252,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         // - run the G-buffer pass, outputting position, albedo, and normals
         // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
         const computeEncoder = renderer.device.createCommandEncoder({label: "Forward+ compute pass encoder created"});  
-        this.lights.doLightClustering(computeEncoder);   
+        this.lights.doLightClustering(computeEncoder); 
+        renderer.device.queue.submit([computeEncoder.finish()]);  
 
         // - run the main rendering pass, using the computed clusters for efficient lighting
         const renderEncoder = renderer.device.createCommandEncoder();

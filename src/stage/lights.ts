@@ -31,7 +31,7 @@ export class Lights {
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
     // add buffers for clusterSet
     static readonly numClusters = 16 * 9 * 24;
-    static readonly numFloatsPerCluster = 509;
+    static readonly numFloatsPerCluster = 512;
     
     clusterArray = new Float32Array(Lights.numClusters * Lights.numFloatsPerCluster);
     clusterSetStorageBuffer: GPUBuffer;
@@ -49,7 +49,7 @@ export class Lights {
             size: this.clusterArray.byteLength, // check pedding later
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
         });
-        this.populateClusterBuffer();
+        // this.populateClusterBuffer(); // not needed here, will be done in the renderer
 
         this.lightSetStorageBuffer = device.createBuffer({
             label: "lights",
@@ -196,13 +196,12 @@ export class Lights {
         const computePass = encoder.beginComputePass({label: "Forward+ compute pass begin"}); 
         computePass.setPipeline(this.computePipeline);
         computePass.setBindGroup(0, this.clusterComputeBindGroup);
-        // computePass.dispatchWorkgroups(1,1,32);
         computePass.dispatchWorkgroups(
+            // (16, 9 , 24) / (4, 4, 4) = (4, 3, 6)
             Math.ceil(shaders.constants.clusterXNum/shaders.constants.clusterWorkgroupSize[0]),
             Math.ceil(shaders.constants.clusterYNum/shaders.constants.clusterWorkgroupSize[1]),
             Math.ceil(shaders.constants.clusterZNum/shaders.constants.clusterWorkgroupSize[2]));
         computePass.end();
-        device.queue.submit([encoder.finish()]);
     }
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
