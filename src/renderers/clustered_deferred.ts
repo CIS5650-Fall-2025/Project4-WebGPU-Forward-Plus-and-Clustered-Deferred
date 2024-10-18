@@ -6,11 +6,9 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     gBufferColorTexture: GPUTexture;
     gBufferColorTextureView: GPUTextureView;
 
-    gBufferNormalTexture: GPUTexture;
-    gBufferNormalTextureView: GPUTextureView;
-
-    gBufferDepthTexture: GPUTexture;
-    gBufferDepthTextureView: GPUTextureView;
+    // Pack normal and depth into a single texture to reduce memory bandwidth.
+    gBufferNormalAndDepthTexture: GPUTexture;
+    gBufferNormalAndDepthTextureView: GPUTextureView;
 
     // Regular depth texture for first pass. Necessary for depth testing, but it's not ideal for
     // the second pass because it's normalized and doesn't have great precision.
@@ -55,21 +53,13 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
 
         this.gBufferColorTextureView = this.gBufferColorTexture.createView();
 
-        this.gBufferNormalTexture = renderer.device.createTexture({
+        this.gBufferNormalAndDepthTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-            format: 'rgba16float',
+            format: 'rgba32float',
         });
 
-        this.gBufferNormalTextureView = this.gBufferNormalTexture.createView();
-
-        this.gBufferDepthTexture = renderer.device.createTexture({
-            size: [renderer.canvas.width, renderer.canvas.height],
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-            format: 'r32float',
-        });
-
-        this.gBufferDepthTextureView = this.gBufferDepthTexture.createView();
+        this.gBufferNormalAndDepthTextureView = this.gBufferNormalAndDepthTexture.createView();
 
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "scene uniforms bind group layout",
@@ -122,10 +112,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 targets: [
                     // albedo
                     { format: 'bgra8unorm' },
-                    // normal
-                    { format: 'rgba16float' },
-                    // depth
-                    { format: 'r32float' }
+                    // normalAndDepth
+                    { format: 'rgba32float' }
                 ]
             }
         });
@@ -140,33 +128,28 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: { sampleType: "unfilterable-float" }
                 },
-                { // normalTexture
+                { // normalAndDepthTexture
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: { sampleType: "unfilterable-float" }
                 },
-                { // depthTexture
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: { sampleType: "unfilterable-float" }
-                },
                 { // camera
-                    binding: 3,
+                    binding: 2,
                     visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
                     buffer: { type: "uniform" }
                 },
                 { // clusterSet
-                    binding: 4,
+                    binding: 3,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" }
                 },
                 { // lightSet
-                    binding: 5,
+                    binding: 4,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" }
                 },
                 { // clusterUniforms
-                    binding: 6,
+                    binding: 5,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" }
                 }
@@ -183,26 +166,22 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 },
                 {
                     binding: 1,
-                    resource: this.gBufferNormalTextureView
+                    resource: this.gBufferNormalAndDepthTextureView
                 },
                 {
                     binding: 2,
-                    resource: this.gBufferDepthTextureView
-                },
-                {
-                    binding: 3,
                     resource: { buffer: this.camera.uniformsBuffer }
                 },
                 {
-                    binding: 4,
+                    binding: 3,
                     resource: { buffer: this.lights.clusterSetStorageBuffer }
                 },
                 {
-                    binding: 5,
+                    binding: 4,
                     resource: { buffer: this.lights.lightSetStorageBuffer }
                 },
                 {
-                    binding: 6,
+                    binding: 5,
                     resource: { buffer: this.clusterUniformBuffer }
                 }
             ]
@@ -257,14 +236,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     storeOp: "store"
                 },
                 {
-                    view: this.gBufferNormalTextureView,
-                    clearValue: [0, 0, 1, 1],
-                    loadOp: "clear",
-                    storeOp: "store"
-                },
-                {
-                    view: this.gBufferDepthTextureView,
-                    clearValue: [0, 0, 0, 1],
+                    view: this.gBufferNormalAndDepthTextureView,
+                    clearValue: [0, 0, 0, 0],
                     loadOp: "clear",
                     storeOp: "store"
                 }

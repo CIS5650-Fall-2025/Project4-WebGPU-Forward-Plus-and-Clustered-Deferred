@@ -1,11 +1,10 @@
 @group(${bindGroup_scene}) @binding(0) var gBufferAlbedo: texture_2d<f32>;
-@group(${bindGroup_scene}) @binding(1) var gBufferNormal: texture_2d<f32>;
-@group(${bindGroup_scene}) @binding(2) var gBufferDepth: texture_2d<f32>;
+@group(${bindGroup_scene}) @binding(1) var gBufferNormalAndDepth: texture_2d<f32>;
 
-@group(${bindGroup_scene}) @binding(3) var<uniform> camera: CameraUniforms;
-@group(${bindGroup_scene}) @binding(4) var<storage, read> clusterSet: ClusterSet;
-@group(${bindGroup_scene}) @binding(5) var<storage, read> lightSet: LightSet;
-@group(${bindGroup_scene}) @binding(6) var<uniform> clusterUniforms: ClusterUniforms;
+@group(${bindGroup_scene}) @binding(2) var<uniform> camera: CameraUniforms;
+@group(${bindGroup_scene}) @binding(3) var<storage, read> clusterSet: ClusterSet;
+@group(${bindGroup_scene}) @binding(4) var<storage, read> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(5) var<uniform> clusterUniforms: ClusterUniforms;
 
 fn zIndexFromZ(z: f32) -> u32 {
     // Equation from eq. 3 in http://www.aortiz.me/2018/12/21/CG.html#forward-shading,
@@ -19,8 +18,9 @@ fn main(
 
     // Prefetch g-buffer data
     let albedo = textureLoad(gBufferAlbedo, vec2i(floor(fragCoord.xy)), 0);
-    let normal = textureLoad(gBufferNormal, vec2i(floor(fragCoord.xy)), 0);
-    let depth = textureLoad(gBufferDepth, vec2i(floor(fragCoord.xy)), 0).r;
+    let normalAndDepth = textureLoad(gBufferNormalAndDepth, vec2i(floor(fragCoord.xy)), 0);
+    let normal = vec4f(normalAndDepth.x, normalAndDepth.y, 1.0 - (normalAndDepth.x * normalAndDepth.x + normalAndDepth.y * normalAndDepth.y), 0.0);
+    let depth = normalAndDepth.z;
 
     if (albedo.a < 0.5f) {
         discard;

@@ -13,7 +13,7 @@ fn doesLightIntersectCluster(lightPos: vec3f, clusterMinBounds: vec3f, clusterMa
 
 fn zFromZIndex(zIndex: f32) -> f32 {
     // Slice up Z exponential in **view space**
-    // Equation derived from eq. 3 in http://www.aortiz.me/2018/12/21/CG.html#forward-shading, solving for Z (with a lot of log manipulation).
+    // Equation derived from eq. 3 in http://www.aortiz.me/2018/12/21/CG.html#forward-shading, solving for Z (with a lot of algebraic manipulation).
     // Negative sign accounts for the fact that the camera looks down the negative Z axis.
     return -camera.near * pow((camera.far / camera.near), zIndex / clusterUniforms.clusterDims.z);
 }

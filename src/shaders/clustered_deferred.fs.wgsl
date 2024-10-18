@@ -12,8 +12,7 @@ struct FragmentInput
 
 struct GBufferOutput {
   @location(0) albedo : vec4f,
-  @location(1) normal : vec4f,
-  @location(2) depth : f32,
+  @location(1) normalAndDepth : vec4f,
 }
 
 @fragment
@@ -28,8 +27,7 @@ fn main(
 
     var output: GBufferOutput;
     output.albedo = vec4f(diffuseColor.rgb, 1.0);
-    output.normal = vec4f(in.nor, 0.0);
-    output.depth = in.depth;
+    output.normalAndDepth = vec4f(in.nor.x, in.nor.y, in.depth, 0.0);
 
     return output;
 }
