@@ -53,11 +53,14 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     let depth = -viewPos.z;
 
     // Calculate cluster indices using logarithmic depth
-    let logRatio = cameraUniforms.farPlane / cameraUniforms.nearPlane;
+    let near = cameraUniforms.nearPlane;
+    let far = cameraUniforms.farPlane;
+
+    let logRatio = log(far / near);
     var zClusterF32: f32;
     
-    let depthClamped = clamp(depth, cameraUniforms.nearPlane, cameraUniforms.farPlane);
-    zClusterF32 = (log(depthClamped / cameraUniforms.nearPlane) / log(logRatio)) * f32(${clusterCountZ});
+    let depthClamped = clamp(depth, near, far);
+    zClusterF32 = (log(depthClamped / near) / logRatio) * f32(${clusterCountZ});
 
     var zCluster = u32((floor(zClusterF32)));
 

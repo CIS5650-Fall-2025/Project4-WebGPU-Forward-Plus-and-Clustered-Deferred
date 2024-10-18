@@ -11,27 +11,33 @@
 
 @fragment
 fn main(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
-    let uv = vec2f(fragCoord.x, 1-fragCoord.y);
-
-    let pos = textureLoad(positionTex, vec2i(fragCoord.xy), 0).xyz;
-    let nor = textureLoad(normalTex, vec2i(fragCoord.xy), 0).xyz;
-    let albedo = textureLoad(albedoTex, vec2i(fragCoord.xy), 0).rgb;
 
     let screenWidth = cameraUniforms.screenWidth;
     let screenHeight = cameraUniforms.screenHeight;
+    let uv01 = vec2f(fragCoord.x / screenWidth, fragCoord.y / screenHeight);
+    let uvScreen = vec2i(i32(fragCoord.x), i32(fragCoord.y));
 
-    let xCluster = u32(fragCoord.x / screenWidth * f32(${clusterCountX}));
-    let yCluster = u32(fragCoord.y / screenHeight * f32(${clusterCountY}));
+    let pos = textureLoad(positionTex, uvScreen, 0).xyz;
+    let nor = textureLoad(normalTex, uvScreen, 0).xyz;
+    let albedo = textureLoad(albedoTex, uvScreen, 0).rgb;
+
+
+    //vec2 ndcPos = fragCoord
+    let xCluster = u32(uv01.x * f32(${clusterCountX}));
+    let yCluster = u32((1.0 - uv01.y)  * f32(${clusterCountY}));
 
     // Calculate cluster indices using logarithmic depth
-    let logRatio = cameraUniforms.farPlane / cameraUniforms.nearPlane;
-    var zClusterF32: f32;
-    
     var viewPos =  cameraUniforms.viewMat * vec4f(pos, 1.0);
     let depth = -viewPos.z;
-    //var depth = -pos.z;
-    let depthClamped = clamp(depth, cameraUniforms.nearPlane, cameraUniforms.farPlane);
-    zClusterF32 = (log(depthClamped / cameraUniforms.nearPlane) / log(logRatio)) * f32(${clusterCountZ});
+
+    let far = cameraUniforms.farPlane;
+    let near = cameraUniforms.nearPlane;
+
+    let logRatio = log(far / near);
+    var zClusterF32: f32;
+    
+    let depthClamped = clamp(depth, near, far);
+    zClusterF32 = (log(depthClamped / near) / logRatio) * f32(${clusterCountZ});
 
     var zCluster = u32((floor(zClusterF32)));
 
@@ -54,5 +60,5 @@ fn main(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
 
     var finalColor = albedo * totalLightContrib;
     return vec4(finalColor, 1.0);
-    //return vec4(f32(xCluster)/100.0,f32(yCluster)/100.0,0.0, 1.0);
+    //return vec4(f32(xCluster)/10.0,f32(yCluster)/10.0,0.0, 1.0);
 }

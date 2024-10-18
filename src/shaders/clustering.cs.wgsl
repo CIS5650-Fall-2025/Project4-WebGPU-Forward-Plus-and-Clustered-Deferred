@@ -64,9 +64,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
     let ndcMax = vec2f(xMax, yMax);
 
     // Logarithmic depth partitioning
-    let logRatio = cameraUniforms.farPlane / cameraUniforms.nearPlane;
-    let minZview = cameraUniforms.nearPlane * exp(logRatio * f32(clusterId.z) / f32(clusterCountZ));
-    let maxZview = cameraUniforms.nearPlane * exp(logRatio * f32(clusterId.z + 1u) / f32(clusterCountZ));
+    let near = cameraUniforms.nearPlane;
+    let far = cameraUniforms.farPlane;
+
+    let logRatio = log(far/ near);
+    let minZview = -near * exp(logRatio * f32(clusterId.z) / f32(clusterCountZ));
+    let maxZview = -near * exp(logRatio * f32(clusterId.z + 1u) / f32(clusterCountZ));
 
     let projectMat = cameraUniforms.projMat;
     let minZNDC = ((projectMat[2][2] * minZview) + projectMat[3][2]) / ((projectMat[2][3] * minZview) + projectMat[3][3]);
