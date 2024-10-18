@@ -13,7 +13,7 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ### Demo Video/GIF
 
-[![](img/video.mp4)](TODO)
+[![](img/VideoDemo.mp4)](TODO)
 
 ### Performance Analysis
 
@@ -23,6 +23,15 @@ WebGL Forward+ and Clustered Deferred Shading
   </tr>
   <tr>
     <td colspan="3" align="center"><i> Cluster Grid (16,16,24), Cluster Workgroup Size (4,4,4), Max Number of Lights per Cluster 1000</i></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td><img src="img/effectClusterTiles.png" /></td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center"><i> Number of Lights 500, Cluster Workgroup Size (4,4,4), Max Number of Lights per Cluster 1000</i></td>
   </tr>
 </table>
 
