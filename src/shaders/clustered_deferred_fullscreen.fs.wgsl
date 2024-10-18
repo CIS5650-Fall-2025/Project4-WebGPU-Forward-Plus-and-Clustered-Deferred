@@ -78,7 +78,6 @@ fn main(
     );
 
     let colorIdx = u32(tileXYZ.x + tileXYZ.y + tileXYZ.z) % 8;
-
     //finalColor += colorOptions[colorIdx];
 
     return vec4<f32>(finalColor, 1.0);
