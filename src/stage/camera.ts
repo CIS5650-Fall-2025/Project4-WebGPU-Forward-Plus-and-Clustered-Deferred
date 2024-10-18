@@ -14,11 +14,28 @@ class CameraUniforms {
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
+    readonly inverseProjMat = new ArrayBuffer(16 * 4);
+    private readonly inverseProjMatFloatView = new Float32Array(this.inverseProjMat);
+    set inverseProjMatSetter(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.inverseProjMatFloatView[i] = mat[i];
+        }
+    }
+    readonly inverseViewMat = new ArrayBuffer(16 * 4);
+    private readonly inverseViewMatFloatView = new Float32Array(this.inverseViewMat);
+    set inverseViewMatSetter(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.inverseViewMatFloatView[i] = mat[i];
+        }
+    }
+
 }
 
 export class Camera {
     uniforms: CameraUniforms = new CameraUniforms();
     uniformsBuffer: GPUBuffer;
+    uniformsInverseProjBuffer: GPUBuffer;
+    uniformsInverseViewBuffer: GPUBuffer;
 
     projMat: Mat4 = mat4.create();
     cameraPos: Vec3 = vec3.create(-7, 2, 0);
@@ -43,6 +60,16 @@ export class Camera {
         // note that you can add more variables (e.g. inverse proj matrix) to this buffer in later parts of the assignment
         this.uniformsBuffer = device.createBuffer({
             label: "camera uniform",
+            size: this.uniforms.buffer.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        this.uniformsInverseProjBuffer = device.createBuffer({
+            label: "camera inverse proj uniform",
+            size: this.uniforms.buffer.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        this.uniformsInverseViewBuffer = device.createBuffer({
+            label: "camera inverse view uniform",
             size: this.uniforms.buffer.byteLength,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
@@ -140,6 +167,10 @@ export class Camera {
         this.uniforms.viewProjMat = viewProjMat;
 
         // TODO-2: write to extra buffers needed for light clustering here
+        this.uniforms.inverseProjMatSetter = mat4.inverse(this.projMat);
+        device.queue.writeBuffer(this.uniformsInverseProjBuffer, 0, this.uniforms.inverseProjMat);
+        this.uniforms.inverseViewMatSetter = mat4.inverse(viewMat);
+        device.queue.writeBuffer(this.uniformsInverseViewBuffer, 0, this.uniforms.inverseViewMat);
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
