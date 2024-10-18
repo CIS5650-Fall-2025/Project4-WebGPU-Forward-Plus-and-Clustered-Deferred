@@ -3,9 +3,9 @@ WebGL Forward+ and Clustered Deferred Shading
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) **Google Chrome 222.2** on
-  Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Joanna Fisch
+  * [LinkedIn](https://www.linkedin.com/in/joanna-fisch-bb2979186/), [Website](https://sites.google.com/view/joannafischsportfolio/home)
+* Tested on: Windows 11, i7-12700H @ 2.30GHz 16GB, NVIDIA GeForce RTX 3060 (Laptop)
 
 ### Live Demo
 
@@ -15,13 +15,16 @@ WebGL Forward+ and Clustered Deferred Shading
 
 [![](img/video.mp4)](TODO)
 
-### (TODO: Your README)
+### Performance Analysis
 
-*DO NOT* leave the README to the last minute! It is a crucial part of the
-project, and we will not be able to grade you without a good README.
-
-This assignment has a considerable amount of performance analysis compared
-to implementation work. Complete the implementation early to leave time!
+<table>
+  <tr>
+    <td><img src="img/effectLights.png" /></td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center"><i> Cluster Grid (16,16,24), Cluster Workgroup Size (4,4,4), Max Number of Lights per Cluster 1000</i></td>
+  </tr>
+</table>
 
 ### Credits
 
