@@ -342,11 +342,14 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 if (this.gpuTimesIndex < this.gpuTimesSize && 
                     this.gpuTimes[this.gpuTimesIndex] != this.gpuTime &&
                     this.gpuTime > 0) {
-                    // May want to analyze with two passes separate
-                    // console.log(this.gpuTimesIndex);
-                    // console.log((Number(times[1] - times[0])) * 0.000001);
-                    // console.log((Number(times[3] - times[2])) * 0.000001);
+                    // Total time
                     this.gpuTimes[this.gpuTimesIndex] = this.gpuTime;
+                    if (this.logSeparateTimes)
+                    {
+                        // Separate times
+                        this.gpuTimesPre[this.gpuTimesIndex] = Number(times[1] - times[0]) * 0.000001;
+                        this.gpuTimesPost[this.gpuTimesIndex] = Number(times[3] - times[2]) * 0.000001;
+                    }
                     this.gpuTimesIndex++;
                 } 
                 this.resultBuffer.unmap();
@@ -354,7 +357,14 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         }
 
         if (this.gpuTimesIndex == this.gpuTimesSize) {
+            console.log("Overall time");
             console.log(this.gpuTimes);
+            if (this.logSeparateTimes) {
+                console.log("Clustering stage");
+                console.log(this.gpuTimesPre);
+                console.log("Deferred shading stage");
+                console.log(this.gpuTimesPost);
+            }
             this.gpuTimesIndex++;
         }
     }

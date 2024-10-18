@@ -12,6 +12,7 @@ import forwardPlusFragRaw from './forward_plus.fs.wgsl?raw';
 import clusteredDeferredFragRaw from './clustered_deferred.fs.wgsl?raw';
 import clusteredDeferredFullscreenVertRaw from './clustered_deferred_fullscreen.vs.wgsl?raw';
 import clusteredDeferredFullscreenFragRaw from './clustered_deferred_fullscreen.fs.wgsl?raw';
+import clusteredDeferredFullscreenToonFragRaw from './clustered_deferred_fullscreen_toon.fs.wgsl?raw';
 
 import moveLightsComputeRaw from './move_lights.cs.wgsl?raw';
 import clusteringComputeRaw from './clustering.cs.wgsl?raw';
@@ -31,15 +32,15 @@ export const constants = {
     bindGroup_deferred: 3,
 
     moveLightsWorkgroupSize: 128,
-    maxNumLightsPerCluster: 300,
+    maxNumLightsPerCluster: 1000,
 
-    numClusterX: 20,
-    numClusterY: 20,
-    numClusterZ: 10,
+    numClusterX: 16,
+    numClusterY: 16,
+    numClusterZ: 24,
 
     workgroupSizeX: 4,
     workgroupSizeY: 4,
-    workgroupSizeZ: 4,
+    workgroupSizeZ: 8,
 
     lightRadius: 2,
 
@@ -66,6 +67,7 @@ export const forwardPlusFragSrc: string = processShaderRaw(forwardPlusFragRaw);
 export const clusteredDeferredFragSrc: string = processShaderRaw(clusteredDeferredFragRaw);
 export const clusteredDeferredFullscreenVertSrc: string = processShaderRaw(clusteredDeferredFullscreenVertRaw);
 export const clusteredDeferredFullscreenFragSrc: string = processShaderRaw(clusteredDeferredFullscreenFragRaw);
+export const clusteredDeferredFullscreenToonFragSrc: string = processShaderRaw(clusteredDeferredFullscreenToonFragRaw);
 
 export const moveLightsComputeSrc: string = processShaderRaw(moveLightsComputeRaw);
 export const clusteringComputeSrc: string = processShaderRaw(clusteringComputeRaw);

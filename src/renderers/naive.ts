@@ -160,6 +160,7 @@ export class NaiveRenderer extends renderer.Renderer {
         }
 
         if (this.gpuTimesIndex == this.gpuTimesSize) {
+            console.log("Overall time");
             console.log(this.gpuTimes);
             this.gpuTimesIndex++;
         }

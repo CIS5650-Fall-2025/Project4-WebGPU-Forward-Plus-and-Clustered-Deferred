@@ -11,32 +11,44 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     ).xyz;
     let pos = globalIdx.xy;
 
-    if (albedo.x > 0.66) {
-        albedo.x = 1.0;  // Brightest band
-    } else if (albedo.x > 0.33) {
-        albedo.x = 0.66; // Mid-tone band
-    } else if (albedo.x > 0.1) {
-        albedo.x = 0.33; // Darkest band
+    if (albedo.x > 0.9) {
+        albedo.x = 1.0;
+    } else if (albedo.x > 0.5) {
+        albedo.x = 0.7;
+    } else if (albedo.x > 0.3) {
+        albedo.x = 0.4;
+    } else if (albedo.x > 0.05) {
+        albedo.x = 0.2;
+    } else if (albedo.x > 0.01) {
+        albedo.x = 0.03;
     } else {
         albedo.x = 0.0;
     }
 
-    if (albedo.y > 0.66) {
-        albedo.y = 1.0;  // Brightest band
-    } else if (albedo.y > 0.33) {
-        albedo.y = 0.66; // Mid-tone band
-    } else if (albedo.y > 0.1) {
-        albedo.y = 0.33; // Darkest band
+    if (albedo.y > 0.9) {
+        albedo.y = 1.0;
+    } else if (albedo.y > 0.5) {
+        albedo.y = 0.7;
+    } else if (albedo.y > 0.3) {
+        albedo.y = 0.4;
+    } else if (albedo.y > 0.05) {
+        albedo.y = 0.2;
+    } else if (albedo.y > 0.01) {
+        albedo.y = 0.03;
     } else {
         albedo.y = 0.0;
     }
 
-    if (albedo.z > 0.66) {
-        albedo.z = 1.0;  // Brightest band
-    } else if (albedo.z > 0.33) {
-        albedo.z = 0.66; // Mid-tone band
-    } else if (albedo.z > 0.1) {
-        albedo.z = 0.33; // Darkest band
+    if (albedo.z > 0.9) {
+        albedo.z = 1.0;
+    } else if (albedo.z > 0.5) {
+        albedo.z = 0.7;
+    } else if (albedo.z > 0.3) {
+        albedo.z = 0.4;
+    } else if (albedo.z > 0.05) {
+        albedo.z = 0.2;
+    } else if (albedo.z > 0.01) {
+        albedo.z = 0.03;
     } else {
         albedo.z = 0.0;
     }

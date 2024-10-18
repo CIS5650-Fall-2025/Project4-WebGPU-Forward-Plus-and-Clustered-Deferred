@@ -27,7 +27,7 @@ fn main(in: FragmentInput) -> GBufferOutput
     }
 
     var output : GBufferOutput;
-    output.position = vec4(in.pos, 0.0);
+    output.position = vec4(in.pos, 1.0);
     output.albedo = diffuseColor;
     output.normal = vec4(in.nor, 0.0);
 

@@ -28,6 +28,7 @@ struct CameraUniforms {
     proj : mat4x4f,
     projInv : mat4x4f,
     nearFar : vec2<f32>,
+    cameraPos : vec3<f32>,
 }
 
 // CHECKITOUT: this special attenuation function ensures lights don't affect geometry outside the maximum light radius
@@ -41,6 +42,23 @@ fn calculateLightContrib(light: Light, posWorld: vec3f, nor: vec3f) -> vec3f {
 
     let lambert = max(dot(nor, normalize(vecToLight)), 0.f);
     return light.color * lambert * rangeAttenuation(distToLight);
+}
+
+fn calculateLightContribToonShading(light: Light, posWorld: vec3f, viewDir: vec3f, nor: vec3f, ambientLight: vec3f) -> vec3f {
+    let vecToLight = light.pos - posWorld;
+    let distToLight = length(vecToLight);
+
+    let ndotl = dot(nor, normalize(vecToLight));
+
+    let rimIntensity = smoothstep(0.716 - 0.01, 0.716 + 0.01, (1.0 - dot(viewDir, nor)) * pow(ndotl, 0.1));
+    let rim = rimIntensity * vec3f(1.0);
+
+    if (ndotl > 0) {
+        let intensity = smoothstep(0.48, 0.52, ndotl);
+
+        return light.color * rangeAttenuation(distToLight) * intensity * (vec3f(1.0) + ambientLight + rim);
+    }
+    return light.color * rangeAttenuation(distToLight) * ambientLight;
 }
 
 fn applyTransform(p: vec4<f32>, transform: mat4x4<f32>) -> vec3<f32> {

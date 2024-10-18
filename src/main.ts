@@ -5,7 +5,8 @@ import { initWebGPU, Renderer } from './renderer';
 import { NaiveRenderer } from './renderers/naive';
 import { ForwardPlusRenderer } from './renderers/forward_plus';
 import { ClusteredDeferredRenderer } from './renderers/clustered_deferred';
-import { ClusteredDeferredRendererToon } from './renderers/clustered_deferred_toon';
+import { ClusteredDeferredRendererToonFrag } from './renderers/clustered_deferred_toon_frag';
+import { ClusteredDeferredRendererToonCompute } from './renderers/clustered_deferred_toon_compute';
 
 import { setupLoaders, Scene } from './stage/scene';
 import { Lights } from './stage/lights';
@@ -47,14 +48,17 @@ function setRenderer(mode: string) {
         case renderModes.clusteredDeferred:
             renderer = new ClusteredDeferredRenderer(stage);
             break;
-        case renderModes.clusteredDeferredToon:
-            renderer = new ClusteredDeferredRendererToon(stage);
+        case renderModes.clusteredDeferredToonFrag:
+            renderer = new ClusteredDeferredRendererToonFrag(stage);
+            break;
+        case renderModes.clusteredDeferredToonCompute:
+            renderer = new ClusteredDeferredRendererToonCompute(stage);
             break;
     }
 }
 
-const renderModes = { naive: 'naive', forwardPlus: 'forward+', clusteredDeferred: 'clustered deferred', clusteredDeferredToon: 'clustered deferred toon' };
-let renderModeController = gui.add({ mode: renderModes.clusteredDeferredToon }, 'mode', renderModes);
+const renderModes = { naive: 'naive', forwardPlus: 'forward+', clusteredDeferred: 'clustered deferred', clusteredDeferredToonFrag: 'clustered deferred toon frag', clusteredDeferredToonCompute: 'clustered deferred toon compute' };
+let renderModeController = gui.add({ mode: renderModes.naive }, 'mode', renderModes);
 renderModeController.onChange(setRenderer);
 
 setRenderer(renderModeController.getValue());

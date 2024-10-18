@@ -13,7 +13,7 @@ function hueToRgb(h: number) {
 export class Lights {
     private camera: Camera;
 
-    numLights = 500;
+    numLights = 5000;
     static readonly maxNumLights = 5000;
     static readonly numFloatsPerLight = 8; // vec3f is aligned at 16 byte boundaries
 
@@ -34,6 +34,8 @@ export class Lights {
     clusteringComputeBindGroupLayout: GPUBindGroupLayout;
     clusteringComputeBindGroup: GPUBindGroup;
     clusteringComputePipeline: GPUComputePipeline;
+
+    moved = false;
 
     constructor(camera: Camera) {
         this.camera = camera;
@@ -195,6 +197,11 @@ export class Lights {
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
     onFrame(time: number) {
+        if (this.moved) {
+            // return;
+        }
+        this.moved = true;
+        
         device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
 
         // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance
