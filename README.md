@@ -10,7 +10,7 @@
 
 ### Overview
 
-In this project we experimented with forward+ and clustered deferred rendering using WebGPU. We can see that clustered deferred shading can significantly improve the performance when dealing with scene that has complex lightings.
+In this project we experimented with forward+ and clustered deferred rendering using WebGPU. We can see that clustered deferred shading can significantly improve the performance when dealing with scene that has complex lightings. Interative visualization at [here](https://www.jackeytang.com/WebGPU-Forward-Plus-and-Clustered-Deferred/).
 
 #### **Naive Shading**
 
