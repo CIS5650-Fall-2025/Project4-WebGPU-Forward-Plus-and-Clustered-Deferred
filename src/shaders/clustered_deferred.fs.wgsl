@@ -14,7 +14,8 @@ struct FragmentInput {
 
 struct FragmentOutput {
     @location(0) color: vec4f,
-    @location(1) normal: vec4f
+    @location(1) normal: vec4f,
+    @location(2) depth: f32
 }
 
 @fragment
@@ -27,5 +28,6 @@ fn main(in: FragmentInput) -> FragmentOutput {
     var output: FragmentOutput;
     output.color = diffuseColor;
     output.normal = vec4f(normalize(in.nor), 1.0);
+    output.depth = in.fragPos.z;
     return output;
 }

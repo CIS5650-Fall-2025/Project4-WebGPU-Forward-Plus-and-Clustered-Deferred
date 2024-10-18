@@ -14,7 +14,6 @@
 @group(1) @binding(5) var depthTexSampler: sampler;
 
 struct FragmentInput {
-    @builtin(position) fragPos: vec4f,
     @location(0) uv: vec2f
 }
 
@@ -24,7 +23,7 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     let normal = textureSample(normalTex, normalTexSampler, in.uv);
     let depth = textureSample(depthTex, depthTexSampler, in.uv);
 
-    let pos = vec4f(in.fragPos.xy, depth, 1.f);
+    let pos = vec4f((in.uv - vec2f(0.5)) * vec2f(2.0, -2.0), depth, 1.f);
     var worldPos = cameraUniforms.invViewProj * pos;
     if (worldPos.w != 0.f) {
         worldPos /= worldPos.w;

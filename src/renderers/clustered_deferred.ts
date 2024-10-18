@@ -347,7 +347,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             this.sceneUniformsBindGroup
         );
         renderPass.setBindGroup(1, this.gBufferBindGroup);
-        renderPass.draw(3);
+        renderPass.draw(6);
         renderPass.end();
 
         renderer.device.queue.submit([encoder.finish()]);
