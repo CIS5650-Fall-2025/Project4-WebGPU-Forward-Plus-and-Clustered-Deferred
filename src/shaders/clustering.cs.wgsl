@@ -147,13 +147,13 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
 
     var cluster: Cluster = calculateClusterBounds(i, j, k);
     for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
-        if (cluster.numLights >= ${maxLightsPerCluster}) {
+        if (cluster.numLights >= u32(${maxLightsPerCluster})) {
             break;
         }
 
         let viewSpaceLightPos: vec3<f32> = (cameraUniforms.view * vec4<f32>(lightSet.lights[lightIdx].pos, 1.0)).xyz;
         let curBbox: AABB = cluster.viewSpaceBbox;
-        if (sphere_intersects_aabb(viewSpaceLightPos, ${lightRadius}, curBbox.min, curBbox.max)) {
+        if (sphere_intersects_aabb(viewSpaceLightPos, f32(${lightRadius}), curBbox.min, curBbox.max)) {
             cluster.lightIndices[cluster.numLights] = lightIdx;
             cluster.numLights += 1u;
         }

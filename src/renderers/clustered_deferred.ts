@@ -174,24 +174,10 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                         sampleType: "float",
                         viewDimension: "2d"
                     }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: {
-                        type: "filtering"
-                    }
                 }
             ]
         });
 
-        // Create a sampler for the G-buffer textures
-        const gBufferSampler = renderer.device.createSampler({
-            magFilter: 'linear',
-            minFilter: 'linear',
-            addressModeU: 'clamp-to-edge',
-            addressModeV: 'clamp-to-edge'
-        });
         this.gBufferBindGroup = renderer.device.createBindGroup({
             label: "G-buffer bind group",
             layout: this.gBufferBindGroupLayout,
@@ -207,10 +193,6 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 {
                     binding: 2,
                     resource: this.gBufferAlbedoTextureView
-                },
-                {
-                    binding: 3,
-                    resource: gBufferSampler
                 }
             ]
         });
@@ -263,19 +245,19 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             colorAttachments: [
                 {
                     view: this.gBufferPositionTextureView,
-                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                    clearValue: { r: 0, g: 0, b: 0, a: 0 },
                     loadOp: 'clear',
                     storeOp: 'store',
                 },
                 {
                     view: this.gBufferNormalTextureView,
-                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                    clearValue: { r: 0, g: 0, b: 0, a: 0 },
                     loadOp: 'clear',
                     storeOp: 'store',
                 },
                 {
                     view: this.gBufferAlbedoTextureView,
-                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                    clearValue: { r: 0, g: 0, b: 0, a: 0 },
                     loadOp: 'clear',
                     storeOp: 'store',
                 },

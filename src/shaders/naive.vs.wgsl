@@ -15,12 +15,11 @@ struct VertexInput
 
 struct VertexOutput
 {
-    @builtin(position) fragPos: vec4f,
+    @builtin(position) fragPos: vec4f, // Will automatically do persepective divide, flip y, and convert to screen space (i.e. to your canvas's dimensions)
     @location(0) pos: vec3f,
     @location(1) nor: vec3f,
     @location(2) uv: vec2f,
-    @location(3) pos_ndc: vec3f,
-    @location(4) pos_view: vec3f
+    @location(3) pos_view: vec3f
 }
 
 @vertex
@@ -33,7 +32,6 @@ fn main(in: VertexInput) -> VertexOutput
     out.pos = modelPos.xyz / modelPos.w; 
     out.nor = in.nor; 
     out.uv = in.uv;   
-    out.pos_ndc = out.fragPos.xyz / out.fragPos.w; // NDC space position
     out.pos_view = (cameraUniforms.view * modelPos).xyz; // View space position
 
     return out;

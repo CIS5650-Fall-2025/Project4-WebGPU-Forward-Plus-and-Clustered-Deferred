@@ -23,12 +23,11 @@ struct FragmentInput
     @location(0) pos: vec3f,
     @location(1) nor: vec3f,
     @location(2) uv: vec2f,
-    @location(3) pos_ndc: vec3f,
-    @location(4) pos_view: vec3f
+    @location(3) pos_view: vec3f
 }
 
 @fragment
-fn main(in: FragmentInput) -> @location(0) vec4f {
+fn main(in: FragmentInput, @builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f {
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
     if (diffuseColor.a < 0.5f) {
         discard;
@@ -36,9 +35,10 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
 
     var totalLightContrib = vec3f(0, 0, 0);
 
-    let scaledPos_ndc = in.pos_ndc * 0.5 + 0.5;
-    let i = u32(floor(scaledPos_ndc.x * f32(CLUSTER_DIMENSIONS.x)));
-    let j = u32(floor(scaledPos_ndc.y * f32(CLUSTER_DIMENSIONS.y)));
+    var screenUV = vec2f(fragCoord.xy) / vec2f(cameraUniforms.screenSize.xy);
+    screenUV.y = 1.0 - screenUV.y;
+    let i = u32(floor(screenUV.x * f32(CLUSTER_DIMENSIONS.x)));
+    let j = u32(floor(screenUV.y * f32(CLUSTER_DIMENSIONS.y)));
     let n = cameraUniforms.nearAndFar.x;
     let f = cameraUniforms.nearAndFar.y;
     let viewZ = clamp(-in.pos_view.z, n, f);
