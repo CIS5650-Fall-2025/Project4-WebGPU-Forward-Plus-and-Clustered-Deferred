@@ -74,6 +74,15 @@ The graph displays the frames per second (FPS) achieved by three different rende
 
 For real-time applications with complex lighting, the Deferred Clustered approach is the recommended choice, as it provides a much higher FPS, ensuring smoother visual experiences.
 
+![](img/PA_2.png)
+
+The graph presents the frames per second (FPS) achieved by three different rendering approaches (Naive Forward, Forward Clustered, and Deferred Clustered) as the maximum number of lights per cluster increases. 
+* The Naive Forward approach (red line) shows a consistently poor FPS performance, regardless of the number of lights per cluster. This behavior indicates that the Naive Forward method does not benefit from increasing the maximum lights per cluster.
+* The Forward Clustered approach (blue line) shows a decline in FPS as the maximum number of lights per cluster increases. Starting at 75 FPS with 128 lights per cluster, the performance drops to 40 FPS when the number of lights per cluster reaches 1024. It is expected, that increasing the maximum lights per cluster leads to an increase in the computational workload per cluster, which negatively impacts performance. Once it reaches an edge to fulfill the need of the 3500 lights, the performance becomes steady. In this project case, 512 max light per cluster is able to handle 3500 lights while using a forward clustered approach.
+* The Deferred Clustered approach (green line) demonstrates stable FPS performance as the maximum lights per cluster increase. Starting at 198 FPS with 128 lights per cluster, the FPS decreases slightly to 130 at 512 lights per cluster, and then increases to 135 at 1024 lights per cluster. This stability highlights the strength of deferred clustered rendering in handling lighting calculations. By decoupling light calculations from geometry rendering, deferred shading ensures that lighting calculations are applied only to visible fragments, reducing redundant computations.
+
+The analysis shows that the Deferred Clustered approach is the most effective method for managing scenes with a high number of lights, providing both high performance and stability. The Forward Clustered approach, while an improvement over Naive Forward, struggles to maintain performance with larger cluster sizes because of the overdraw problem. The Naive Forward approach is unsuitable for handling complex lighting scenarios due to its poor scalability and consistently low FPS。
+
 ### Credits
 
 - [Vite](https://vitejs.dev/)
