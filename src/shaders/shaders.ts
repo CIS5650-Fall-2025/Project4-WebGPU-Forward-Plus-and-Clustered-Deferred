@@ -33,9 +33,14 @@ export const constants = {
     lightRadius: 2,
 
     // Constants for Forward+ and Light Clustering
-    tileSize: 16,
-    maxLightsPerTile: 100,
-    maxNumLights: 5000
+    numClustersX: 16,
+    numClustersY: 9,
+    numClustersZ: 24,
+    maxLightsPerCluster: 100,
+
+    workgroupSizeX: 4,
+    workgroupSizeY: 4,
+    workgroupSizeZ: 4,
 };
 
 // =================================

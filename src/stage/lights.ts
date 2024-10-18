@@ -1,5 +1,5 @@
 import { vec3 } from "wgpu-matrix";
-import { device, canvas } from "../renderer";
+import { device } from "../renderer";
 
 import * as shaders from '../shaders/shaders';
 import { Camera } from "./camera";
@@ -29,14 +29,17 @@ export class Lights {
     moveLightsComputePipeline: GPUComputePipeline;
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
-    clusterLightCountBuffer: GPUBuffer;
-    clusterLightIndicesBuffer: GPUBuffer;
+    numClustersX: number;
+    numClustersY: number;
+    numClustersZ: number;
+
+    // Buffers for light clustering
+    clusterLightsBuffer: GPUBuffer;
+
+    // Compute pipeline and bind group for clustering
     clusteringComputeBindGroupLayout: GPUBindGroupLayout;
     clusteringComputeBindGroup: GPUBindGroup;
     clusteringComputePipeline: GPUComputePipeline;
-    numTiles: number;
-    numTilesX: number;
-    numTilesY: number;
 
     constructor(camera: Camera) {
         this.camera = camera;
@@ -102,60 +105,63 @@ export class Lights {
         });
 
         // TODO-2: initialize layouts, pipelines, textures, etc. needed for light clustering here
-        // Define tile dimensions based on constants
-        const tileSize = shaders.constants.tileSize;
+        // Calculate the number of clusters based on screen dimensions and tile size
+        this.numClustersX = shaders.constants.numClustersX;
+        this.numClustersY = shaders.constants.numClustersY;
+        this.numClustersZ = shaders.constants.numClustersZ;
+        const totalClusters = this.numClustersX * this.numClustersY * this.numClustersZ;
 
-        // Get canvas dimensions
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
+        // number of lights (4) + light indices (4 * maxLightsPerCluster)
+        const clusterSize = 4 + 4 * shaders.constants.maxLightsPerCluster;
+        const clusterLightsBufferSize = totalClusters * clusterSize;
 
-        // Calculate the number of tiles in X and Y directions
-        this.numTilesX = Math.ceil(canvasWidth / tileSize);
-        this.numTilesY = Math.ceil(canvasHeight / tileSize);
-        this.numTiles = this.numTilesX * this.numTilesY;
-
-        // Buffer to store the number of lights per tile (uint32 per tile)
-        this.clusterLightCountBuffer = device.createBuffer({
-            label: "cluster light counts",
-            size: this.numTiles * 4, // 4 bytes per tile
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        this.clusterLightsBuffer = device.createBuffer({
+            label: "Cluster Lights Buffer",
+            size: clusterLightsBufferSize,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
 
-        // Buffer to store the light indices per tile (uint32 per index)
-        this.clusterLightIndicesBuffer = device.createBuffer({
-            label: "cluster light indices",
-            size: this.numTiles * shaders.constants.maxLightsPerTile * 4, // 4 bytes per index
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        });
-
-        // Create Bind Group Layout for Clustering Compute Pass
         this.clusteringComputeBindGroupLayout = device.createBindGroupLayout({
             label: "clustering compute bind group layout",
             entries: [
-                { // Light data (read-only)
+
+                { // camera
                     binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" }
+                },
+                { // lightSet
+                    binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "read-only-storage" }
                 },
-                { // Cluster light counts (write)
-                    binding: 1,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "storage" }
-                },
-                { // Cluster light indices (write)
+                { // clusterLights
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "storage" }
-                },
-                { // Camera uniforms (read-only)
-                    binding: 3,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "uniform" }
                 }
             ]
         });
 
-        // Create Compute Pipeline for Clustering
+        this.clusteringComputeBindGroup = device.createBindGroup({
+            label: "clustering compute bind group",
+            layout: this.clusteringComputeBindGroupLayout,
+            entries: [
+                { // camera
+                    binding: 0,
+                    resource: { buffer: this.camera.uniformsBuffer }
+                },
+                { // lightSet
+                    binding: 1,
+                    resource: { buffer: this.lightSetStorageBuffer }
+                },
+                { // clusterLights
+                    binding: 2,
+                    resource: { buffer: this.clusterLightsBuffer }
+                }
+            ]
+        });
+
         this.clusteringComputePipeline = device.createComputePipeline({
             label: "clustering compute pipeline",
             layout: device.createPipelineLayout({
@@ -169,18 +175,6 @@ export class Lights {
                 }),
                 entryPoint: "main"
             }
-        });
-
-        // Create Bind Group for Clustering Compute Pass
-        this.clusteringComputeBindGroup = device.createBindGroup({
-            label: "clustering compute bind group",
-            layout: this.clusteringComputeBindGroupLayout,
-            entries: [
-                { binding: 0, resource: { buffer: this.lightSetStorageBuffer } },
-                { binding: 1, resource: { buffer: this.clusterLightCountBuffer } },
-                { binding: 2, resource: { buffer: this.clusterLightIndicesBuffer } },
-                { binding: 3, resource: { buffer: this.camera.uniformsBuffer } }
-            ]
         });
     }
 
@@ -205,14 +199,13 @@ export class Lights {
         computePass.setPipeline(this.clusteringComputePipeline);
         computePass.setBindGroup(0, this.clusteringComputeBindGroup);
 
-        // Determine workgroup counts based on tile dimensions and shader's workgroup size
-        // Assuming the clustering shader uses a workgroup size of (8, 8, 1)
-        const workgroupSizeX = 8;
-        const workgroupSizeY = 8;
-        const workgroupCountX = Math.ceil(this.numTilesX / workgroupSizeX);
-        const workgroupCountY = Math.ceil(this.numTilesY / workgroupSizeY);
+        // Calculate workgroup sizes based on the number of clusters
+        const gridSizeX = Math.ceil(this.numClustersX / shaders.constants.workgroupSizeX);
+        const gridSizeY = Math.ceil(this.numClustersY / shaders.constants.workgroupSizeY);
+        const gridSizeZ = Math.ceil(this.numClustersZ / shaders.constants.workgroupSizeZ);
 
-        computePass.dispatchWorkgroups(workgroupCountX, workgroupCountY);
+        computePass.dispatchWorkgroups(gridSizeX, gridSizeY, gridSizeZ);
+
         computePass.end();
     }
 
@@ -232,9 +225,6 @@ export class Lights {
         computePass.dispatchWorkgroups(workgroupCount);
 
         computePass.end();
-
-        // run light clustering compute pass
-        this.doLightClustering(encoder);
 
         device.queue.submit([encoder.finish()]);
     }

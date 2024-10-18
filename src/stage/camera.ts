@@ -1,10 +1,13 @@
 import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
-import * as shaders from "../shaders/shaders";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
+    // 16 floats for viewProjMat,
+    // 16 floats for invViewProjMat,
+    // 16 floats for viewMat,
+    // 4 floats for clustering params
+    readonly buffer = new ArrayBuffer(16 * 4 * 4 + 4 * 4);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -15,11 +18,29 @@ class CameraUniforms {
     }
 
     // TODO-2: add extra functions to set values needed for light clustering here
-    setScreenParams(width: number, height: number, tileSize: number) {
-        // Store width, height, and tileSize starting at index 16
-        this.floatView[16] = width;
-        this.floatView[17] = height;
-        this.floatView[18] = tileSize;
+    set projMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[16 + i] = mat[i];
+        }
+    }
+
+    set invProjMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[32 + i] = mat[i];
+        }
+    }
+
+    set viewMat(mat: Float32Array) {
+        for (let i = 0; i < 16; i++) {
+            this.floatView[48 + i] = mat[i];
+        }
+    }
+
+    setClusteringParams(nearPlane: number, farPlane: number, width: number, height: number) {
+        this.floatView[64] = nearPlane;
+        this.floatView[65] = farPlane;
+        this.floatView[66] = width;
+        this.floatView[67] = height;
     }
 }
 
@@ -147,7 +168,19 @@ export class Camera {
         this.uniforms.viewProjMat = viewProjMat;
 
         // TODO-2: write to extra buffers needed for light clustering here
-        this.uniforms.setScreenParams(canvas.width, canvas.height, shaders.constants.tileSize);
+        this.uniforms.projMat = this.projMat;
+
+        const invProjMat = mat4.inverse(this.projMat);
+        this.uniforms.invProjMat = invProjMat;
+
+        this.uniforms.viewMat = viewMat;
+
+        this.uniforms.setClusteringParams(
+            Camera.nearPlane,
+            Camera.farPlane,
+            canvas.width,
+            canvas.height
+        );
 
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
