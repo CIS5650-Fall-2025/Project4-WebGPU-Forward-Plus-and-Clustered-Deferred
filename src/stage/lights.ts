@@ -17,7 +17,7 @@ export class Lights {
     static readonly maxNumLights = 5000;
     static readonly numFloatsPerLight = 8; // vec3f is aligned at 16 byte boundaries
 
-    static readonly lightIntensity = 0.25;
+    static readonly lightIntensity = 0.1;
 
     lightsArray = new Float32Array(Lights.maxNumLights * Lights.numFloatsPerLight);
     lightSetStorageBuffer: GPUBuffer;
