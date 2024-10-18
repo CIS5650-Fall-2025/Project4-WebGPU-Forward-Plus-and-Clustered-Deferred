@@ -3,9 +3,9 @@ WebGL Forward+ and Clustered Deferred Shading
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
 
-* Joshua Smith
-  * [LinkedIn](https://www.linkedin.com/in/joshua-smith-32b165158/)
-* Tested on: Ubuntu 20.04, Ryzen 9 3900x @ 4.6GHz, 24GB RTX 4090 (Personal)
+* (TODO) YOUR NAME HERE
+* Tested on: (TODO) **Google Chrome 222.2** on
+  Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
 
 ### Live Demo
 
@@ -21,7 +21,7 @@ WebGL Forward+ and Clustered Deferred Shading
 project, and we will not be able to grade you without a good README.
 
 This assignment has a considerable amount of performance analysis compared
-to implementation work. Complete the implementation early to leave time!
+to implementation work. Complete the implementation earl y to leave time!
 
 ### Credits
 
