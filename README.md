@@ -45,6 +45,7 @@ pixel is significantly reduced.
 | Forward Rendering (Naive) | Forward+ Rendering       | Clustered Deferred Rendering |
 |---------------------------|--------------------------|------------------------------|
 | ![](img/naive.gif)        | ![](img/forwardPlus.gif) | ![](img/deferred.gif)        |
+
 Performance Comparison between Forward, Forward+ and Clustered Deferred Rendering using 500 lights with
 resolution 2148x1426.
 
@@ -55,6 +56,7 @@ maintain a 60fps frame rate. The Forward rendering is much slower, having an ave
 | Forward Rendering (Naive) | Forward+ Rendering        | Clustered Deferred Rendering |
 |---------------------------|---------------------------|------------------------------|
 | ![](img/naive2.gif)       | ![](img/forwardPlus2.gif) | ![](img/deferred2.gif)       |
+
 Performance Comparison between Forward, Forward+ and Clustered Deferred Rendering using 2500 lights with
 resolution 2148x1426.
 
