@@ -1,5 +1,6 @@
 // TODO-2: implement the light clustering compute shader
-// Referenced an OpenGL blog recommended by Michael Mason (https://www.aortiz.me/2018/12/21/CG.html#part-2)
+// Referenced an OpenGL blog recommended by Michael Mason on Ed 
+// (https://edstem.org/us/courses/60839/discussion/5490135) (https://www.aortiz.me/2018/12/21/CG.html#part-2)
 
 @group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(1) var<storage> lightSet: LightSet;
