@@ -16,8 +16,7 @@ struct ClusterSet {
 
 struct CameraUniforms {
     viewProj: mat4x4f,
-    inv_proj: mat4x4f,
-    inv_view: mat4x4f,
+    inv_view_proj: mat4x4f,
     near_plane: f32,
     far_plane: f32
 }
@@ -86,6 +85,6 @@ fn unpack_color(packed_color: f32) -> vec3f {
 
 fn world_from_uv(uv: vec2f, depth: f32, camera_uniforms: CameraUniforms) -> vec3f {
     let clip_space_pos = vec4f(uv.x * 2.0f - 1.0f, (1.0f - uv.y) * 2.0f - 1.0f, depth, 1.0f);
-    let world_space_pos = camera_uniforms.inv_view * camera_uniforms.inv_proj * clip_space_pos;
+    let world_space_pos = camera_uniforms.inv_view_proj * clip_space_pos;
     return world_space_pos.xyz / world_space_pos.w;
 }
