@@ -12,15 +12,17 @@ University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4
 
 # Overview
 
-With the modern GPUs, compute is quickly becoming cheaper as memory bandwidth becomes the bottleneck. In this project, I explore several different approaches to rendering, from the classic forward rendering strategy, to more modern versions that utilize clustering to improve efficiency. These rendering pipelines are all implemented in WebGPU which, at the time of writing, is still a relatively young and exciting technology for highly compatible web-based GPU usage. 
+In this project, I explore several different approaches to rendering, from the classic forward rendering strategy, to more modern versions that utilize clustering and deferred passes to improve efficiency. These rendering pipelines are all implemented in WebGPU which, at the time of writing, is still a relatively young and exciting technology for highly compatible web-based GPU usage. 
 
 ### ▶️ Live Demo
 
 [Try it out! (on WebGPU-enabled browsers only)](https://mzschwartz5.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
 ### 📼 Demo Video
+Sponza Palace: a classic scene for graphics testing. In this case, we've populated it with spot lights which, in a traditional pipeline, would be quite costly to render.
+
 <div align="center">
-  <img src="img/SponzaCapture.gif" alt="Sponza demo scene">
+  <img src="img/SponzaCapture.gif" alt="Sponza demo scene with clustered deferred rendering">
 </div>
 
 </br>
@@ -31,7 +33,7 @@ With the modern GPUs, compute is quickly becoming cheaper as memory bandwidth be
 
 In traditional rendering, every drawable object in a scene is drawn once per frame, and lighting calculations are performed for each object during shading. This is effective but, as we'll see, there are ways to do better. However, this naive approach will serve as a good baseline of comparison.
 
-The main drawback with the naive approach is that it's expensive to calculate lighting, and we're doing it for every light, for every object, every frame. Many (if not most) lights will not even have a significant impact on all objects, so we're wasting compute resources. Further, a fragment that is shaded may later be discarded during depth testing - another waste of resources. 
+The main drawback with the naive approach is that it's expensive to calculate lighting, and we're doing it for every light, for every object, every frame. Many (if not most) lights will not even have a significant impact on all objects, so we're wasting compute resources. Further, a fragment that is shaded may later be discarded during depth testing if it is occluded by something in front of it - another waste of resources. 
 
 ## Forward+ Rendering (with clustering)
 
@@ -70,9 +72,9 @@ Finally, a visualization of the clusters in the above Sponza scene (where each c
 
 ## Deferred Clustered Rendering
 
-Deferred rendering capitalizes on the wasteful overdraw done by naive rendering, whereby fragments of objects may be shaded and then discarded due to being occluded by other objects closer to the camera. It works by running multiple render passes; typically, the first pass processes the scene's geometry and writes stores relevant data (depth, albedos, normals, etc.). Notably, the first pass does not calculate any lighting. Thus, any fragments that get discarded did not waste precious compute on calculating lighting. The second pass uses the data stored from the first pass and does the lighting calculations, effectively decoupling geometry from lights.
+Deferred rendering capitalizes on the wasteful overdraw done by naive rendering, whereby fragments of objects may be shaded and then discarded due to being occluded by other objects closer to the camera. It works by running multiple render passes; typically, the first pass processes the scene's geometry and stores relevant data (depth, albedos, normals, etc.). Notably, the first pass does not calculate any lighting. Thus, any fragments that get discarded did not waste precious compute on calculating lighting. The second pass uses the data stored from the first pass and does the lighting calculations, effectively decoupling geometry from lights.
 
-Alone, deferred rendering is not a novel concept. In the project, though, I implement and test it with clustering.
+Alone, deferred rendering is not a novel concept. In this project, though, I implement and test it with clustering.
 
 Since we've already seen how clustering works, lets look at some visualizations of the buffers output by the first pass of deferred rendering:
 
