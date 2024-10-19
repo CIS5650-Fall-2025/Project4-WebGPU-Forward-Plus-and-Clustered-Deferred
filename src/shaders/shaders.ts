@@ -16,6 +16,20 @@ import clusteredDeferredFullscreenFragRaw from './clustered_deferred_fullscreen.
 import moveLightsComputeRaw from './move_lights.cs.wgsl?raw';
 import clusteringComputeRaw from './clustering.cs.wgsl?raw';
 
+// Add the new shader imports
+import optimizedClusteredDeferredFragRaw from './optimized_clustered_deferred.fs.wgsl?raw';
+import optimizedLightingComputeRaw from './optimized_lighting.cs.wgsl?raw';
+
+import postProcessingComputeRaw from './post_processing.cs.wgsl?raw';
+
+// File: shaders/fullscreen_copy_shader.ts
+
+import fullscreenCopyVertRaw from './fullscreen_copy.vert.wgsl?raw';
+import fullscreenCopyFragRaw from './fullscreen_copy.frag.wgsl?raw';
+
+import packedClusteredDeferredFragRaw from './packed_clustered_deferred.fs.wgsl?raw';
+import packedClusteredDeferredFullscreenFragRaw from './packed_clustered_deferred_fullscreen.fs.wgsl?raw';
+
 // CONSTANTS (for use in shaders)
 // =================================
 
@@ -65,3 +79,17 @@ export const clusteredDeferredFullscreenFragSrc: string = processShaderRaw(clust
 
 export const moveLightsComputeSrc: string = processShaderRaw(moveLightsComputeRaw);
 export const clusteringComputeSrc: string = processShaderRaw(clusteringComputeRaw);
+
+// Add the processed shader code
+export const optimizedClusteredDeferredFragSrc: string = processShaderRaw(optimizedClusteredDeferredFragRaw);
+export const optimizedLightingComputeSrc: string = processShaderRaw(optimizedLightingComputeRaw);
+
+// Add the processed shader code
+export const postProcessingComputeSrc: string = processShaderRaw(postProcessingComputeRaw);
+
+export const fullscreenCopyVertSrc: string = fullscreenCopyVertRaw;
+export const fullscreenCopyFragSrc: string = fullscreenCopyFragRaw;
+
+export const packedClusteredDeferredFragSrc: string = processShaderRaw(packedClusteredDeferredFragRaw);
+export const packedClusteredDeferredFullscreenFragSrc: string = processShaderRaw(packedClusteredDeferredFullscreenFragRaw);
+

@@ -1,7 +1,7 @@
 WebGPU Forward+ and Clustered Deferred Shading
 ================
 
-**University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 2**
+**University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
 
 * Jichu Mao
   * [LinkedIn](https://www.linkedin.com/in/jichu-mao-a3a980226/)
@@ -13,8 +13,9 @@ WebGPU Forward+ and Clustered Deferred Shading
 
 ### Demo GIF
 
-| ------------------------------------ |
-| ![](./img/f2.png)         |
+ | *5000 Lights moves in the Sponza Scene*|
+ |:--:|
+ | <img src="./img/4knaive.jpg" > |
 
 ## Table of Contents
 * [Demo](#p1)
