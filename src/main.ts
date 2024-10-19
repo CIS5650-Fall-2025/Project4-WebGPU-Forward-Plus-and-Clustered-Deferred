@@ -41,7 +41,6 @@ var renderer: Renderer | undefined;
 
 function setRenderer(mode: string) {
     renderer?.stop();
-    frameStats.reset();
     switch (mode) {
         case renderModes.naive:
             renderer = new NaiveRenderer(stage);

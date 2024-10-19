@@ -108,7 +108,7 @@ export abstract class Renderer {
     protected camera: Camera;
     protected stats: Stats;
 
-    private prevTime: number = 0;
+    private prevTime: DOMHighResTimeStamp = 0;
     private frameRequestId: number;
     private frameStats: FrameStats;
 
@@ -119,7 +119,7 @@ export abstract class Renderer {
         this.stats = stage.stats;
         this.frameStats = stage.frameStats;
 
-        this.frameRequestId = requestAnimationFrame((t) => this.onFrame(t));
+        this.frameRequestId = requestAnimationFrame((t) => this.frameOne(t));
     }
 
     stop(): void {
@@ -128,12 +128,18 @@ export abstract class Renderer {
 
     protected abstract draw(): void;
 
-    // CHECKITOUT: this is the main rendering loop
-    private onFrame(time: number) {
-        if (this.prevTime == 0) {
-            this.prevTime = time;
-        }
+    private frameOne(time: DOMHighResTimeStamp) {
+        this.prevTime = time;
+        this.lights.onFrame(time);
+        this.stats.begin();
+        this.draw();
+        this.stats.end();
+        this.frameStats.reset(performance.now());
+        this.frameRequestId = requestAnimationFrame((t) => this.onFrame(t))
+    }
 
+    // CHECKITOUT: this is the main rendering loop
+    private onFrame(time: DOMHighResTimeStamp) {
         let deltaTime = time - this.prevTime;
         this.camera.onFrame(deltaTime);
         this.lights.onFrame(time);
@@ -143,7 +149,7 @@ export abstract class Renderer {
         this.draw();
 
         this.stats.end();
-        this.frameStats.update();
+        this.frameStats.update(time);
 
         this.prevTime = time;
         this.frameRequestId = requestAnimationFrame((t) => this.onFrame(t));
