@@ -3,9 +3,11 @@ WebGL Forward+ and Clustered Deferred Shading
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) **Google Chrome 222.2** on
-  Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Christine Kneer
+  * https://www.linkedin.com/in/christine-kneer/
+  * https://www.christinekneer.com/
+* Tested on: **Google Chrome 129.0.6668.101** on
+  Windows 11, i7-13700HX @ 2.1GHz 32GB, RTX 4060 8GB (Personal Laptop)
 
 ### Live Demo
 
@@ -15,7 +17,7 @@ WebGL Forward+ and Clustered Deferred Shading
 
 [![](img/video.mp4)](TODO)
 
-### (TODO: Your README)
+### Introduction
 
 *DO NOT* leave the README to the last minute! It is a crucial part of the
 project, and we will not be able to grade you without a good README.
