@@ -10,48 +10,10 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
         0
     ).xyz;
     let pos = globalIdx.xy;
-
-    if (albedo.x > 0.9) {
-        albedo.x = 1.0;
-    } else if (albedo.x > 0.5) {
-        albedo.x = 0.7;
-    } else if (albedo.x > 0.3) {
-        albedo.x = 0.4;
-    } else if (albedo.x > 0.05) {
-        albedo.x = 0.2;
-    } else if (albedo.x > 0.01) {
-        albedo.x = 0.03;
-    } else {
-        albedo.x = 0.0;
-    }
-
-    if (albedo.y > 0.9) {
-        albedo.y = 1.0;
-    } else if (albedo.y > 0.5) {
-        albedo.y = 0.7;
-    } else if (albedo.y > 0.3) {
-        albedo.y = 0.4;
-    } else if (albedo.y > 0.05) {
-        albedo.y = 0.2;
-    } else if (albedo.y > 0.01) {
-        albedo.y = 0.03;
-    } else {
-        albedo.y = 0.0;
-    }
-
-    if (albedo.z > 0.9) {
-        albedo.z = 1.0;
-    } else if (albedo.z > 0.5) {
-        albedo.z = 0.7;
-    } else if (albedo.z > 0.3) {
-        albedo.z = 0.4;
-    } else if (albedo.z > 0.05) {
-        albedo.z = 0.2;
-    } else if (albedo.z > 0.01) {
-        albedo.z = 0.03;
-    } else {
-        albedo.z = 0.0;
-    }
+    
+    let oldIntensity = sqrt(albedo.x * albedo.x + albedo.y * albedo.y + albedo.z * albedo.z);
+    let newIntensity = smoothstep(0, 0.45, oldIntensity);
+    albedo = albedo * newIntensity / oldIntensity;
 
     textureStore(outputTex, pos, vec4f(albedo, 1.0));
 }

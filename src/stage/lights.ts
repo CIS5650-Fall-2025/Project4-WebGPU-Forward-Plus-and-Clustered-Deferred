@@ -35,8 +35,6 @@ export class Lights {
     clusteringComputeBindGroup: GPUBindGroup;
     clusteringComputePipeline: GPUComputePipeline;
 
-    moved = false;
-
     constructor(camera: Camera) {
         this.camera = camera;
 
@@ -197,11 +195,6 @@ export class Lights {
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
     onFrame(time: number) {
-        if (this.moved) {
-            // return;
-        }
-        this.moved = true;
-        
         device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
 
         // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance

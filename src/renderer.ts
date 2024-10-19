@@ -137,7 +137,7 @@ export abstract class Renderer {
 
     // IMPORTANT: Edit these flags to log times on browser console
     private logTime = false;
-    protected logSeparateTimes = true;
+    protected logSeparateTimes = false;
 
     constructor(stage: Stage) {
         this.scene = stage.scene;
