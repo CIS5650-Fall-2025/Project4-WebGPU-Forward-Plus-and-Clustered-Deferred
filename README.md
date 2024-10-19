@@ -42,6 +42,7 @@ efficient than forward rendering because geometries are processed only once, and
 pixel is significantly reduced.
 
 ### Performance Analysis
+#### Using 500 Lights
 | Forward Rendering (Naive) | Forward+ Rendering       | Clustered Deferred Rendering |
 |---------------------------|--------------------------|------------------------------|
 | ![](img/naive.gif)        | ![](img/forwardPlus.gif) | ![](img/deferred.gif)        |
@@ -53,6 +54,11 @@ When the number of lights is relatively small, for example, 500 lights, the perf
 rendering and the clustered deferred rendering is not very significant - as shown in the above images, they both can 
 maintain a 60fps frame rate. The Forward rendering is much slower, having an average FPS of about 10.
 
+|                              | Forward Rendering (Naive) | Forward+ Rendering | Clustered Deferred Rendering |
+|------------------------------|---------------------------|--------------------|------------------------------|
+| Average FPS using 500 lights | 10 FPS                    | 60 FPS             | 60 FPS                       |
+
+#### Using 2500 Lights
 | Forward Rendering (Naive) | Forward+ Rendering        | Clustered Deferred Rendering |
 |---------------------------|---------------------------|------------------------------|
 | ![](img/naive2.gif)       | ![](img/forwardPlus2.gif) | ![](img/deferred2.gif)       |
@@ -65,6 +71,10 @@ clustered deferred rendering becomes more apparent. The forward+ rendering only 
 deferred rendering still maintains a 60fps frame rate. The forward rendering is much much slower, having an average FPS 
 of about 1. From these comparison results, we can see that the clustered deferred rendering is the most efficient 
 method for rendering scenes with a large number of lights.
+
+|                               | Forward Rendering (Naive) | Forward+ Rendering | Clustered Deferred Rendering |
+|-------------------------------|---------------------------|--------------------|------------------------------|
+| Average FPS using 2500 lights |  1 FPS                    | 20 FPS             | 60 FPS                       |
 
 ### Credits
 
