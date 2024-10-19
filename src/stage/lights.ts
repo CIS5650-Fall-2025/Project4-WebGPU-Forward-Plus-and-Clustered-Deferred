@@ -36,7 +36,7 @@ export class Lights {
     // cluster param
     screenDimensions = vec2.fromValues(canvas.width, canvas.height);
     static readonly clusterPerDim = 16;
-    static readonly maxLightsPerCluster = 200;
+    static readonly maxLightsPerCluster = 500;
     // cluster data
     static readonly numFloatsPerCluster = Lights.maxLightsPerCluster + 1; // each indices is just index
     static readonly clusterArraySize = Lights.clusterPerDim * Lights.clusterPerDim * Lights.clusterPerDim;
@@ -205,7 +205,7 @@ export class Lights {
         computePass.dispatchWorkgroups(workgroupCount);
         computePass.end();
 
-        var logFlag = true ;
+        var logFlag = false ;
 
         if (logFlag) {
             readClusterSetBuffer(device, this.clusterSetStorageBuffer);
@@ -229,7 +229,6 @@ export class Lights {
 
         computePass.end();
 
-        this.doLightClustering(encoder);
         device.queue.submit([encoder.finish()]);
     }
 
@@ -265,8 +264,8 @@ async function readClusterSetBuffer(device, clusterSetBuffer) {
     // Create a view into the buffer
     const data = new Uint32Array(arrayBuffer);
   
-    // Assuming each Cluster has a fixed size of 201 uint32 elements (1 for numLights + 200 for lightIndices)
-    const clusterSize = 201;
+    // Assuming each Cluster has a fixed size of 501 uint32 elements (1 for numLights + 500 for lightIndices)
+    const clusterSize = 501;
     const numClusters = data.length / clusterSize;
     
     var totalLights = 0;

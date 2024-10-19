@@ -68,11 +68,11 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     }
 
     var finalColor = diffuseColor.rgb * totalLightContrib;
-    if (!has_light) {
-        finalColor = vec3f(1, 0, 0);
-    }else{
-        finalColor = diffuseColor.rgb * totalLightContrib;
-    }
+    // if (!has_light) {
+    //     finalColor = vec3f(1, 0, 0);
+    // }else{
+    //     finalColor = diffuseColor.rgb * totalLightContrib;
+    // }
     return vec4(finalColor, 1);
 }
 

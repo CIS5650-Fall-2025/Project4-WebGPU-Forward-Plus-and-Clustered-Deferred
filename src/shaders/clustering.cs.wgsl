@@ -28,7 +28,7 @@
 @group(${bindGroup_scene}) @binding(3) var<storage, read_write> clusterSet: array<Cluster>;
 
 const clusterPerDim = 16u;
-const maxLightsPerCluster = 200;
+const maxLightsPerCluster = 500;
 
 @compute
 @workgroup_size(${moveLightsWorkgroupSize})
@@ -38,28 +38,46 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
         return;
     }
     // find cluster indx in 3D
-    let x_idx = f32(clusterIdx % clusterPerDim);
-    let y_idx = f32((clusterIdx / clusterPerDim) % clusterPerDim);
-    let z_idx = f32(clusterIdx / (clusterPerDim * clusterPerDim));
+    let clusterIdxU = u32(clusterIdx);
+    let x_idx = u32(clusterIdxU % clusterPerDim);
+    let y_idx = u32((clusterIdxU / clusterPerDim) % clusterPerDim);
+    let z_idx = u32(clusterIdxU / (clusterPerDim * clusterPerDim));
 
     // transform to % of screen size
-    let minX = x_idx / f32(clusterPerDim);
-    let maxX = (x_idx + 1.0) / f32(clusterPerDim);
-    let minY = y_idx / f32(clusterPerDim);
-    let maxY = (y_idx + 1.0) / f32(clusterPerDim);
-    let minZ = z_idx / f32(clusterPerDim);
-    let maxZ = (z_idx + 1.0) / f32(clusterPerDim);
+    var minX = f32(x_idx) / f32(clusterPerDim);
+    var maxX = f32(x_idx + 1) / f32(clusterPerDim);
+    var minY = f32(y_idx) / f32(clusterPerDim);
+    var maxY = f32(y_idx + 1) / f32(clusterPerDim);
+    var minZ = f32(z_idx) / f32(clusterPerDim);
+    var maxZ = f32(z_idx + 1) / f32(clusterPerDim);
 
-    let minWorld = convertToWorldSpace(minX, minY, minZ);
-    let maxWorld = convertToWorldSpace(maxX, maxY, maxZ);
+    let corners = array<vec3f, 8>(
+        convertToWorldSpace(minX, minY, minZ),
+        convertToWorldSpace(maxX, minY, minZ),
+        convertToWorldSpace(minX, maxY, minZ),
+        convertToWorldSpace(maxX, maxY, minZ),
+        convertToWorldSpace(minX, minY, maxZ),
+        convertToWorldSpace(maxX, minY, maxZ),
+        convertToWorldSpace(minX, maxY, maxZ),
+        convertToWorldSpace(maxX, maxY, maxZ)
+    );
 
+    // Find the bounding box of the cluster in world space
+    var minWorld = corners[0];
+    var maxWorld = corners[0];
+    for (var i = 1u; i < 8u; i++) {
+        minWorld = min(minWorld, corners[i]);
+        maxWorld = max(maxWorld, corners[i]);
+    }
+
+    let lightRadius = f32(${lightRadius});
     // find the lights that are inside the cluster
     clusterSet[clusterIdx].numLights = 0;
     for (var i = 0u; i < lightSet.numLights; i++) {    
         let light = lightSet.lights[i];
-        if (light.pos.x >= minWorld.x && light.pos.x <= maxWorld.x &&
-            light.pos.y >= minWorld.y && light.pos.y <= maxWorld.y &&
-            light.pos.z >= minWorld.z && light.pos.z <= maxWorld.z) {
+        if (light.pos.x >= minWorld.x - lightRadius && light.pos.x <= maxWorld.x + lightRadius &&
+            light.pos.y >= minWorld.y - lightRadius && light.pos.y <= maxWorld.y + lightRadius &&
+            light.pos.z >= minWorld.z - lightRadius && light.pos.z <= maxWorld.z + lightRadius  ) {
             let count = clusterSet[clusterIdx].numLights;
             if (count < maxLightsPerCluster) {
                 clusterSet[clusterIdx].lightIndices[count] = i;
@@ -70,9 +88,7 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
 }
 
 fn convertToWorldSpace(x: f32, y: f32, z: f32) -> vec3f {
-    var ndc = vec3f(x * 2.0 - 1.0, 1.0 - y * 2.0, z);
-    // flip y according to ed
-    // ndc.y *= -1.0;
+    var ndc = vec3f(x * 2.0 - 1.0, 1.0 - y * 2.0, z); // flip y according to ed
 
     let clip_coord = vec4f(ndc, 1.0);
     var view_coord = inverseProjMat * clip_coord;
