@@ -15,15 +15,15 @@ In this project, I implemented multiple graphics pipelines using WebGPU. The fir
 
 ### Demo Video/GIF
 
-![](images/deferred-5000.gif)
+[![](images/deferred-5000.gif)](images/demo-video.mp4)
 
-Here is a demo GIF of it running. Note that the FPS cap/framiness is due to the GIF itself, and not the actual graphics pipeline. The GIF only has so many frames per second, so instead, look at the FPS counter in the top left. The same is true for most of the other GIFs in this README.
+Here is a [demo video](images/demo-video.mp4) of it running. Note that the FPS cap/framiness is due to the video itself, and not the actual graphics pipeline. The video only has so many frames per second, so instead, look at the FPS counter in the top left. The same is true for all of the other GIFs in this README.
 
 ### Live Demo
 
 [![](images/deferred-2000.jpg)](https://jhawk0224.github.io/CIS5650-Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
-Try out the demo [here](https://jhawk0224.github.io/CIS5650-Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)! You can select which pipeline is being used, the naive one, the forward+ one, or the clustered deferred one.
+Try out the online demo [here](https://jhawk0224.github.io/CIS5650-Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)! You can select which pipeline is being used, the naive one, the forward+ one, or the clustered deferred one.
 
 ### Performance Analysis
 
