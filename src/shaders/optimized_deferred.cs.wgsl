@@ -2,7 +2,7 @@
 @group(0) @binding(1) var<storage, read> lightSet: LightSet;
 @group(0) @binding(2) var unityTex: texture_2d<u32>;
 @group(0) @binding(3) var outputTex: texture_storage_2d<bgra8unorm, write>; // the format could be wrong
-@group(0) @binding(4) var bloomTex: texture_storage_2d<rgba16float, write>; 
+// @group(0) @binding(4) var bloomTex: texture_storage_2d<rgba16float, write>; 
 
 @group(1) @binding(0) var<uniform> res: Resolution;
 @group(1) @binding(1) var<uniform> tileInfo: TileInfo;
@@ -55,15 +55,9 @@ fn computeMain(@builtin(global_invocation_id) global_id: vec3u,
         totalLightContrib += calculateLightContrib(light, worldPos, normal.xyz);
     }
     
-    var finalColor = albedo.rgb * totalLightContrib;
 
-    // var bright = luminance(finalColor);
-    // var _Curve = vec2<f32>(0.8, 0.5);
-    // var knee = (_Curve.x * _Curve.y);
-    // var soft = bright - (_Curve.x - knee);
-    // soft = clamp(soft, 0.0, 1.0);
-    // soft = soft * soft / (4.0 * knee + 0.1);
-    // var bloomColor = finalColor * max(soft, bright - _Curve.x) / max(bright, 0.0001);
-    // textureStore(bloomTex, screenCoord, vec4<f32>(1, 1, 1, 1.0));
+    var finalColor = albedo.rgb * totalLightContrib;
+    // finalColor = vec3(f32(lightCount) / 1000.0);
+
     textureStore(outputTex, screenCoord, vec4<f32>(finalColor, 1.0));
 }
