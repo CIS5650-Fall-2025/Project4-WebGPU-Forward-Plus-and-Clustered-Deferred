@@ -7,21 +7,30 @@ WebGL Forward+ and Clustered Deferred Shading
 * Tested on: (TODO) **Google Chrome 222.2** on
   Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
 
-### Live Demo
+### Live Demo (click image)
 
-[![](img/thumb.png)](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+[![](img/screenShot.png)](http://joshmsmith44.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
-### Demo Video/GIF
+### Demo GIF (Actual render is higher quality)
 
-[![](img/video.mp4)](TODO)
+<a href="gif">
+  <img src="img/shadingProjScreenCap.gif" width="800" />
+</a>
 
-### (TODO: Your README)
+### Project Description
 
-*DO NOT* leave the README to the last minute! It is a crucial part of the
-project, and we will not be able to grade you without a good README.
+In this project, I implemented Forward+ and Clustered Deferred Shading. 
 
-This assignment has a considerable amount of performance analysis compared
-to implementation work. Complete the implementation earl y to leave time!
+**Items Completed**:
+  * Naive Shading Implementation
+  * Forward+ Shading Implementation
+  * Clustered Deferred Shading Implementation
+
+----
+
+**Standard Implementation Analysis**
+
+Diffuse and Reflective Material Support:
 
 ### Credits
 
