@@ -34,7 +34,7 @@ All test rendering is performed under the following specification:
 
 | Model  | Resolution |
 | ------ | ---------- |
-| Sponza | 2560x1440  |
+| Sponza | 3412x1906  |
 
 ### Naive Pipeline
 
@@ -83,6 +83,79 @@ Finally, in the last render pass, instead of loop through the light set, we focu
 | 1000        | 260        | 56            |
 
 The improvement is noticeable.
+
+### Clustered Deferred
+
+---
+
+Traditional deferred pipeline addresses two issues, overdraw and the time complexity of lighting. However, when a scene contains a large set of lights, memory bandwidth becomes the threshold. Interacting with a huge amount of lights from storage buffer is heavily performance consumable.
+
+Applying the same concept introduced in the above method, we could clusterize the frustum and reduce the amount of lighting computation for each fragment. And unlike forward render pipeline, deferred pipeline only involves 1 vertex-heavy rendering pass. The performance of clustered deferred pipeline is slightly better than clustered forwared pipeline.
+
+| Albedo                           | Normal                           | World Position                     |
+| -------------------------------- | -------------------------------- | ---------------------------------- |
+| ![](./results/gbufferAlbedo.png) | ![](./results/gbuffernormal.png) | ![](./results/gbufferWorldPos.png) |
+
+| Light Count | Naive (ms) | Forward+ (ms) | Clustered Deferred (ms) |
+| ----------- | ---------- | ------------- | ----------------------- |
+| 100         | 29         | 9             | 9                       |
+| 300         | 80         | 21            | 14                      |
+| 500         | 120        | 30            | 20                      |
+| 700         | 182        | 43            | 19                      |
+| 1000        | 260        | 56            | 36                      |
+
+### Optimized Deferred
+
+---
+
+We could take a further step of optimization on clustered deferred pipeline. Since multiple gbuffers is not feasible in some situation. It requires multiple scree-sized textures and multiple times read from texture memory - still texture memory and memory bandwidth issue.
+
+Taking a look at our G-buffers, we realize that multiple G-buffers can actually be compressed into one texture with a 4-channel 32 uint precision format (actually 3 channel will suffice, but WebGPU only allows for 4-channel texture creation) by implementing the flowing rubrics:
+
+1. x channel: 16 bit for normal.x, 16 bit for normal.y
+2. y channel: 16 bit for normal.z, 16 bit for depth
+3. z channel: 24 bit, 8 bit each for albedo.rgba
+4. w channel: spare channel for roughness, metalic, etc.
+
+| G-buffer               | Clustered Deferred | Optimized Deferred |
+| ---------------------- | ------------------ | ------------------ |
+| Albedo (bgra8unorm)    | 26 MB              | 0 MB               |
+| Normal (rgba16float)   | 52 MB              | 0 MB               |
+| Position (rgba16float) | 52 MB              | 0 MB               |
+| Unity (rgba32uint)     | 0 MB               | 104 MB             |
+| Total                  | 130 MB             | 104 MB             |
+
+|      | Clustered Deferred | Optimized Deferred |
+| ---- | ------------------ | ------------------ |
+| Read | 3 times            | 1 time             |
+
+Another optimization that we could take is to subsitute the last full screen renderpass with one compute pass. This provides a better flexibility on data structures we would like to apply in final rendering and gives more space for parallelism optimization.
+
+| Light Count | Naive (ms) | Forward+ (ms) | Clustered Deferred (ms) | Optimized Deferred (ms) |
+| ----------- | ---------- | ------------- | ----------------------- | ----------------------- |
+| 100         | 29         | 9             | 9                       | 7                       |
+| 300         | 80         | 21            | 14                      | 15                      |
+| 500         | 120        | 30            | 20                      | 19                      |
+| 700         | 182        | 43            | 29                      | 24                      |
+| 1000        | 260        | 56            | 36                      | 32                      |
+
+### Bloom
+
+---
+
+A general bloom effect consists of the following operations:
+
+1. Extract pixels with high luminance
+2. Down sample the bloom texture and blur
+3. Up sample and add the result back to the original color
+
+For the first part, thanks to [hdmmY](https://github.com/hdmmY/Bloom-Effect-Unity), I managed to extract the high luminance pixel, avoid potential pixel flickering and edge cut off.
+
+However, many things are ambiguous and frustrating while implementing the second and the third part. Reasons includes that WebGPU does not support hardware level mipmap generation and requires additional compute/render pass to acchieve this, WebGPU has not yet read-write storage texture support in one compute pass and additional intermediate texture and compute pass needs to be created, etc.
+
+| Bloom Texture                   |
+| ------------------------------- |
+| ![](results/2-passGaussian.mp4) |
 
 ## Performance Analysis
 

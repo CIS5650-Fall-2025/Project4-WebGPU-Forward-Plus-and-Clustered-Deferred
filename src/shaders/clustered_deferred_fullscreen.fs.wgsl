@@ -42,6 +42,7 @@ fn main(@builtin(position) fragCoord: vec4<f32>) -> @location(0) vec4f
         totalLightContrib += calculateLightContrib(light, worldPos, normal.xyz);
     }
 
+    // return vec4(worldPos, 1.0);
     var finalColor = albedo.rgb * totalLightContrib;
     return vec4(finalColor, 1.0);
 }
