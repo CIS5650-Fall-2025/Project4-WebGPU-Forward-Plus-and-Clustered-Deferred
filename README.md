@@ -27,7 +27,11 @@ We would expect the naive renderer to perform better for a small number of light
 
 As we would expect, the time for frame for deferred renderer is generally better than forward+, and continues to get better as the number of lights in the scene increases.
 
+![](img/graph2.png)
+
 Unsurprisingly, the naive renderer performs very poorly in comparison, and renders my computer basically unusable at around 1000 lights.
+
+![](img/graphall.png)
 
 ### Credits
 
