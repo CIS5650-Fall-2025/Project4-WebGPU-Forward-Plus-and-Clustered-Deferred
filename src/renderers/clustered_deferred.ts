@@ -3,9 +3,6 @@ import * as shaders from '../shaders/shaders';
 import { Stage } from '../stage/stage';
 
 export class ClusteredDeferredRenderer extends renderer.Renderer {
-    // TODO-3: add layouts, pipelines, textures, etc. needed for Forward+ here
-    // you may need extra uniforms such as the camera view matrix and the canvas resolution
-
     sceneUniformsBindGroupLayout: GPUBindGroupLayout;
     sceneUniformsBindGroup: GPUBindGroup;
 
@@ -113,13 +110,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: { sampleType: "unfilterable-float"}
                 },
-                { // gbuffer sampler
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: { type: "non-filtering" }
-                },
                 { // depth
-                    binding: 4,
+                    binding: 3,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: { sampleType: "depth"}
                 },
@@ -142,12 +134,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     binding: 2,
                     resource: this.gbuffer_texture_view
                 },
-                { // gbuffer sampler
+                { // depth
                     binding: 3,
-                    resource: renderer.device.createSampler()
-                },
-                { // gbuffer
-                    binding: 4,
                     resource: this.depthTextureView
                 },
             ]
@@ -183,10 +171,6 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     }
 
     override draw() {
-        // TODO-3: run the Forward+ rendering pass:
-        // - run the clustering compute shader
-        // - run the G-buffer pass, outputting position, albedo, and normals
-        // - run the fullscreen pass, which reads from the G-buffer and performs lighting calculations
         const encoder = renderer.device.createCommandEncoder();
         this.lights.doLightClustering(encoder);
 

@@ -84,7 +84,7 @@ fn unpack_color(packed_color: f32) -> vec3f {
     return vec3f(f32(r) / 255.0, f32(g) / 255.0, f32(b) / 255.0);
 }
 
-fn world_from_screen_cord(uv: vec2f, depth: f32, camera_uniforms: CameraUniforms) -> vec3f {
+fn world_from_uv(uv: vec2f, depth: f32, camera_uniforms: CameraUniforms) -> vec3f {
     let clip_space_pos = vec4f(uv.x * 2.0f - 1.0f, (1.0f - uv.y) * 2.0f - 1.0f, depth, 1.0f);
     let world_space_pos = camera_uniforms.inv_view * camera_uniforms.inv_proj * clip_space_pos;
     return world_space_pos.xyz / world_space_pos.w;

@@ -41,11 +41,10 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let cluster_index_flat = flatten_index(cluster_index, cluster_grid_dimensions.xyz);
 
     let cluster_start = cluster_index_flat * cluster_grid_dimensions.w;
-    var cluster_cursor = cluster_start;
 
     var totalLightContrib = vec3f(0, 0, 0);
 
-    for (; cluster_cursor < cluster_start + cluster_grid_dimensions.w; cluster_cursor += 1) {
+    for (var cluster_cursor = cluster_start; cluster_cursor < cluster_start + cluster_grid_dimensions.w; cluster_cursor += 1) {
         let l = cluster_indices.light_indices[cluster_cursor];
         if (l == (1 << 32) - 1) {
             break;

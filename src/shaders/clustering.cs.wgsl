@@ -58,7 +58,6 @@ fn main(@builtin(global_invocation_id) index: vec3u) {
             }
         }
         
-        // skip this light if its bounding box is out of range
         if (any(min_corner_cluster_index > light_cluster_index) || any(light_cluster_index > max_corner_cluster_index)) {
             continue;
         }
