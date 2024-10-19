@@ -12,41 +12,7 @@
 
 ### Demo Video/GIF
 
-![](img/demo.mp4)
-
-### Part 1: Implement the Different Rendering Methods 
-
-To start off, the naive renderer is missing a camera view projection matrix buffer, and your job is to fill in the missing parts. This will expose you to various parts of the codebase and will hopefully help you understand the general layout of the WebGPU rendering pipeline.
-
-#### 1) Naive (+35)
-
-1.1) Create and Write to the Buffer
-- Created the buffer in `camera.ts` and wrote the view projection matrix to it.
-- Uploaded the buffer to the GPU.
-- Look for comments containing `TODO-1.1` for details.
-
-1.2) Use the Buffer in a Bind Group and a Render Pass
-- Integrated the buffer into the naive renderer's layouts and pipeline.
-- Look for comments containing `TODO-1.2` for details.
-
-1.3) Update the Shaders Accordingly
-- Updated the naive renderer shaders to use the new buffer.
-- Look for comments containing `TODO-1.3` for details.
-
-#### 2) Forward+ (+50)
-
-- Built a data structure to track how many lights are in each cluster and their indices.
-- Rendered each fragment using only the lights that overlap its cluster.
-- Look for comments containing `TODO-2` for details.
-
-When adding new buffers, especially if they contain new structs, their alignment might be different than what you expect. Be sure to check your structs' alignment using [this online calculator](https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html#) and match the memory layout on the host.
-
-#### 3) Clustered Deferred (+15)
-
-- Reused the clustering logic from Forward+.
-- Stored vertex attributes in a G-buffer.
-- Read from the G-buffer in a separate fullscreen pass to produce final output.
-- Look for comments containing `TODO-3` for details.
+![](img/output.gif)
 
 ## Performance Analysis
 
