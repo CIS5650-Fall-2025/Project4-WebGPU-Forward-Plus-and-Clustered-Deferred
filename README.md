@@ -7,7 +7,6 @@ WebGL Forward+ and Clustered Deferred Shading
    * [LinkedIn](https://github.com/AnnieQiuuu/Project0-Getting-Started/blob/main/www.linkedin.com/in/annie-qiu-30531921a)
 * Tested on: Windows 11, i9-12900H @2500 Mhz, 16GB, RTX 3070 Ti 8GB (Personal)
 
-
 ### Overview
 This project implements Naive, Forward+ and Clustered Deferred Shading techniques using WebGPU. It showcases the Sponza Atrium model with a large number of point lights. A GUI is provided to switch between the different rendering modes for comparison.
 
@@ -43,14 +42,13 @@ Clustered Deferred
 [![Demo Video Link]](https://youtu.be/UlBPg0pRh2A)
 
 #### Naive
-[![](img/Naive.mp4)]()
+[Naive Video](img/Naive.mp4)
 
 #### Forward+
-[![](img/Forward+.mp4)]()
+[Forward+ Video](img/Forward+.mp4)
 
 #### Clustered Deferred
-[![](img/Deferred.mp4)]()
-
+[Clustered Deferred Video](img/Deferred.mp4)
 
 ### Performance Analysis
 
