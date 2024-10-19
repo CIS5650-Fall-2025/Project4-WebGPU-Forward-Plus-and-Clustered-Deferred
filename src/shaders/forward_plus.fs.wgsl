@@ -40,14 +40,16 @@ fn main(in: FragmentInput, @builtin(position) fragCoord: vec4f) -> @location(0) 
     let tileSize = camUnif.resolution / vec2f(${numClustersX}, ${numClustersY});
 
     // Get the fragment position in view space
-    let posView : vec3f = (camUnif.viewMat * vec4f(in.pos, 1.f)).xyz;
+    let posView = (camUnif.viewMat * vec4f(in.pos, 1.f)).xyz;
 
     // Figure out depth tile using logarithmic depth (reverse of what we did in the compute shader)
-    let zTile : u32 = u32((log(abs(posView.z) / camUnif.nearFarPlane[0]) * f32(${numClustersZ})) / log(camUnif.nearFarPlane[1] / camUnif.nearFarPlane[0]));
+    let zTile = u32((log(abs(posView.z) / camUnif.nearFarPlane[0]) * f32(${numClustersZ})) / log(camUnif.nearFarPlane[1] / camUnif.nearFarPlane[0]));
 
     // Get the tile index
     let tile = vec3<u32>(vec2<u32>(fragCoord.xy / tileSize), zTile);
-    let tileIndex : u32 = tile.x + (tile.y * ${numClustersX}) + (tile.z * ${numClustersX} * ${numClustersY});
+    let tileIndex = tile.x 
+                    + (tile.y * ${numClustersX}) 
+                    + (tile.z * ${numClustersX} * ${numClustersY});
 
     let cluster = &clusterSet.clusters[tileIndex];  
 
@@ -60,6 +62,7 @@ fn main(in: FragmentInput, @builtin(position) fragCoord: vec4f) -> @location(0) 
 
     var finalColor = diffuseColor.rgb * totalLightContrib;
     return vec4(finalColor, 1);
+    //return vec4(hash33(vec3f(f32(cluster.numLights))), 1);
 }
 
 // Random Function to Debug

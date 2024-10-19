@@ -6,6 +6,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     // TODO-3: add layouts, pipelines, textures, etc. needed for Forward+ here
     // you may need extra uniforms such as the camera view matrix and the canvas resolution
 
+    // Help from https://webgpu.github.io/webgpu-samples/?sample=deferredRendering
+
     sceneUniformsBindGroupLayout: GPUBindGroupLayout;
     sceneUniformsBindGroup: GPUBindGroup;
 
@@ -36,7 +38,6 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         // you'll need two pipelines: one for the G-buffer pass and one for the fullscreen pass
         
         // Make textures for G-buffer
-
         this.positionTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
             format: "rgba16float",
@@ -109,17 +110,17 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         this.gBufferBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "G-buffer bind group layout",
             entries: [
-                {
+                { // Albedo
                     binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: { sampleType: "float" }
                 },
-                {
+                { // Position
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: { sampleType: "float" }
                 },
-                {
+                { // Normal
                     binding: 2,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: { sampleType: "float" }

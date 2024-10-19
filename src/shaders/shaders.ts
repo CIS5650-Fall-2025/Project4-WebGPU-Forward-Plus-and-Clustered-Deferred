@@ -27,7 +27,9 @@ export const constants = {
     bindGroup_scene: 0,
     bindGroup_model: 1,
     bindGroup_material: 2,
-    bindGroup_framebuffer : 3,
+
+    // For deferred rendering / post-processing
+    bindGroup_framebuffer: 1,
 
     moveLightsWorkgroupSize: 128,
 
