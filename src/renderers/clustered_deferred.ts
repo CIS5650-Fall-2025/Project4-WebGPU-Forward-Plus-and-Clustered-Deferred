@@ -97,7 +97,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
 
         this.gBufferPositionTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba16float",
+            format: "rgba32float",
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         });
         this.gBufferPositionTextureView = this.gBufferPositionTexture.createView();
@@ -122,7 +122,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 {   //position
                     binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
-                    texture: {sampleType: 'float'} 
+                    texture: {sampleType: 'unfilterable-float'} 
                 },
                 {
                     //albedo
@@ -195,7 +195,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 }),
                 targets: [
                     {
-                        format: 'rgba16float'
+                        format: 'rgba32float'
                     },{
                         format: 'rgba16float'
                     },{

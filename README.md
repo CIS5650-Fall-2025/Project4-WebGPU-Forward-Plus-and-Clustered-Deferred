@@ -9,19 +9,35 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ### Live Demo
 
-[![](img/thumb.png)](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+[Play around as you like!](https://zjsun1017.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
 ### Demo Video/GIF
 
 [![](img/video.mp4)](TODO)
 
-### (TODO: Your README)
 
-*DO NOT* leave the README to the last minute! It is a crucial part of the
-project, and we will not be able to grade you without a good README.
+### 1. Project Overview
+This project is about learning to use WebGPU and implementing some accelerated rendering functions. The project is very challenging for me because I didn’t have any prior experience with JavaScript, and the design concepts of WebGPU are very different from CUDA. Particularly, the complex Binding Group and the many built-in pipelines make it hard for someone with limited experience like me to adapt. That said, the overall content of this project is still very interesting, especially as faster methods are implemented, the increase in frame rate becomes quite noticeable.
 
-This assignment has a considerable amount of performance analysis compared
-to implementation work. Complete the implementation early to leave time!
+**Features implemented**
+- Naive Forward Rendering
+- Clustered Forward Plus Rendering
+- Clustered Deferred Rendering
+- [Extra Credit +5] Clustered Deferred Rendering with Compact G-Buffer
+
+### 2. Features and Performance Analysis
+#### (i) Speed Comparison among All rendering Methods
+
+
+
+
+#### (ii) Naive Rendering Analysis
+
+#### (iii) Clustered Forward Plus Rendering
+
+#### (iv) Clustered Deferred Rendering
+
+#### (iv) [Extra Credits] Compact G-Buffer
 
 ### Credits
 
