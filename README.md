@@ -20,6 +20,14 @@ https://github.com/user-attachments/assets/b7489c6c-6df0-490f-b5c1-9a3dfee5fc16
 
 ### Performance Analysis
 
+1. Is one faster?
+   Clustered Deferred shading consistently outperforms both Naive and Forward+ methods, especially with increasing numbers of lights. The gap becomes more pronounced with larger light counts:
+   At 5000 lights, Forward+ takes 593 ms, while Clustered Deferred takes only 175 ms.
+   Forward+ shows improvements over the Naive approach but doesn’t scale as efficiently as Clustered Deferred, especially with higher light counts.
+
+2. Workload differences:
+   Forward+ is faster with smaller light counts but struggles to scale due to its per-tile light list generation.
+   Clustered Deferred shading handles higher numbers of lights better since it clusters both geometry and lights, reducing redundant lighting calculations.
 
 <table>
   <tr>
