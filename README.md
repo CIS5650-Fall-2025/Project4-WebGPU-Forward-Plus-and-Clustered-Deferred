@@ -51,14 +51,6 @@ An important implementation note: its easiest to construct the clusters in NDC (
 Also, when slicing up the NDC cube into clusters, note that depth-spacing matters. Regular slices in NDC space become wildly non-linear in view space. We can achieve a good cluster spacing in view space by slicing exponentially in NDC space.
 
 <div align="center">
-  <style>
-    table {
-      border-spacing: 0;
-    }
-    td {
-      padding: 0;
-    }
-  </style>
   <table>
     <tr>
       <td><img src="img/clusterslice1.png" alt="Linear slicing in NDC space"></td>
@@ -85,14 +77,6 @@ Alone, deferred rendering is not a novel concept. In the project, though, I impl
 Since we've already seen how clustering works, lets look at some visualizations of the buffers output by the first pass of deferred rendering:
 
 <div align="center">
-  <style>
-    table {
-      border-spacing: 0;
-    }
-    td {
-      padding: 0;
-    }
-  </style>
   <table>
     <tr>
       <td><img src="img/depthbuffer.png" alt="Depth buffer from deferred rendering prepass"></td>
