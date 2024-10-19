@@ -34,7 +34,6 @@ Clustered Deferred
 - FPS: 120 (83.33ms)
 
 ### Live Demo
-
 [![](img/thumb.png)](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
 ### Demo Video/GIF
@@ -51,7 +50,7 @@ Clustered Deferred
 
 ### Performance Analysis
 
-#### Performance Chart
+#### Number of Lights Chart
 ![](img/chart.png)
 - X axis: ms
 - Y aixs( Number of lights): [100, 200, 500, 1000, 2000, 3000, 5000]
@@ -63,6 +62,8 @@ Clustered Deferred
 - Cluster wrokgroupsize: [4, 4, 4]
 As shown in the chart image, the millisecond increased as the number of lights increased, which means the performace decreased. Naive is the slowest.
 Clustered Deferred is the fastest and followed by the Forward+. As the number of lights lower than 500, both Forward+ and Deferred reach the refresh rate limitation and stay with 6.06ms(165 fps).
+
+
 
 #### Performance Overview:
 Clustered Deferred is the fastest implementation, followed by Forward+ as the second fastest. The Naive method is the slowest.
