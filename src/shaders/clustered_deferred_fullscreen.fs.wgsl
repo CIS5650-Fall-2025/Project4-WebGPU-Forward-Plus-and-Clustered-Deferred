@@ -36,7 +36,7 @@ fn main(in: DefFragmentInput) -> @location(0) vec4f
 
     /*let clipPos = camUniforms.viewProjMat * vec4(in.pos, 1.0);
     let ndcPos = clipPos.xyz / clipPos.w;*/
-    let ndcPos = vec3f((2.0 * in.uv.x) - 1.0, 1.0 - (2.0 * in.uv.y), depth);
+    let ndcPos = vec3f((2.0 * in.uv.x) - 1.0, (2.0 * in.uv.y) - 1.0, depth);
     let clipSpacePos = vec4f(ndcPos, 1.0);  
     let worldPos4 = camUniforms.invViewProjMat * clipSpacePos;
     let worldPos = worldPos4.xyz / worldPos4.w;
