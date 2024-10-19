@@ -72,7 +72,7 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
 
     var numLights = 0u;
     for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
-        let light = lightSet.lights[lightIdx];
+        let light = &lightSet.lights[lightIdx];
         var lightPos = vec4(light.pos, 1.0);
         lightPos = cameraUniforms.invProjMat * (cameraUniforms.viewProjMat * lightPos);
         lightPos /= lightPos.w;
