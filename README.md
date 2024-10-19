@@ -151,7 +151,7 @@ Unfortunately, I couldn't push the number of clusters any higher, due to  buffer
 
 Finally, we'll keep the lights constant at 1K again, the cluster dimensions constant at (16 x 8 x 24), and vary the workgroup size. Previously, we've been operating with 3D workgroups at a size of (16 x 16 x 1). With 3D workgroups, the maximum number of threads that can be run per block (at least on my machine) is 256 - which means the product of the x\*y\*z dimensions of the workgroup size cannot exceed 256. Because this is so limiting, I will simply try various different configurations rather than keeping any ratios constant.
 
-And the results... are not very significant! In fact, there wasn't a noticeable difference at all in any (reaosnable - i.e. not (1x1x1)) configuration that I tried! As a result, I'm not even bothering to show the rather flat graph here.
+And the results... are not very significant! In fact, there wasn't a noticeable difference at all in any (reasonable - i.e. not (1x1x1)) configuration that I tried! As a result, I'm not even bothering to show the rather flat graph here.
 
 ## Miscellaneous
 
@@ -165,11 +165,24 @@ The G-buffer is the store of geometry-related information from the first pass of
 1. Similarly, since we know normal vectors are, well, normalized, we only need two of the three components to reconstruct the third.
 1. We could go even further by packing these two normals into a 32-bit unsigned int, or ditching the depth value altogether and relying on the depth buffer from the first pass (which has a little less precision compared to what I stored in the G-buffer, since its normalized). However, for this project, I only implemented the first two optimizations.
 
-Here's how the deferred renderer performs with and without these optimizations (5k lights):
-
-
+After measuring performance (5k lights) with and without these changes, the fluctuations are too high to determine with certainty whether there was any significant improvement.
 
 ### Render bundles
+
+Lastly, although this project largely focuses on GPU-side performance improvements, there's a feature in WebGPU that I wanted to try out related to CPU-side performance. The way WebGPU works, it encodes a series of commands and sends them to the GPU after doing things like validation (a requirement for the web-based framework, to protect against malicious actors). These commands are things like binding buffers and creating pipelines. With basic WebGPU code, these commands gets processed every frame; this isn't strictly necessary. If the commands aren't changing (even if the underlying data is), we can bundle them up and reuse them each frame, allowing WebGPU to skip steps like validation.
+
+Turns out, this actually makes a pretty significant impact on CPU usage:
+
+<div align="center">
+  <img src="img/RenderBundles.png" alt="CPU time per frame (ms) with and without render bundles">
+</div>
+</br>
+
+Render bundles speeds up draw calls on the CPU by 500%! Granted, its rare to be CPU-bound, but improving CPU efficiency still reduces power usage and may allow for an application to be run on a larger set of devices.
+
+## Other improvements
+
+There are a number of other things we could do to improve performance - a simple one I'd like to call out is light-culling. In deferred rendering, we could compute the light clusters *between* the first and second pass. At that point, we already have depth information about the scene, so we could use it to completely cull irrelevant lights.
 
 # Credits
 
