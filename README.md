@@ -1,11 +1,9 @@
-WebGL Forward+ and Clustered Deferred Shading
-======================
+# WebGL Forward+ and Clustered Deferred Shading
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) **Google Chrome 222.2** on
-  Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+-   Jinxiang Wang
+-   Tested on: Windows 11, AMD Ryzen 9 8945HS w/ Radeon 780M Graphics 4.00 GHz 32GB, RTX 4070 Laptop 8 GB
 
 ### Live Demo
 
@@ -17,7 +15,7 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ### (TODO: Your README)
 
-*DO NOT* leave the README to the last minute! It is a crucial part of the
+_DO NOT_ leave the README to the last minute! It is a crucial part of the
 project, and we will not be able to grade you without a good README.
 
 This assignment has a considerable amount of performance analysis compared
@@ -25,8 +23,8 @@ to implementation work. Complete the implementation early to leave time!
 
 ### Credits
 
-- [Vite](https://vitejs.dev/)
-- [loaders.gl](https://loaders.gl/)
-- [dat.GUI](https://github.com/dataarts/dat.gui)
-- [stats.js](https://github.com/mrdoob/stats.js)
-- [wgpu-matrix](https://github.com/greggman/wgpu-matrix)
+-   [Vite](https://vitejs.dev/)
+-   [loaders.gl](https://loaders.gl/)
+-   [dat.GUI](https://github.com/dataarts/dat.gui)
+-   [stats.js](https://github.com/mrdoob/stats.js)
+-   [wgpu-matrix](https://github.com/greggman/wgpu-matrix)
