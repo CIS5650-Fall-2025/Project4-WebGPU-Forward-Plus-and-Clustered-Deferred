@@ -49,9 +49,17 @@ Interestingly, this drop off does't get more and more severe, it actually levels
 
 One reason the Clustered Deferred implementation performs better than the Forward+ one is because when there are so many lights, it's really efficient to pre-compute all of the color, normal, and depth buffers. The Forward+ would actually be better if the workload had more vertices than fragments, while the deferred implementation is good for high fragment counts.
 
+### Future Improvements
+
+In the future, it would be interesting to implement improvements to these pipelines. For example, I could try combining the Clustered Deferred renderer to use a single compute pass, I could pack the G-buffers together into a smaller form to reduce bandwidth, and I can also try adding bloom/blur. Additionally, it would be interesting to experiment with render bundles to reduce the overhead of draw calls.
+
 ### Gallery
 
 ![](images/deferred-5000-move.gif)
+
+![](images/forward-plus-1500.gif)
+
+![](images/naive-500.gif)
 
 ### Debug Images
 
