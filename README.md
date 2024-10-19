@@ -7,7 +7,7 @@ WebGL Forward+ and Clustered Deferred Shading
    * [LinkedIn](https://github.com/AnnieQiuuu/Project0-Getting-Started/blob/main/www.linkedin.com/in/annie-qiu-30531921a)
 * Tested on: Windows 11, i9-12900H @2500 Mhz, 16GB, RTX 3070 Ti 8GB (Personal)
 
-### Overview
+## Overview
 This project implements Naive, Forward+ and Clustered Deferred Shading techniques using WebGPU. It showcases the Sponza Atrium model with a large number of point lights. A GUI is provided to switch between the different rendering modes for comparison.
 
 ### Features
@@ -22,35 +22,37 @@ Clustered Deferred
 - A rendering technique that stores intermediate shading information (like colors, normals, and positions) in multiple G-buffers during the first pass
 - In the second pass, lighting is calculated by reading from the G-buffers, and similar to the foward+, only relevant lights within each 3D cluster will be used.
 
-### Screenshot
+## Screenshot
 ![](img/foward.png)
 - Number of Lights: 500
 - Mode: Forward+
 - FPS: 165 (6.06ms)
+- Cluster Size: 16 X 9 X 24
 
 ![](img/deferred.png)
 - Number of Lights: 2526
 - Mode: Clustered Deferred
 - FPS: 120 (83.33ms)
+- Cluster Size: 16 X 9 X 24
 
-### Live Demo
-[![](img/thumb.png)](https://annieqiuuu.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
+## Live Demo
+[![Live Demo Link]](https://annieqiuuu.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
-### Demo Video/GIF
-[![4K Demo Video Link:]](https://youtu.be/UlBPg0pRh2A)
+## Demo Video/GIF
+[![4K Demo Video Link]](https://youtu.be/UlBPg0pRh2A)
 
-#### Naive
+### Naive
 ![](./img/naive.gif)
 
-#### Forward+
+### Forward+
 ![](./img/forwardplus.gif)
 
-#### Clustered Deferred
+### Clustered Deferred
 ![](./img/deferred.gif)
 
-### Performance Analysis
+## Performance Analysis
 
-#### Number of Lights Chart
+### Number of Lights Chart
 ![](img/chart.png)
 - X axis: ms
 - Y aixs( Number of lights): [100, 200, 500, 1000, 2000, 3000, 5000]
@@ -63,17 +65,15 @@ Clustered Deferred
 As shown in the chart image, the millisecond increased as the number of lights increased, which means the performace decreased. Naive is the slowest.
 Clustered Deferred is the fastest and followed by the Forward+. As the number of lights lower than 500, both Forward+ and Deferred reach the refresh rate limitation and stay with 6.06ms(165 fps).
 
-
-
-#### Performance Overview:
+### Performance Overview:
 Clustered Deferred is the fastest implementation, followed by Forward+ as the second fastest. The Naive method is the slowest.
 Due to refresh rate limitations, both Forward+ and Clustered Deferred can achieve up to 165 fps when the number of lights is fewer than 500.
 
-#### Performace Difference:
+### Performace Difference:
 Forward+ may be faster in simpler scenes with fewer lights or transparent objects, as it avoids multiple G-buffer passes and uses less memory bandwidth.
 Clustered Deferred excels in complex scenes with more geometry and lights, efficiently handling shading by processing lights only once per fragment in each cluster.
 
-#### Trade offs
+### Trade offs
 - Forward+ Shading:
   - Benefits:
     - Easier to handle transparency and MSAA.
@@ -91,12 +91,10 @@ Clustered Deferred excels in complex scenes with more geometry and lights, effic
     - Challenging to implement MSAA and transparency, often requiring extra passes.
     - More complex pipeline and higher memory usage.
 
-### Bloopers & Debug
+## Bloopers & Debug
 - [Fixed] The Forward didn't work as expected in the beginning. It was really slow previously. I fixed by not using `let cluster = clusterSet.clusters[clusterIdx]` but using `clusterSet.clusters[clusterIdx]` directly in fragment shader. It is because when I use `let cluster = clusterSet.clusters[clusterIdx]`, I created a copy of the entire cluster at the specified index. And in a fragment shader, this operation is performed per-pixel, which can lead to millions of copies, so to caused a large memory overhead. Before fixed: 10 FPS. After fixed: 165 FPS.
 
-
-### Credits
-
+## Credits
 - [Vite](https://vitejs.dev/)
 - [loaders.gl](https://loaders.gl/)
 - [dat.GUI](https://github.com/dataarts/dat.gui)
