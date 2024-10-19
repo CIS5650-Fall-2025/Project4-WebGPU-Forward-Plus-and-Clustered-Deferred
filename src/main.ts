@@ -43,7 +43,7 @@ function setRenderer(mode: string) {
             break;
         case renderModes.forwardPlus:
             renderer = new ForwardPlusRenderer(stage);
-            renderer.setCluster(0); // debug change 0 -> 1
+            renderer.setCluster(1); // debug change 0 -> 1
             break;
         case renderModes.clusteredDeferred:
             renderer = new ClusteredDeferredRenderer(stage);

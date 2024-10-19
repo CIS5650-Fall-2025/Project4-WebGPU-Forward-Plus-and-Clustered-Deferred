@@ -3,7 +3,7 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 9);
+    readonly buffer = new ArrayBuffer(16 * 17);
     private readonly floatView = new Float32Array(this.buffer);
 
     set viewProjMat(mat: Float32Array) {
@@ -13,18 +13,30 @@ class CameraUniforms {
         }
     }
     // Extra functions to set values needed for light clustering here
-    set inverseViewProjMat(mat: Float32Array) {
+    set viewMat(mat: Float32Array) {
         for (let i = 0; i < 16; ++i) {
             this.floatView[i + 16] = mat[i];
         }
     }
-    setNearFarPlanes(near: number, far: number) {
-        this.floatView[32] = near;
-        this.floatView[33] = far;
+    set inverseProjMat(mat: Float32Array) {
+        for (let i = 0; i < 16; ++i) {
+            this.floatView[i + 32] = mat[i];
+        }
     }
-    setScreenSize(x: number, y: number) {
-        this.floatView[34] = x;
-        this.floatView[35] = y;
+    set inverseViewMat(mat: Float32Array) {
+        for (let i = 0; i < 16; ++i) {
+            this.floatView[i + 48] = mat[i];
+        }
+    }
+    set nearPlane(near: number) {
+        this.floatView[64] = near;
+    }
+    set farPlane(far: number) {
+        this.floatView[65] = far;
+    }
+    set screenSize(xy: [number, number]) {
+        this.floatView[66] = xy[0];
+        this.floatView[67] = xy[1];
     }
 }
 
@@ -43,12 +55,12 @@ export class Camera {
     sensitivity: number = 0.15;
 
     static readonly nearPlane = 0.1;
-    static readonly farPlane = 1000;
+    static readonly farPlane = 100000;
 
     keys: { [key: string]: boolean } = {};
 
     constructor () {
-        // TODO-1.1: set `this.uniformsBuffer` to a new buffer of size `this.uniforms.buffer.byteLength`
+        // set `this.uniformsBuffer` to a new buffer of size `this.uniforms.buffer.byteLength`
         // ensure the usage is set to `GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST` since we will be copying to this buffer
         // check `lights.ts` for examples of using `device.createBuffer()`
         //
@@ -59,6 +71,10 @@ export class Camera {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
+        this.uniforms.inverseProjMat = mat4.inverse(this.projMat);
+        this.uniforms.nearPlane = Camera.nearPlane;
+        this.uniforms.farPlane = Camera.farPlane;
+        this.uniforms.screenSize = [canvas.width, canvas.height];
 
         this.rotateCamera(0, 0); // set initial camera vectors
 
@@ -148,14 +164,15 @@ export class Camera {
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
         // Calculate view-projection matrix
         const viewProjMat = mat4.mul(this.projMat, viewMat);
-        const inverseViewProjMat = mat4.invert(viewProjMat);
-        
         // set `this.uniforms.viewProjMat` to the newly calculated view proj mat
-        this.uniforms.viewProjMat = new Float32Array(viewProjMat);
+        this.uniforms.viewProjMat = viewProjMat;
         // TODO-2: write to extra buffers needed for light clustering here
-        this.uniforms.inverseViewProjMat = new Float32Array(inverseViewProjMat);
-        this.uniforms.setNearFarPlanes(Camera.nearPlane, Camera.farPlane);
-        this.uniforms.setScreenSize(canvas.width, canvas.height);
+        this.uniforms.viewMat = viewMat;
+        this.uniforms.inverseViewMat = mat4.inverse(viewMat);
+        //this.uniforms.inverseViewProjMat = new Float32Array(inverseViewProjMat);
+        //this.uniforms.nearPlane = Camera.nearPlane;
+        //this.uniforms.farPlane = Camera.farPlane;
+        //this.uniforms.screenSize = [canvas.width, canvas.height];
         // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);

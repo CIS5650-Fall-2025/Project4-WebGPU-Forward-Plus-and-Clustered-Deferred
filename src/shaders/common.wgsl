@@ -2,22 +2,27 @@
 struct Light {
     pos: vec3f,
     color: vec3f,
-    // TODO-2
 }
 struct LightSet {
     numLights: u32,
     lights: array<Light>
 }
 // TODO-2: you may want to create a ClusterSet struct similar to LightSet
+struct Cluster {
+    minDepth: vec3f,
+    maxDepth: vec3f,
+    numLights: u32,
+    lights : array<u32, ${maxLightsPerTile}>,
+}
 struct ClusterSet {
-    numLights: u32, // num of lights per cluster 
-    lightIndices: array<u32>,
+    clusters: array<Cluster>,
 }
 
 struct CameraUniforms {
     viewProjMat: mat4x4f,
-    // TODO-2
-    inverseViewProjMat: mat4x4f,
+    viewMat:  mat4x4f,
+    inverseProjMat: mat4x4f,
+    inverseViewMat: mat4x4f,
     near: f32,
     far: f32,
     screenSize: vec2f,
