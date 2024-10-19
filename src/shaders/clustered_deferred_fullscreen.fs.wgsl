@@ -41,13 +41,4 @@ fn main(@builtin(position) coord : vec4f) -> @location(0) vec4f {
 
     var finalColor = totalLightContrib * albedo;
     return vec4(finalColor, 1);
-    //return vec4(hash33(vec3f(f32(cluster.numLights))), 1);
-}
-
-// Random Function to Debug
-fn hash33(p3 : vec3f) -> vec3f 
-{
-	var p = fract(p3 * vec3f(.1031, .1030, .0973));
-    p += dot(p, p.yxz+33.33);
-    return fract((p.xxy + p.yxx)*p.zyx);
 }
