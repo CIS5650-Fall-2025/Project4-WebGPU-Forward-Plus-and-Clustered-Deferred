@@ -3,21 +3,6 @@
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
-// Need:
-// - viewProj matrix
-// - screen size
-// - near and far distances
-// - cluster struct
-
-// ------------------------------------
-// Calculating cluster bounds:
-// ------------------------------------
-// For each cluster (X, Y, Z):
-//     - Calculate the screen-space bounds for this cluster in 2D (XY).
-//     - Calculate the depth bounds for this cluster in Z (near and far planes).
-//     - Convert these screen and depth bounds into view-space coordinates.
-//     - Store the computed bounding box (AABB) for the cluster.
-
 // Function to calculate the NDC z value using the projection matrix
 fn convertDepthToNDCWithProjMatrix(depthView: f32) -> f32 {
     // Create a vec4 with the view-space depth value
@@ -40,8 +25,52 @@ fn calculateFrustumDepth(n: f32, f: f32, numOfSlices: f32, currentSlice: f32) ->
     return convertDepthToNDCWithProjMatrix(depthView);
 }
 
-fn calculateClusterBounds(i: u32, j: u32, k: u32) -> Cluster {
-    let n = cameraUniforms.nearAndFar.x;
+fn distanceSquared(a: vec3<f32>, b: vec3<f32>) -> f32 {
+    let diff: vec3<f32> = a - b;
+    return dot(diff, diff);
+}
+
+//     - Store the number of lights assigned to this cluster.
+fn sphere_intersects_aabb(sphere_center: vec3<f32>, sphere_radius: f32, box_min: vec3<f32>, box_max: vec3<f32>) -> bool {
+    let closest_point: vec3<f32> = clamp(sphere_center, box_min, box_max);
+    let distance_squared: f32 = distanceSquared(sphere_center, closest_point);
+    return distance_squared < sphere_radius * sphere_radius;
+}
+
+const dimYTimesDimZ: u32 = CLUSTER_DIMENSIONS.y * CLUSTER_DIMENSIONS.z;
+const dimYTimesDimZInv: f32 = 1.0 / f32(dimYTimesDimZ);
+const dimZInv: f32 = 1.0 / f32(CLUSTER_DIMENSIONS.z);  // Pre-calculate inverse for CLUSTER_DIMENSIONS.z
+
+@compute
+@workgroup_size(${lightCluserWorkgroupSize})
+fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
+    let clusterIdx: u32 = globalIdx.x;
+    if (clusterIdx >= ${numOfClusters}) {
+        return;
+    }
+
+    /**
+     * Calculate the 3D index (i, j, k) from the 1D cluster index
+     * This is the reverse operation of the 3D to 1D conversion
+     */
+    let clusterIdx_f32 = f32(clusterIdx);  // Convert clusterIdx to float once to avoid redundant casts
+    // Replace division by multiplication with the inverse
+    let i = u32(floor(clusterIdx_f32 * dimYTimesDimZInv));
+    let remainder = clusterIdx - i * dimYTimesDimZ;  
+    let remainder_f32 = f32(remainder); 
+    let j = u32(floor(remainder_f32 * dimZInv));  
+    let k = remainder - j * CLUSTER_DIMENSIONS.z;  
+    /******************************************************************************/
+
+    // ------------------------------------
+    // Calculating cluster bounds:
+    // ------------------------------------
+    // For each cluster (X, Y, Z):
+    //     - Calculate the screen-space bounds for this cluster in 2D (XY).
+    //     - Calculate the depth bounds for this cluster in Z (near and far planes).
+    //     - Convert these screen and depth bounds into view-space coordinates.
+    //     - Store the computed bounding box (AABB) for the cluster.
+        let n = cameraUniforms.nearAndFar.x;
     let f = cameraUniforms.nearAndFar.y;
 
     // Calculate screen-space NDC coordinates 
@@ -85,79 +114,34 @@ fn calculateClusterBounds(i: u32, j: u32, k: u32) -> Cluster {
         minCoors = min(minCoors, viewSpaceCorner);
         maxCoors = max(maxCoors, viewSpaceCorner);
     }
-
-    // Initialize the Cluster
-    var cluster: Cluster = Cluster(
-        AABB(minCoors, maxCoors),         // viewSpaceBbox
-        0u,                               // numLights
-        // Initialize the lightIndices array with default values (0 in this case)
-        array<u32, ${maxLightsPerCluster}u>()
-    );
-
-    return cluster;
-}
-
-// ------------------------------------
-// Assigning lights to clusters:
-// ------------------------------------
-// For each cluster:
-//     - Initialize a counter for the number of lights in this cluster.
-
-//     For each light:
-//         - Check if the light intersects with the cluster’s bounding box (AABB).
-//         - If it does, add the light to the cluster's light list.
-//         - Stop adding lights if the maximum number of lights is reached.
-
-fn distanceSquared(a: vec3<f32>, b: vec3<f32>) -> f32 {
-    let diff: vec3<f32> = a - b;
-    return dot(diff, diff);
-}
-
-//     - Store the number of lights assigned to this cluster.
-fn sphere_intersects_aabb(sphere_center: vec3<f32>, sphere_radius: f32, box_min: vec3<f32>, box_max: vec3<f32>) -> bool {
-    let closest_point: vec3<f32> = clamp(sphere_center, box_min, box_max);
-    let distance_squared: f32 = distanceSquared(sphere_center, closest_point);
-    return distance_squared < sphere_radius * sphere_radius;
-}
-
-const dimYTimesDimZ: u32 = CLUSTER_DIMENSIONS.y * CLUSTER_DIMENSIONS.z;
-const dimYTimesDimZInv: f32 = 1.0 / f32(dimYTimesDimZ);
-const dimZInv: f32 = 1.0 / f32(CLUSTER_DIMENSIONS.z);  // Pre-calculate inverse for CLUSTER_DIMENSIONS.z
-
-@compute
-@workgroup_size(${lightCluserWorkgroupSize})
-fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
-    let clusterIdx: u32 = globalIdx.x;
-    if (clusterIdx >= ${numOfClusters}) {
-        return;
-    }
-
-    /**
-     * Calculate the 3D index (i, j, k) from the 1D cluster index
-     * This is the reverse operation of the 3D to 1D conversion
-     */
-    let clusterIdx_f32 = f32(clusterIdx);  // Convert clusterIdx to float once to avoid redundant casts
-    // Replace division by multiplication with the inverse
-    let i = u32(floor(clusterIdx_f32 * dimYTimesDimZInv));
-    let remainder = clusterIdx - i * dimYTimesDimZ;  
-    let remainder_f32 = f32(remainder); 
-    let j = u32(floor(remainder_f32 * dimZInv));  
-    let k = remainder - j * CLUSTER_DIMENSIONS.z;  
     /******************************************************************************/
 
-    var cluster: Cluster = calculateClusterBounds(i, j, k);
+    // ------------------------------------
+    // Assigning lights to clusters:
+    // ------------------------------------
+    // For each cluster:
+    //     - Initialize a counter for the number of lights in this cluster.
+
+    //     For each light:
+    //         - Check if the light intersects with the cluster’s bounding box (AABB).
+    //         - If it does, add the light to the cluster's light list.
+    //         - Stop adding lights if the maximum number of lights is reached.
+    let curBbox = AABB(minCoors, maxCoors);
+    var curNumLights: u32 = 0u;
+    var curLightIdxArr = array<u32, ${maxLightsPerCluster}u>();
     for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
-        if (cluster.numLights >= u32(${maxLightsPerCluster})) {
+        if (curNumLights >= ${maxLightsPerCluster}) {
             break;
         }
 
         let viewSpaceLightPos: vec3<f32> = (cameraUniforms.view * vec4<f32>(lightSet.lights[lightIdx].pos, 1.0)).xyz;
-        let curBbox: AABB = cluster.viewSpaceBbox;
-        if (sphere_intersects_aabb(viewSpaceLightPos, f32(${lightRadius}), curBbox.min, curBbox.max)) {
-            cluster.lightIndices[cluster.numLights] = lightIdx;
-            cluster.numLights += 1u;
+        if (sphere_intersects_aabb(viewSpaceLightPos, ${lightRadius}, curBbox.min, curBbox.max)) {
+            curLightIdxArr[curNumLights] = lightIdx;
+            curNumLights += 1u;
         }
     }
+    /******************************************************************************/
 
+    let cluster: Cluster = Cluster(curBbox, curNumLights, curLightIdxArr);
     clusterSet.clusters[clusterIdx] = cluster;
 }
