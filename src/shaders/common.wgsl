@@ -99,3 +99,7 @@ fn hash13(i: u32) -> vec3<f32> {
     let q: vec3<f32> = fract(sin(vec3(p, p + 1.0, p + 2.0)) * 43758.5453);
     return fract(q);
 }
+
+fn luminance(color: vec3<f32>) -> f32 {
+    return dot(color, vec3<f32>(0.2126, 0.7152, 0.0722));
+}

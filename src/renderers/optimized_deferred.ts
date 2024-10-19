@@ -2,9 +2,7 @@ import * as renderer from "../renderer";
 import * as shaders from "../shaders/shaders";
 import { Stage } from "../stage/stage";
 
-// screen size triangle
-const vertexBufferData = new Float32Array([-1, -1, 3, -1, -1, 3]);
-
+const gaussianKernelSize = 5;
 export class OptimizedDeferredRenderer extends renderer.Renderer {
     // TODO-3: add layouts, pipelines, textures, etc. needed for Forward+ here
     // you may need extra uniforms such as the camera view matrix and the canvas resolution
@@ -50,6 +48,21 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
     // full screen compute pass
     sceneComputeBindGroupLayout: GPUBindGroupLayout;
     pipelineFullscreenCompute: GPUComputePipeline;
+
+    // bloom
+    bloomTexture: GPUTexture;
+    bloomTextureView: GPUTextureView;
+    gaussianKernel2D: GPUBuffer;
+    bloomBindGroupLayout: GPUBindGroupLayout;
+    pipelineBlur: GPUComputePipeline;
+
+    // write back to canvas
+    writeBackBindGroupLayout: GPUBindGroupLayout;
+    pipelineWriteBack: GPUComputePipeline;
+
+    getGaussian(x: number, y: number, sigma: number): number {
+        return (1 / (2 * Math.PI * sigma * sigma)) * Math.exp(-(x * x + y * y) / (2 * sigma * sigma));
+    }
 
     constructor(stage: Stage) {
         super(stage);
@@ -120,6 +133,14 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
         });
         this.depthTextureView = this.depthTexture.createView();
 
+        this.bloomTexture = renderer.device.createTexture({
+            size: [renderer.canvas.width, renderer.canvas.height],
+            format: "rgba16float",
+            usage:
+                GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
+        });
+        this.bloomTextureView = this.bloomTexture.createView();
+
         // full screen compute pass bind group
         this.sceneComputeBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "scene uniforms bind group layout",
@@ -151,6 +172,16 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
                     storageTexture: {
                         access: "write-only",
                         format: renderer.canvasFormat,
+                        viewDimension: "2d",
+                    },
+                },
+                {
+                    // bloom texture
+                    binding: 4,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "write-only",
+                        format: "rgba16float",
                         viewDimension: "2d",
                     },
                 },
@@ -462,6 +493,119 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
                 entryPoint: "computeMain",
             },
         });
+
+        // bloom
+        this.gaussianKernel2D = renderer.device.createBuffer({
+            label: "gaussian kernel 2D",
+            size: (gaussianKernelSize * 2 + 1) * Float32Array.BYTES_PER_ELEMENT,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        });
+
+        const gaussianKernel = new Float32Array(gaussianKernelSize * 2 + 1);
+        const mid = Math.floor(gaussianKernelSize / 2);
+        gaussianKernel[0] = gaussianKernelSize; // size
+        for (let i = 0; i < gaussianKernelSize; i++) {
+            gaussianKernel[1 + i] = this.getGaussian(Math.abs(mid - i), 0, 1); // horizontal
+            gaussianKernel[1 + i + gaussianKernelSize] = this.getGaussian(0, Math.abs(mid - i), 1); // vertical
+        }
+
+        renderer.device.queue.writeBuffer(this.gaussianKernel2D, 0, gaussianKernel);
+
+        this.bloomBindGroupLayout = renderer.device.createBindGroupLayout({
+            entries: [
+                {
+                    // canvas framebuffer
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "read-only",
+                        format: renderer.canvasFormat,
+                        viewDimension: "2d",
+                    },
+                },
+                {
+                    // bloom texture
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "write-only",
+                        format: "rgba16float",
+                        viewDimension: "2d",
+                    },
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" },
+                },
+            ],
+        });
+
+        this.pipelineBlur = renderer.device.createComputePipeline({
+            layout: renderer.device.createPipelineLayout({
+                bindGroupLayouts: [this.bloomBindGroupLayout],
+            }),
+            compute: {
+                module: renderer.device.createShaderModule({
+                    code: shaders.bloomComputeSrc,
+                }),
+                entryPoint: "computeMain",
+            },
+        });
+
+        // write back
+        this.writeBackBindGroupLayout = renderer.device.createBindGroupLayout({
+            entries: [
+                {
+                    // canvas framebuffer
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "write-only",
+                        format: renderer.canvasFormat,
+                        viewDimension: "2d",
+                    },
+                },
+                {
+                    // bloom texture
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "read-only",
+                        format: "rgba16float",
+                        viewDimension: "2d",
+                    },
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "read-only-storage" },
+                },
+                {
+                    // screen resolution
+                    binding: 3,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" },
+                },
+            ],
+        });
+
+        this.pipelineWriteBack = renderer.device.createComputePipeline({
+            layout: renderer.device.createPipelineLayout({
+                bindGroupLayouts: [this.writeBackBindGroupLayout],
+            }),
+            compute: {
+                module: renderer.device.createShaderModule({
+                    code: shaders.bloomWriteBackComputeSrc,
+                }),
+                entryPoint: "computeMain",
+            },
+        });
     }
 
     override draw() {
@@ -554,6 +698,10 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
                     binding: 3,
                     resource: canvasTextureView,
                 },
+                {
+                    binding: 4,
+                    resource: this.bloomTextureView,
+                },
             ],
         });
         computePass.setBindGroup(0, sceneComputeBindGroup);
@@ -564,6 +712,70 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
             1
         );
         computePass.end();
+
+        // // bloom
+        // const bloomPass = encoder.beginComputePass();
+        // bloomPass.setPipeline(this.pipelineBlur);
+        // const bloomBindGroup = renderer.device.createBindGroup({
+        //     layout: this.bloomBindGroupLayout,
+        //     entries: [
+        //         {
+        //             binding: 0,
+        //             resource: canvasTextureView,
+        //         },
+        //         {
+        //             binding: 1,
+        //             resource: this.bloomTextureView,
+        //         },
+        //         {
+        //             binding: 2,
+        //             resource: { buffer: this.gaussianKernel2D },
+        //         },
+        //         {
+        //             binding: 3,
+        //             resource: { buffer: this.resUniformBuffer },
+        //         },
+        //     ],
+        // });
+        // bloomPass.setBindGroup(0, bloomBindGroup);
+        // bloomPass.dispatchWorkgroups(
+        //     Math.ceil(renderer.canvas.width / shaders.constants.lightCullBlockSize),
+        //     Math.ceil(renderer.canvas.height / shaders.constants.lightCullBlockSize),
+        //     1
+        // );
+        // bloomPass.end();
+
+        // // write back
+        // const writeBackPass = encoder.beginComputePass();
+        // writeBackPass.setPipeline(this.pipelineWriteBack);
+        // const writeBackBindGroup = renderer.device.createBindGroup({
+        //     layout: this.writeBackBindGroupLayout,
+        //     entries: [
+        //         {
+        //             binding: 0,
+        //             resource: canvasTextureView,
+        //         },
+        //         {
+        //             binding: 1,
+        //             resource: this.bloomTextureView,
+        //         },
+        //         {
+        //             binding: 2,
+        //             resource: { buffer: this.gaussianKernel2D },
+        //         },
+        //         {
+        //             binding: 3,
+        //             resource: { buffer: this.resUniformBuffer },
+        //         },
+        //     ],
+        // });
+        // writeBackPass.setBindGroup(0, writeBackBindGroup);
+        // writeBackPass.dispatchWorkgroups(
+        //     Math.ceil(renderer.canvas.width / shaders.constants.lightCullBlockSize),
+        //     Math.ceil(renderer.canvas.height / shaders.constants.lightCullBlockSize),
+        //     1
+        // );
+        // writeBackPass.end();
         renderer.device.queue.submit([encoder.finish()]);
     }
 }
