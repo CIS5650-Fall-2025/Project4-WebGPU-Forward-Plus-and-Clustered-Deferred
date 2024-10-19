@@ -157,6 +157,36 @@ However, many things are ambiguous and frustrating when implementing the second 
 
 ## Performance Analysis
 
+### Is one of them faster?
+
+Optimized Deferred appears to be faster in most cases.
+
+### Is one of them better at certain types of workloads?
+
+When workload is light, naive could become the most efficient one, as no complecated pass switching, texture binding, etc. is needed.  
+When workload is heavy, under most cases we can stick to optimized deferred, if hardware permits.  
+When multiple material and different way of shading is required, we should choose forward+ instead.
+
+### What are the benefits and tradeoffs of using one over the other?
+
+**Naive**:  
+Benefits: simple to implement  
+Tradeoffs: poor behavior in complex scene
+
+**Forward+**:  
+Benefits: support MSAA and different materials  
+Tradeoffs: 1 additional vertex heavy render pass
+
+**Clustered Deferred**:  
+Benefits: less overdraw  
+Tradeoffs: high texture memory and memory bandwidth required, no MSAA support, no transparent material rendering
+
+**Optimized Deferred**:  
+Benefits: less texture memory and memory bandwidth required  
+Tradeoffs: same as clustered deferred
+
+### For any differences in performance, briefly explain what may be causing the difference.
+
 ### Credits
 
 -   [Vite](https://vitejs.dev/)
@@ -164,3 +194,4 @@ However, many things are ambiguous and frustrating when implementing the second 
 -   [dat.GUI](https://github.com/dataarts/dat.gui)
 -   [stats.js](https://github.com/mrdoob/stats.js)
 -   [wgpu-matrix](https://github.com/greggman/wgpu-matrix)
+-   [hdmmY](https://github.com/hdmmY/Bloom-Effect-Unity)
