@@ -1,6 +1,6 @@
 // CHECKITOUT: code that you add here will be prepended to all shaders
 const zNear : f32 = 0.1; 
-const zFar : f32 = 50.0;
+const zFar : f32 = 20.0;
 
 struct Light {
     pos: vec3f,
