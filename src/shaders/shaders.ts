@@ -36,7 +36,7 @@ export const constants = {
     clusterY: 16,
     clusterZ: 16,
 
-    maxClusterLights: 128
+    maxClusterLights: 1024
 };
 
 // =================================

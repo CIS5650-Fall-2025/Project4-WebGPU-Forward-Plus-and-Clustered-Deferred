@@ -33,8 +33,6 @@ class CameraUniforms {
     set logfarovernear(n: number) {
         this.floatView[16 * 3 + 3] = n;
     }
-
-    // TODO-2: add extra functions to set values needed for light clustering here
 }
 
 export class Camera {

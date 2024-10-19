@@ -17,6 +17,10 @@ fn main(@builtin(position) fragPos: vec4f) -> @location(0) vec4f {
     let albedo = textureLoad(albedoTex, index, 0);
     let normal = textureLoad(normalTex, index, 0).xyz;
 
+    if (depth == 1) {
+      discard;
+    }
+
     let bufferSize = textureDimensions(depthTex);
     let coordUV = fragPos.xy / vec2f(bufferSize);
     
@@ -36,6 +40,7 @@ fn main(@builtin(position) fragPos: vec4f) -> @location(0) vec4f {
         let light = lightSet.lights[clusters[clusterIdx].lights[lightIdx]];
         totalLightContrib += calculateLightContrib(light, worldPos.xyz, normal);
     }
-    
-    return vec4f(totalLightContrib, 1);
+
+    let finalColor = albedo.rgb * totalLightContrib;
+    return vec4f(finalColor, 1);
 }

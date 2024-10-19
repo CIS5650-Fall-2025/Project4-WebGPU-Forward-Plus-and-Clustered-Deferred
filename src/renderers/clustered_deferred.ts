@@ -128,12 +128,12 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 {   // albedo
                     binding: 2,
                     visibility: GPUShaderStage.FRAGMENT,
-                    texture: {}
+                    texture: { sampleType: "unfilterable-float" }
                 },
                 {   // normal
                     binding: 3,
                     visibility: GPUShaderStage.FRAGMENT,
-                    texture: {}
+                    texture: { sampleType: "unfilterable-float" }
                 },
                 {
                     // depth
