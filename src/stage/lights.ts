@@ -28,7 +28,7 @@ export class Lights {
     moveLightsComputeBindGroup: GPUBindGroup;
     moveLightsComputePipeline: GPUComputePipeline;
 
-    static readonly cluster_grid_dimensions = new Uint32Array([10, 20, 30, 512]);
+    static readonly cluster_grid_dimensions = new Uint32Array([10, 10, 30, 512]);
 
     cluster_grid_dimensions_buffer: GPUBuffer;
     cluster_indices_buffer: GPUBuffer;
