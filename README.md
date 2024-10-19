@@ -8,8 +8,7 @@
 
 ### Live Demo
 
-[![](img/thumb.png)](http://dummy-url.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
-
+[Try it yourself! No installation needed!](https://aorus1.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 ### Demo Video/GIF
 
 ![](img/output.gif)
