@@ -13,9 +13,9 @@ WebGPU Forward+ and Clustered Deferred Shading
 
 ### Demo GIF
 
- | *5000 Lights moves in the Sponza Scene*|
+ | *Random Lights move in the Scene*|
  |:--:|
- | <img src="./img/4knaive.jpg" > |
+ | <img src="./img/p43.gif" > |
 
 ## Table of Contents
 * [Demo](#p1)
@@ -135,9 +135,50 @@ The key advantage of this approach is that it significantly reduces the cost of 
 
 ### Test Benchmarks
   - Resolution: 3840 * 2560(4K)
-  - Number of Lights in the Scene: 128($2^7$) - 4096($2^{12}$)
+  - Number of Lights in the Scene: 128($2^7$) - 8192($2^{13}$)
   - Metrics: Rendering time per frame (in milliseconds), Frames Per Second (FPS)
 
+### Overview
+
+This section examines the performance of three shading methods: **Naive Forward Shading**, **Clustered Forward Shading**, and **Clustered Deferred Shading**. These methods were tested in a 4K resolution scene featuring the Sponza Atrium model with a varying number of dynamic point lights.
+
+| Number of Lights | Naive (ms) | Clustered Forward (ms) | Clustered Deferred (ms) |
+|------------------|------------|------------------------|--------------------------|
+| 256              | 18.8       | 1.6                    | 0.5                      |
+| 512              | 34.4       | 3.4                    | 1.1                      |
+| 1024             | 71.4       | 7.0                    | 2.3                      |
+| 2048             | 142.8      | 14.2                   | 4.1                      |
+| 4096             | 273.6      | 27.7                   | 8.2                      |
+| 8192             | 550.8      | 52.6                   | 15.1                     |
+
+The results show that as the number of lights increases, Clustered Deferred Shading demonstrates superior scalability and efficiency, outperforming the other methods, especially with higher light counts.
+
+
+### Analysis by Light Count
+
+- Naive Forward Shading:
+  - The performance of Naive Forward Shading degrades quickly as the number of lights increases, from 18.8 ms at 256 lights to 550.8 ms at 8192 lights.
+  - The root of this inefficiency lies in the fact that the fragment shader computes the influence of all lights on every fragment, regardless of whether they are relevant to the scene. This introduces substantial computational overhead and results in many unnecessary light calculations.
+
+![](img/ana.jpg)
+- Clustered Forward Shading:
+  - Clustered Forward Shading drastically improves upon the naive method, achieving 1.6 ms with 256 lights and 52.6 ms with 8192 lights. This improvement is due to the clustering of the view frustum into 3D regions (clusters), which allows the system to calculate only the lights relevant to each fragment, rather than all lights.
+  - However, as the light count increases, performance still begins to degrade. The method remains efficient up to 4096 lights, after which the computation cost starts to grow, albeit much slower than the Naive approach.
+
+- Clustered Deferred Shading:
+  - Clustered Deferred Shading shows the best overall performance, particularly with larger numbers of lights. It starts at 0.5 ms with 256 lights and scales to only 15.1 ms with 8192 lights.
+  - The major performance advantage comes from decoupling the geometry and lighting calculations. By first storing geometry data (positions, normals, etc.) in the G-buffer, lighting is only computed for visible fragments during a second pass. This eliminates redundant computations and makes the method highly scalable.
+
+### Performance Insights
+- Naive Forward Shading:
+
+This method becomes impractical once the number of lights exceeds 500, as the cost of processing all lights for each fragment skyrockets.
+- Clustered Forward Shading:
+
+Works well for small to moderate light counts but begins to show performance degradation as the number of lights exceeds 4000. Still, it is significantly more efficient than the naive method thanks to the clustering mechanism, which limits the light calculations to relevant clusters.
+- Clustered Deferred Shading:
+
+This method is ideal for scenes with a high number of dynamic lights, as it efficiently handles light calculations by storing geometry information in a G-buffer and shading only visible fragments. The performance remains stable and scalable even with over 8000 lights, making it the most effective method for large, complex scenes.
 
 ## <a name="references">Credits</a>
 

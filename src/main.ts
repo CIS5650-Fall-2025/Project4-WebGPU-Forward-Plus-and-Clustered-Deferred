@@ -65,7 +65,7 @@ const renderModes = {
      naive: 'naive',
      forwardPlus: 'forward+',
     clusteredDeferred: 'clustered deferred',
-    packedClusteredDeferred: 'packed clustered deferred',
+    //packedClusteredDeferred: 'packed clustered deferred',
     // optimizedClusteredDeferred: 'optimized clustered deferred',
     // postProcessing: 'post-processing',
  };
