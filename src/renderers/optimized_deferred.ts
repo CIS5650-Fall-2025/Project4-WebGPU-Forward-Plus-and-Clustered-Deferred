@@ -2,7 +2,7 @@ import * as renderer from '../renderer';
 import * as shaders from '../shaders/shaders';
 import { Stage } from '../stage/stage';
 
-export class ClusteredDeferredRenderer extends renderer.Renderer {
+export class OptimizedDeferredRenderer extends renderer.Renderer {
     // TODO-3: add layouts, pipelines, textures, etc. needed for Forward+ here
     // you may need extra uniforms such as the camera view matrix and the canvas resolution
     sceneUniformsBindGroupLayout: GPUBindGroupLayout;
@@ -12,14 +12,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     depthTexture: GPUTexture;
     depthTextureView: GPUTextureView;
 
-    gBufferPositionTexture: GPUTexture;
-    gBufferPositionTextureView: GPUTextureView;
-
-    gBufferAlbedoTexture: GPUTexture;
-    gBufferAlbedoTextureView: GPUTextureView;
-
-    gBufferNormalTexture: GPUTexture;
-    gBufferNormalTextureView: GPUTextureView;
+    gBufferTexture: GPUTexture;
+    gBufferTextureView: GPUTextureView;
 
     gBufferBindGroupLayout: GPUBindGroupLayout;
     gBufferBindGroup: GPUBindGroup;
@@ -95,53 +89,21 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         });
         this.depthTextureView = this.depthTexture.createView();
 
-        this.gBufferPositionTexture = renderer.device.createTexture({
+        this.gBufferTexture = renderer.device.createTexture({
             size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba16float",
+            format: "rgba32uint",
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         });
-        this.gBufferPositionTextureView = this.gBufferPositionTexture.createView();
-
-        this.gBufferAlbedoTexture = renderer.device.createTexture({
-            size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba16float",
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
-        });
-        this.gBufferAlbedoTextureView = this.gBufferAlbedoTexture.createView();
-
-        this.gBufferNormalTexture = renderer.device.createTexture({
-            size: [renderer.canvas.width, renderer.canvas.height],
-            format: "rgba16float",
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
-        });
-        this.gBufferNormalTextureView = this.gBufferNormalTexture.createView();
+        this.gBufferTextureView = this.gBufferTexture.createView();
 
         this.gBufferBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "G buffer bind group layout",
             entries: [
-                {   //position
+                {   //gBuffer
                     binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
-                    texture: {sampleType: 'float'} 
+                    texture: { sampleType: 'uint' } 
                 },
-                {
-                    //albedo
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {sampleType: 'float'}
-                },
-                {
-                    //normal
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {sampleType: 'float'} 
-                },
-                {
-                    //sampler
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: {type: 'non-filtering'} 
-                }
             ]
         });
 
@@ -150,20 +112,8 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             entries: [
                 {
                     binding: 0,
-                    resource: this.gBufferPositionTextureView
+                    resource: this.gBufferTextureView
                 },
-                {
-                    binding: 1,
-                    resource: this.gBufferAlbedoTextureView
-                },
-                {
-                    binding: 2,
-                    resource: this.gBufferNormalTextureView
-                },
-                {
-                    binding: 3,
-                    resource: renderer.device.createSampler()
-                }
             ]
         });
 
@@ -191,15 +141,11 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             fragment: {
                 module: renderer.device.createShaderModule({
                     label: "G buffer frag shader",
-                    code: shaders.clusteredDeferredFragSrc,
+                    code: shaders.optimizedDeferredFragSrc,
                 }),
                 targets: [
                     {
-                        format: 'rgba16float'
-                    },{
-                        format: 'rgba16float'
-                    },{
-                        format: 'rgba16float'
+                        format: 'rgba32uint'
                     }
                 ]
             }
@@ -215,13 +161,13 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             }),
             vertex: {
                 module: renderer.device.createShaderModule({
-                    code: shaders.clusteredDeferredFullscreenVertSrc
+                    code: shaders.optimizedDeferredFullscreenVertSrc
                 }),
                 entryPoint: "main"
             },
             fragment: {
                 module: renderer.device.createShaderModule({
-                    code: shaders.clusteredDeferredFullscreenFragSrc
+                    code: shaders.optimizedDeferredFullscreenFragSrc
                 }),
                 entryPoint: "main",
                 targets: [
@@ -244,21 +190,11 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             label: "G Buffer pass",
             colorAttachments: [
                 {
-                    view: this.gBufferPositionTextureView,
+                    view: this.gBufferTextureView,
                     clearValue: [0, 0, 0, 0],
                     loadOp: "clear",
                     storeOp: "store"
-                },{
-                    view: this.gBufferAlbedoTextureView,
-                    clearValue: [0, 0, 0, 0],
-                    loadOp: "clear",
-                    storeOp: "store"
-                },{
-                    view: this.gBufferNormalTextureView,
-                    clearValue: [0, 0, 0, 0],
-                    loadOp: "clear",
-                    storeOp: "store"
-                },
+                }
             ],
             depthStencilAttachment: {
                 view: this.depthTextureView,

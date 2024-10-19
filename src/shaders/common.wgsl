@@ -54,3 +54,20 @@ fn getClusterIndex(pos_world: vec3f, camera: CameraUniforms) -> u32 {
     return index;
 }
 
+fn encodeNormalOctahedron(n: vec3<f32>) -> vec2<f32> {
+    var nor = n.xy / (abs(n.x) + abs(n.y) + abs(n.z));
+    if (n.z < 0.0) {
+        nor = (1.0 - abs(nor.xy)) * sign(nor);
+    }
+    return nor * 0.5 + 0.5;
+}
+
+fn decodeNormalOctahedron(encodedNormal: vec2<f32>) -> vec3<f32> {
+    let f = encodedNormal * 2.0 - 1.0;
+    var n = vec3<f32>(f, 1.0 - abs(f.x) - abs(f.y));
+    if (n.z < 0.0) {
+        n.x += n.z * sign(n.x);
+        n.y += n.z * sign(n.y);
+    }
+    return normalize(n);
+}

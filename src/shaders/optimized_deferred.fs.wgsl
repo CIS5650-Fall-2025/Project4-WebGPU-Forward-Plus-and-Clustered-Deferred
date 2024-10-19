@@ -1,5 +1,3 @@
-// TODO-3: implement the Clustered Deferred G-buffer fragment shader
-
 // This shader should only store G-buffer information and should not do any shading.
 struct VertexOutput
 {
@@ -10,10 +8,7 @@ struct VertexOutput
 }
 
 struct GBufferOutput {
-    @location(0) pos: vec4<f32>,
-    @location(1) col: vec4<f32>,
-    @location(2) nor: vec4<f32>,
-
+    @location(0) gBuffer: vec4<u32>,
 };
 
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
@@ -25,8 +20,11 @@ fn main(in: VertexOutput) -> GBufferOutput {
     if (diffuseColor.a < 0.5f) {
         discard;
     }
-    out.col = diffuseColor;
-    out.nor = vec4<f32>(in.nor, 1.0);
-    out.pos = in.fragPos;
+
+    let col = pack4x8unorm(diffuseColor);
+    let nor = pack2x16unorm(encodeNormalOctahedron(in.nor));
+    let z : u32 = pack2x16unorm(vec2<f32>(in.fragPos.z, 1.0));
+    out.gBuffer = vec4u(col,nor,z,1);
+    
     return out;
 }
