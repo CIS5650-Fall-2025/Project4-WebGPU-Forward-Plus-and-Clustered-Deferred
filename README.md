@@ -38,17 +38,16 @@ Clustered Deferred
 [![](img/thumb.png)](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
 ### Demo Video/GIF
-
-[![Demo Video Link]](https://youtu.be/UlBPg0pRh2A)
+[![4K Demo Video Link:]](https://youtu.be/UlBPg0pRh2A)
 
 #### Naive
-[Naive Video](img/Naive.mp4)
+![](./img/naive.gif)
 
 #### Forward+
-[Forward+ Video](img/Forward+.mp4)
+![](./img/forwardplus.gif)
 
 #### Clustered Deferred
-[Clustered Deferred Video](img/Deferred.mp4)
+![](./img/deferred.gif)
 
 ### Performance Analysis
 
