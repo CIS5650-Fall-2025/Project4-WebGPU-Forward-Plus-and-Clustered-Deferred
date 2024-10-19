@@ -77,7 +77,7 @@ fn main(@builtin(position) fragPos: vec4f) -> @location(0) vec4f {
     // draw outlines ---------------------------------------------
 
     let edge = calculateEdge(index, normal);
-
+    
     // if edge detected, return black for the outline
     if (edge > 0.0) {
         return vec4<f32>(0.0, 0.0, 0.0, 1.0); 

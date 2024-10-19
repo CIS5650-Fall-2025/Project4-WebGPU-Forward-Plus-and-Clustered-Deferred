@@ -36,7 +36,7 @@ fn checkLightIntersect(lightPos: vec3f, lightRadius: f32, minBounds: vec3f, maxB
 }
 
 @compute
-@workgroup_size(${clusterSize}, ${clusterSize})
+@workgroup_size(8, 8)
 fn main(@builtin(global_invocation_id) global_id: vec3u) {
 
     if (global_id.x >= ${clusterSize} || 
