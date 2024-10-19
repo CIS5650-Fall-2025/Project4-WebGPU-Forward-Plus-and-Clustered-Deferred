@@ -7,6 +7,7 @@
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
 
+//gBuffer
 @group(1) @binding(0) var albedoTex: texture_2d<f32>;
 @group(1) @binding(1) var albedoTexSampler: sampler;
 @group(1) @binding(2) var normalTex: texture_2d<f32>;
