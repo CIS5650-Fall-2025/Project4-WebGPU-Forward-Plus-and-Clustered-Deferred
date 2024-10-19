@@ -10,14 +10,14 @@ struct LightSet {
     lights: array<Light>
 }
 
-// TODO-2: you may want to create a ClusterSet struct similar to LightSet
 struct ClusterSet {
     light_indices: array<u32>
 }
 
 struct CameraUniforms {
-    // TODO-1.3: add an entry for the view proj mat (of type mat4x4f)
     viewProj: mat4x4f,
+    inv_proj: mat4x4f,
+    inv_view: mat4x4f,
     near_plane: f32,
     far_plane: f32
 }
@@ -56,4 +56,36 @@ fn unflatten_index(index: u32, grid_dimensions: vec3u) -> vec3u {
         (index / grid_dimensions.x) % grid_dimensions.y,
         (index / (grid_dimensions.x * grid_dimensions.y))
     );
+}
+
+fn pack_color(color: vec3f) -> f32 {
+    // Convert each channel from 0.0 - 1.0 range to 0 - 255 range and cast to u32
+    let r = u32(color.r * 255.0);
+    let g = u32(color.g * 255.0);
+    let b = u32(color.b * 255.0);
+
+    // Pack the channels into a single u32
+    let packed: u32 = (r << 16) | (g << 8) | b;
+
+    // Normalize to [0.0, 1.0] by dividing by the max 24-bit value (16777215)
+    return f32(packed) / 16777215.0;
+}
+
+fn unpack_color(packed_color: f32) -> vec3f {
+    // Convert back from the normalized float to the packed u32 value
+    let packed: u32 = u32(packed_color * 16777215.0);
+
+    // Extract each channel by shifting and masking
+    let r = (packed >> 16) & 0xFF;
+    let g = (packed >> 8) & 0xFF;
+    let b = packed & 0xFF;
+
+    // Convert each channel back to the 0.0 - 1.0 range
+    return vec3f(f32(r) / 255.0, f32(g) / 255.0, f32(b) / 255.0);
+}
+
+fn world_from_screen_cord(uv: vec2f, depth: f32, camera_uniforms: CameraUniforms) -> vec3f {
+    let clip_space_pos = vec4f(uv.x * 2.0f - 1.0f, (1.0f - uv.y) * 2.0f - 1.0f, depth, 1.0f);
+    let world_space_pos = camera_uniforms.inv_view * camera_uniforms.inv_proj * clip_space_pos;
+    return world_space_pos.xyz / world_space_pos.w;
 }

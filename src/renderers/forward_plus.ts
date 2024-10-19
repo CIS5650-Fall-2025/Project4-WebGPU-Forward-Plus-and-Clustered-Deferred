@@ -3,9 +3,6 @@ import * as shaders from '../shaders/shaders';
 import { Stage } from '../stage/stage';
 
 export class ForwardPlusRenderer extends renderer.Renderer {
-    // TODO-2: add layouts, pipelines, textures, etc. needed for Forward+ here
-    // you may need extra uniforms such as the camera view matrix and the canvas resolution
-
     sceneUniformsBindGroupLayout: GPUBindGroupLayout;
     sceneUniformsBindGroup: GPUBindGroup;
 
@@ -92,9 +89,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     }
 
     override draw() {
-        // TODO-2: run the Forward+ rendering pass:
-        // - run the clustering compute shader
-        // - run the main rendering pass, using the computed clusters for efficient lighting
         const encoder = renderer.device.createCommandEncoder();
         this.lights.doLightClustering(encoder);
 

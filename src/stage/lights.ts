@@ -195,8 +195,6 @@ export class Lights {
     }
 
     doLightClustering(encoder: GPUCommandEncoder) {
-        // TODO-2: run the light clustering compute pass(es) here
-        // implementing clustering here allows for reusing the code in both Forward+ and Clustered Deferred
         const cluster_lights_compute_pass = encoder.beginComputePass();
         cluster_lights_compute_pass.setPipeline(this.cluster_lights_pipeline);
         cluster_lights_compute_pass.setBindGroup(0, this.cluster_lights_bind_group);

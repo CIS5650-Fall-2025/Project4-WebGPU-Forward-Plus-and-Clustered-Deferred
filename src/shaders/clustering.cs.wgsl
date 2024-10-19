@@ -1,5 +1,3 @@
-// TODO-2: implement the light clustering compute shader
-
 @group(0) @binding(0) var<uniform> cluster_grid_dimensions: vec4u;
 @group(0) @binding(1) var<uniform> camera_uniforms: CameraUniforms;
 @group(0) @binding(2) var<storage, read> light_set: LightSet;
