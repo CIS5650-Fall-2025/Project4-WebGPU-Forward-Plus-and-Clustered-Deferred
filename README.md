@@ -39,6 +39,8 @@ Follow these steps to install and view the project:
 - Run `npm install` in the root directory of this project to download and install dependencies
 - Run `npm run dev`, which will open the project in your browser
   - The project will automatically reload when you edit any of the files
+
+Due to WebGPU support bug on some browsers, clustered deferred rendering may not initially work sometimes. If you believe this is the case (e.g. you see a black scene but the website worked fine with clustered forward rendering), simply go back to clustered forward rendering and change it once again to clustered deferred rendering. At worst case you repeat this change two or three times and the application will successfully load for all clustered deferred renderers.
   
 ## Analysis
 
@@ -51,7 +53,7 @@ Follow these steps to install and view the project:
 
 The raw data for both qualitative and quantitative observations were made using above testing setup. For the numerical measurements of the performance, please refer to `rawdata.xlsx` at the root of this repository. The render time for each frame was measured in the renderer's `draw` function by taking the difference between recorded timestamps before and after submitting the command encoder to our device queue.
 
-The performance analysis was conducted using the Sponza Atrium model. We tested each configuration **three** times, each time recording render times for **hundred** frames, and averaged the results to reduce to performance effect of randomness in light source position and movement generations. We did not test with static light positions because the variance in averaged performance is too high compared to moving light sources that somewhat converges to a reasonable variance on expectation.
+The performance analysis was conducted using the Sponza Atrium model with 5000 lights moving in paths defined using Perlin noise. We tested each configuration **three** times, each time recording render times for **hundred** frames, and averaged the results to reduce to performance effect of randomness in light source position and movement generations. We did not test with static light positions because the variance in averaged performance is too high compared to moving light sources that somewhat converges to a reasonable variance on expectation.
 
 ### Core Features
 
@@ -131,7 +133,7 @@ Since both approaches add completely new steps to the existing procedure, it is 
 
 |![Overall Shader Time against varying Number of Lights](img/vary_lights_cd.png)|
 |:--:|
-|Overall Shader Time against varying Number of Lights for Toon Shading Methods (shorter is better)|
+|Overall Shader Time against varying Number of Lights for Toon Shading Methods (lower is better)|
 
 We can observe from the above graph that both of our methods scale approximately equally with the unmodified clustered deferred rendering technique. This shows that modifying fragment shader in a small way (simply adjusting the exact amounts of light contribution) and adding a basic compute pass (equivalent to read, linear operations, store) do not affect scalability of the shaders.
 
