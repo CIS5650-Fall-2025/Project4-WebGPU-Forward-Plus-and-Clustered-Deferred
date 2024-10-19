@@ -43,7 +43,7 @@ fn compute_cluster_index(position: vec3f, camera_uniforms: CameraUniforms, clust
     let clip_space_coordinates = camera_uniforms.viewProj * vec4(position, 1.0f);
     let normalized_screen_space = clip_space_coordinates.xy / clip_space_coordinates.w * 0.5f + 0.5f;
     let normalized_depth = log(clip_space_coordinates.z / camera_uniforms.near_plane) / log(camera_uniforms.far_plane / camera_uniforms.near_plane); 
-    return vec3u(floor(vec3f(normalized_screen_space.x, normalized_screen_space.y, normalized_depth) * vec3f(cluster_grid_dimensions)));
+    return vec3u(floor(clamp(vec3f(normalized_screen_space.x, normalized_screen_space.y, normalized_depth), vec3f(0.0f), vec3f(1.0f)) * vec3f(cluster_grid_dimensions)));
 }
 
 fn flatten_index(index: vec3u, grid_dimensions: vec3u) -> u32 {
