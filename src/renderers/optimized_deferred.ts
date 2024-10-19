@@ -103,7 +103,7 @@ export class OptimizedDeferredRenderer extends renderer.Renderer {
                     binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: { sampleType: 'uint' } 
-                },
+                }
             ]
         });
 
