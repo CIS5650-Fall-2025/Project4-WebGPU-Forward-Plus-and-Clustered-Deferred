@@ -2,6 +2,7 @@ import { Scene } from './stage/scene';
 import { Lights } from './stage/lights';
 import { Camera } from './stage/camera';
 import { Stage } from './stage/stage';
+import { FrameStats } from './stage/framestats';
 
 export var canvas: HTMLCanvasElement;
 export var canvasFormat: GPUTextureFormat;
@@ -105,17 +106,18 @@ export abstract class Renderer {
     protected scene: Scene;
     protected lights: Lights;
     protected camera: Camera;
-
     protected stats: Stats;
 
     private prevTime: number = 0;
     private frameRequestId: number;
+    private frameStats: FrameStats;
 
     constructor(stage: Stage) {
         this.scene = stage.scene;
         this.lights = stage.lights;
         this.camera = stage.camera;
         this.stats = stage.stats;
+        this.frameStats = stage.frameStats;
 
         this.frameRequestId = requestAnimationFrame((t) => this.onFrame(t));
     }
@@ -141,6 +143,7 @@ export abstract class Renderer {
         this.draw();
 
         this.stats.end();
+        this.frameStats.update();
 
         this.prevTime = time;
         this.frameRequestId = requestAnimationFrame((t) => this.onFrame(t));
