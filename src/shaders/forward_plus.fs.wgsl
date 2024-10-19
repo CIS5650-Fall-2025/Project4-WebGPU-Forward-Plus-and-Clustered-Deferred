@@ -35,7 +35,6 @@ fn main(in: FragmentInput) -> @location(0) vec4f
         discard;
     }
 
-    // var totalLightContrib = vec3f(0, 0, 0);
     let view_space = camera.viewProjMat * vec4(in.pos,1.0); 
     //Determine cluster using AABB0
 
