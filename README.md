@@ -151,11 +151,9 @@ A general bloom effect consists of the following operations:
 
 For the first part, thanks to [hdmmY](https://github.com/hdmmY/Bloom-Effect-Unity), I managed to extract the high luminance pixel, avoid potential pixel flickering and edge cut off.
 
-However, many things are ambiguous and frustrating while implementing the second and the third part. Reasons includes that WebGPU does not support hardware level mipmap generation and requires additional compute/render pass to acchieve this, WebGPU has not yet read-write storage texture support in one compute pass and additional intermediate texture and compute pass needs to be created, etc.
+However, many things are ambiguous and frustrating when implementing the second and the third part. Reasons includes that WebGPU does not support hardware level mipmap generation and requires additional compute/render pass to acchieve this, WebGPU has not yet read-write storage texture support in one compute pass and additional intermediate texture and compute pass needs to be created, etc.
 
-| Bloom Texture                   |
-| ------------------------------- |
-| ![](results/2-passGaussian.mp4) |
+[](https://github.com/user-attachments/assets/68dd1b60-228c-413a-a0d8-6d8e6e92bbcb)
 
 ## Performance Analysis
 
