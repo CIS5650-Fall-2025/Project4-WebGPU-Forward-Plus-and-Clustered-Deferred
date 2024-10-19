@@ -64,12 +64,9 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
     // let screenPos = (cameraUniforms.viewProjMat * vec4(in.pos, 1.0)).xyz; 
     let viewSpacePos = (cameraUniforms.viewMat * vec4(in.pos, 1.0)).xyz; // world space * view matrix = View space (camera space)
     let fragCoordZ = viewSpacePos.z; 
-    // let ndcX = in.pos.x;
-    // let ndcY = in.pos.y;
-    // let fragCoordXY = vec2f(((ndcX + 1.0) / 2.0) * cameraUniforms.screenWidth, ((1.0 - (ndcY + 1.0) / 2.0) * cameraUniforms.screenHeight));
     var fragCoordXY = in.fragPos.xy; //cameraUniforms.viewProjMat * worldPos = fragPos --> Screen space
 
-    // The grid size is 16 X 16 X 16
+    // The grid size is 16 X 9 X 24
     let gridSize = vec3f(cameraUniforms.clusterX, cameraUniforms.clusterY, cameraUniforms.clusterZ);
     let tileSize = vec2f(cameraUniforms.screenWidth / f32(gridSize.x), cameraUniforms.screenHeight / f32(gridSize.y));
 
