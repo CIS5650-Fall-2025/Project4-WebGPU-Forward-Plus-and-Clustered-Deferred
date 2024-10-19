@@ -73,13 +73,12 @@ fn sphereAABBIntersection(center: vec3f, radius: f32, aabbMin: vec3f, aabbMax: v
     return distance <= radius * radius;
 }
 
-fn testSphereAABB(cluster: Cluster, lightIdx: u32) -> bool {
-    var light: Light = lightSet.lights[lightIdx];
-    var lightPos: vec3f = light.pos;
+fn testSphereAABB(cluster: ptr<storage, Cluster, read_write>, lightIdx: u32) -> bool {
+    var lightPos: vec3f = lightSet.lights[lightIdx].pos;
     var lightRadius: f32 = 10.0;
 
-    var minPoint: vec3f = cluster.minPoint.xyz;
-    var maxPoint: vec3f = cluster.maxPoint.xyz;
+    var minPoint: vec3f = (*cluster).minPoint.xyz;
+    var maxPoint: vec3f = (*cluster).maxPoint.xyz;
 
     return sphereAABBIntersection(lightPos, lightRadius, minPoint, maxPoint);
 }
@@ -96,26 +95,20 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     clusterBound(clusterIdx, u32(cameraUniforms.tileSize));
 
     //var tileIdx: u32 = clusterIdx.x + clusterIdx.y * cameraUniforms.tileCountX + clusterIdx.z * cameraUniforms.tileCountX * cameraUniforms.tileCountY;
-    var cluster: Cluster = clusterSet.clusters[clusterIdx];
+    let clusterPtr = &clusterSet.clusters[clusterIdx];
 
     clusterSet.clusters[clusterIdx].lightCount = 0;
     var lightIdx: u32 = 0u;
     var numLights: u32 = lightSet.numLights;
 
     for(lightIdx = 0u; lightIdx < numLights; lightIdx++) {
-        if (testSphereAABB(clusterSet.clusters[clusterIdx], lightIdx)) {
+        if (testSphereAABB(&clusterSet.clusters[clusterIdx], lightIdx)) {
             clusterSet.clusters[clusterIdx].lightIndices[clusterSet.clusters[clusterIdx].lightCount] = lightIdx;
             clusterSet.clusters[clusterIdx].lightCount++;
             if (clusterSet.clusters[clusterIdx].lightCount >= 500) {
                 break;
             }
         }
-        // else{
-        //     clusterSet.clusters[clusterIdx].lightIndices[clusterSet.clusters[clusterIdx].lightCount] = lightIdx;
-        //     clusterSet.clusters[clusterIdx].lightCount++;
-        // }
-        // clusterSet.clusters[clusterIdx].lightIndices[clusterSet.clusters[clusterIdx].lightCount] = lightIdx;
-        // clusterSet.clusters[clusterIdx].lightCount++;
     }
 
 }

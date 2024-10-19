@@ -54,9 +54,6 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     );
     var tileIdx = tileXYZ.x + tileXYZ.y * u32(cameraUniforms.tileCountX) + tileXYZ.z * u32(cameraUniforms.tileCountX) * u32(cameraUniforms.tileCountY);
 
-    // Retrieve the number of lights that affect the current fragment from the cluster’s data
-    var numLights = clusterSet.clusters[tileIdx].lightCount; 
-
     // For each light in the cluster
     for (var lightIdx = 0u; lightIdx < clusterSet.clusters[tileIdx].lightCount; lightIdx++) {
         let light = lightSet.lights[clusterSet.clusters[tileIdx].lightIndices[lightIdx]];
@@ -65,41 +62,22 @@ fn main(in: FragmentInput) -> @location(0) vec4f
 
     var finalColor = vec3f(0.0, 0.0, 0.0);
 
-    //finalColor = diffuseColor.rgb * totalLightContrib;
-
-
 //  -------------    Debugging  ----------------
-    // finalColor = vec3f(
-    //     f32(tileXYZ.x) / f32(cameraUniforms.tileCountX - 1),
-    //     f32(tileXYZ.y) / f32(cameraUniforms.tileCountY - 1),
-    //     f32(tileXYZ.z) / f32(cameraUniforms.tileCountZ - 1)
+    // let colorOptions = array<vec3f, 8>(
+    //     vec3f(1.0, 0.0, 0.0),  // Red
+    //     vec3f(0.0, 1.0, 0.0),  // Green
+    //     vec3f(0.0, 0.0, 1.0),  // Blue
+    //     vec3f(1.0, 1.0, 0.0),  // Yellow
+    //     vec3f(1.0, 0.0, 1.0),  // Magenta
+    //     vec3f(0.0, 1.0, 1.0),  // Cyan
+    //     vec3f(1.0, 1.0, 1.0),  // White
+    //     vec3f(0.5, 0.5, 0.5)   // Grey
     // );
-    // hot map for debugging
-    //finalColor = vec3f(f32(numLights) / 100, 0.0, 0.0);
 
- 
-    var tileIdx3D = vec3u(tileIdx % u32(cameraUniforms.tileCountX), (tileIdx / u32(cameraUniforms.tileCountX)) % u32(cameraUniforms.tileCountY), tileIdx / u32((cameraUniforms.tileCountX) * cameraUniforms.tileCountY));
-    //finalColor = vec3f(f32(tileIdx3D.x) / f32(cameraUniforms.tileCountX), 0, 0);
-
-    let colorOptions = array<vec3f, 8>(
-        vec3f(1.0, 0.0, 0.0),  // Red
-        vec3f(0.0, 1.0, 0.0),  // Green
-        vec3f(0.0, 0.0, 1.0),  // Blue
-        vec3f(1.0, 1.0, 0.0),  // Yellow
-        vec3f(1.0, 0.0, 1.0),  // Magenta
-        vec3f(0.0, 1.0, 1.0),  // Cyan
-        vec3f(1.0, 1.0, 1.0),  // White
-        vec3f(0.5, 0.5, 0.5)   // Grey
-    );
-
-    let colorIdx = u32(tileXYZ.x + tileXYZ.y + tileXYZ.z) % 8;
+    // let colorIdx = u32(tileXYZ.z) % 8;
 
     //finalColor += colorOptions[colorIdx];
     finalColor = diffuseColor.rgb * totalLightContrib;
-
-    if(numLights > 0) {
-        //finalColor += vec3f(f32(numLights) / 100, 0.0, 0.0);
-    }
 
 
     return vec4f(finalColor, 1);

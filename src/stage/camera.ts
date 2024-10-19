@@ -75,8 +75,8 @@ export class Camera {
     moveSpeed: number = 0.004;
     sensitivity: number = 0.15;
 
-    tileCountX: number = 16;
-    tileCountY: number = 16;
+    tileCountX: number = 32;
+    tileCountY: number = 32;
     tileCountZ: number = 16;
     tileSize: number = this.tileCountX * this.tileCountY * this.tileCountZ;
 

@@ -66,19 +66,22 @@ fn main(
     var finalColor = vec3f(0.0, 0.0, 0.0);
     finalColor = albedo.rgb * totalLightContrib;
 
-    let colorOptions = array<vec3f, 8>(
-        vec3f(1.0, 0.0, 0.0),  // Red
-        vec3f(0.0, 1.0, 0.0),  // Green
-        vec3f(0.0, 0.0, 1.0),  // Blue
-        vec3f(1.0, 1.0, 0.0),  // Yellow
-        vec3f(1.0, 0.0, 1.0),  // Magenta
-        vec3f(0.0, 1.0, 1.0),  // Cyan
-        vec3f(1.0, 1.0, 1.0),  // White
-        vec3f(0.5, 0.5, 0.5)   // Grey
-    );
+// -------------    Debugging  ----------------
+    // let colorOptions = array<vec3f, 8>(
+    //     vec3f(1.0, 0.0, 0.0),  // Red
+    //     vec3f(0.0, 1.0, 0.0),  // Green
+    //     vec3f(0.0, 0.0, 1.0),  // Blue
+    //     vec3f(1.0, 1.0, 0.0),  // Yellow
+    //     vec3f(1.0, 0.0, 1.0),  // Magenta
+    //     vec3f(0.0, 1.0, 1.0),  // Cyan
+    //     vec3f(1.0, 1.0, 1.0),  // White
+    //     vec3f(0.5, 0.5, 0.5)   // Grey
+    // );
 
-    let colorIdx = u32(tileXYZ.x + tileXYZ.y + tileXYZ.z) % 8;
+    // let colorIdx = u32(tileXYZ.x + tileXYZ.y + tileXYZ.z) % 8;
     //finalColor += colorOptions[colorIdx];
+
+    //-------- Debugging End ---------------
 
     return vec4<f32>(finalColor, 1.0);
 }
