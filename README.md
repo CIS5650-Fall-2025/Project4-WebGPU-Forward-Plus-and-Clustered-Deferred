@@ -68,8 +68,21 @@ Clustered Deferred
 - Cluster size: 16 X 9 X 24
 - Compute pass dispatch Workgroup: (4, 3, 6)
 - Cluster wrokgroupsize: [4, 4, 4]
+
 As shown in the chart image, the millisecond increased as the number of lights increased, which means the performace decreased. Naive is the slowest.
 Clustered Deferred is the fastest and followed by the Forward+. As the number of lights lower than 500, both Forward+ and Deferred reach the refresh rate limitation and stay with 6.06ms(165 fps).
+
+### Cluster Size Form
+| Cluster Size       | 16 X 9 X 24 | 16 X 9 X 12 | 16 X 9 X 6 | 16 X 9 X 3 |
+|:------------------:|:----------------:|:----------------:|:----------------:|:----------------:|
+| Forward+ | 6.06ms | 10ms | 15.87ms | 29.41ms |
+| Deferred | 6.06ms | 6.06ms | 6.45ms | 8.20ms |
+
+- Cluster wrokgroupsize: [4, 4, 4]
+- Number of Lights: 500
+
+ Larger clusters (with fewer Z slices) mean more lights are grouped into each cluster. It results in more lights being processed per fragment, which increases computation time. 
+ In Forward+ shading, the performance drops significantly when the cluster size gets smaller because each fragment ends up processing more lights, which slows things down. On the other hand, Clustered Deferred shading handles the changes in cluster size much better. It keeps the performance steady since it calculates lighting more efficiently using G-buffer data. 
 
 ### Performance Overview:
 Clustered Deferred is the fastest implementation, followed by Forward+ as the second fastest. The Naive method is the slowest.
