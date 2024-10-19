@@ -36,18 +36,24 @@ Clustered Deferred
 - Cluster Size: 16 X 9 X 24
 
 ## Live Demo
-[![Live Demo Link]](https://annieqiuuu.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
+[Live Demo Link](https://annieqiuuu.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
 ## Demo Video/GIF
-[![4K Demo Video Link]](https://youtu.be/UlBPg0pRh2A)
+[4K Demo Video Link](https://youtu.be/UlBPg0pRh2A)
 
 ### Naive
+- Mode: Naive
+- Number of lights: 500
 ![](./img/naive.gif)
 
 ### Forward+
+- Mode: Forward +
+- Number of lights: 500
 ![](./img/forwardplus.gif)
 
 ### Clustered Deferred
+- Mode: Clustered Deferred
+- Number of lights: 500
 ![](./img/deferred.gif)
 
 ## Performance Analysis
