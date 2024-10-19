@@ -27,6 +27,8 @@ The Forward+ method divides the screen into a grid and assigns lights to cluster
 
 ## Performance Analysis
 
+<img align="center"  src="./img/runtime_allthree.png" width="500">
+
 ### Naive
 
 Concise overview and explanation of the feature.
@@ -42,6 +44,8 @@ Show debug views when possible.
 If the debug view correlates with performance, explain how.
 
 ### Clustered Forward+
+
+<img align="center"  src="./img/clusterview.png" width="300">
 
 Concise overview and explanation of the feature.
 
@@ -60,6 +64,11 @@ If the debug view correlates with performance, explain how.
 
 ### Clustered Deferred
 
+| Position | Albedo | Normal |
+| :------------------------------: |:------------------------------: | :------------------------------: |
+| <img align="center"  src="./img/pos.png" width="300">| <img align="center"  src="./img/albedo.png" width="300">  | <img align="center"  src="./img/normal.png" width="300">  |
+| Added outlines from toon shader for clarity |  Diffuse color from Sponza texture  |  Black normals are normal?  |
+
 Concise overview and explanation of the feature.
 
 Detailed performance improvement analysis of adding the feature.
@@ -76,6 +85,10 @@ If the debug view correlates with performance, explain how.
 
 ### Comparison: Forward+ vs. Deferred
 
+<img align="center"  src="./img/clustersize.png" width="500">
+
+<img align="center"  src="./img/runtime_fordef.png" width="500">
+
 Is one of them faster?
 
 Is one of them better at certain types of workloads?
@@ -88,11 +101,13 @@ For any differences in performance, briefly explain what may be causing the diff
 
 | Quantization of Albedo |  Quantization of Lights  |
 | :------------------------------: |:------------------------------: |
-| <img align="center"  src="./res/toonshader.png" width="300">                            | <img align="center"  src="./res/toonlights.png" width="300">                          |
+| <img align="center"  src="./img/toonshader.png" width="300">                            | <img align="center"  src="./img/toonlights.png" width="300">                          |
 
 Concise overview and explanation of the feature.
 
 Performance change due to adding the feature.
+
+<img align="center"  src="./img/runtime_deftoon.png" width="500">
 
 If applicable, how do parameters (such as number of lights, number of tiles, etc.) affect performance? Show data with graphs.
 Show timing in milliseconds, not FPS.
@@ -100,6 +115,8 @@ Show timing in milliseconds, not FPS.
 If you did something to accelerate the feature, what did you do and why?
 
 How might this feature be optimized beyond your current implementation?
+
+<img align="center"  src="./img/toon.png" width="500">
 
 ### Credits
 
