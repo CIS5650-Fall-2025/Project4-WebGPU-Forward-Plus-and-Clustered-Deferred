@@ -65,6 +65,33 @@ computePass.end();
 
 ## Performance Analysis
 
+### Workload Suitability
+
+- Naive Forward Rendering:
+
+  - Better for scenes with few lights
+  - Simpler to implement
+
+- Forward+ Rendering:
+
+  - Excels in scenes with many dynamic lights
+  - Handles complex lighting scenarios more efficiently
+  - Better for large open environments
+
+### Benefits and Tradeoffs
+
+- Naive Forward Rendering:
+
+  - Simple implementation
+  - Supports transparent objects easily
+
+- Forward+ Rendering:
+
+  - Handles many lights efficiently
+  - Reduces per-pixel light calculations
+  - Requires additional light culling pass
+
+
 ### Latency Comparison  
 
 Advantage of Clustered Forward plus rendering against forward rendering can be seen as the number of lights interacting with scene increases. This is because the increase in time so as to run the compute shader is offet by the reduction in iteration loop time in the fragment shader in cluster forward shading.
