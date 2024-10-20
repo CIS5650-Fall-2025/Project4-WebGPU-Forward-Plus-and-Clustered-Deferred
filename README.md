@@ -24,11 +24,15 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ### Forward Plus Rendering
 
+![](images/ForwardPlusGif.gif)
+
 <video src="images/ForwardPlusVideo.mp4" controls>
   Your browser does not support the video tag.
 </video>
 
 ### Clustered Deferred Rendering
+
+![](images/DeferredClusteredGif.gif)
 
 <video src="images/DeferredClusteredVideo.mp4" controls>
   Your browser does not support the video tag.
