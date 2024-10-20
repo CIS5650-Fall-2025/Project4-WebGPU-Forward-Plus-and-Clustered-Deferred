@@ -25,6 +25,7 @@
 
 struct FragmentInput
 {
+    @builtin(position) fragPos: vec4f,
     @location(0) pos: vec3f,
     @location(1) nor: vec3f,
     @location(2) uv: vec2f
@@ -47,9 +48,9 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     var zFar: f32 = f32(${zFar});
 
     var camSpace: vec4f = cameraUniforms.viewMat * vec4(in.pos, 1.0);
-    var zTile: u32 = u32(clusterNumZ * log(abs(camSpace.z) / zNear) / log(zFar / zNear));
-    var xyTileSize: vec2f = 1.0 / clusterNumXY;
-    var xyTile: vec2u = vec2u(screenSpace.xy / xyTileSize);
+    var zTile: u32 = u32(clusterNumZ * log2(abs(camSpace.z) / zNear) / log2(zFar / zNear));
+    var xyTileSize: vec2f = screenDim / clusterNumXY;
+    var xyTile: vec2u = vec2u(in.fragPos.xy / xyTileSize);
     var tileIndex: u32 = xyTile.x + (xyTile.y * ${clusterNumX}) + (zTile * ${clusterNumX} * ${clusterNumY});
 
     var totalLightContrib = vec3f(0, 0, 0);
@@ -59,6 +60,5 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     }
 
     var finalColor = diffuseColor.rgb * totalLightContrib;
-    // return vec4(vec2f(xyTile) * xyTileSize, 1.0, 1.0);
     return vec4(finalColor, 1);
 }

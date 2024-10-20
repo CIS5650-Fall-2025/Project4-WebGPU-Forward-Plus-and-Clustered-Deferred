@@ -39,7 +39,7 @@ export const constants = {
     maxLightInCluster: 256,
 
     zNear: 0.1,
-    zFar: 256.0
+    zFar: 1000.0
 };
 
 // =================================

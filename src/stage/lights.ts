@@ -13,7 +13,7 @@ function hueToRgb(h: number) {
 export class Lights {
     private camera: Camera;
 
-    numLights = 500;
+    numLights = 1000;
     static readonly maxNumLights = 5000;
     static readonly numFloatsPerLight = 8; // vec3f is aligned at 16 byte boundaries
 
@@ -108,7 +108,7 @@ export class Lights {
         // };
         const clusterSize = (4 * 4 + 4 * 4 + 4 + shaders.constants.maxLightInCluster * 4) 
                             * shaders.constants.clusterNumX * shaders.constants.clusterNumY 
-                            * shaders.constants.clusterNumZ;
+                            * shaders.constants.clusterNumZ + 16;
         this.clusterBuffer = device.createBuffer({
             label: "cluster buffer",
             size: clusterSize,

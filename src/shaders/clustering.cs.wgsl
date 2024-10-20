@@ -104,12 +104,18 @@ fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     clusterSet.clusters[idx].maxPoint = vec4f(min(maxPointNear, maxPointFar), 0.0);
 
     var lightCount: u32 = lightSet.numLights;
+    let cluster = &(clusterSet.clusters[idx]);
+    var lightNum: u32 = 0u;
 
-    for (var lightIdx: u32 = 0; lightIdx < lightSet.numLights; lightIdx++) {
-        if (testSphereAABB(lightIdx, clusterSet.clusters[idx]) && clusterSet.clusters[idx].count < ${maxLightInCluster}) {
-            clusterSet.clusters[idx].lightIndices[clusterSet.clusters[idx].count] = lightIdx;
-            clusterSet.clusters[idx].count++;
+    for (var lightIdx: u32 = 0u; lightIdx < lightSet.numLights; lightIdx++) {
+        if (lightNum >= ${maxLightInCluster}) {
+            break;
+        }
+        if (testSphereAABB(lightIdx, *cluster)) {
+            (*cluster).lightIndices[lightNum] = lightIdx;
+            lightNum++;
         }
     }
+    (*cluster).count = lightNum;
 }
 
