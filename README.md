@@ -7,7 +7,7 @@ WebGL Forward+ & Clustered Deferred Shading
 
 **Tested on: Google Chrome 132 (Canary), Windows 11 Pro, Ultra 7 155H @ 1.40 GHz 32GB, RTX 4060 8192MB (Personal Laptop)**
 
-### Live Demo: [Click me!](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+### Live Demo: [Click me!](https://yuhanliu-tech.github.io/WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
 <a href="[http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred](https://yuhanliu-tech.github.io/WebGPU-Forward-Plus-and-Clustered-Deferred/)">
 <img src="img/cover.png" width="500"/>
