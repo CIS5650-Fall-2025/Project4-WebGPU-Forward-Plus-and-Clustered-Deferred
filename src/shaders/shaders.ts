@@ -35,7 +35,7 @@ export const constants = {
     clusterNumX: 16,
     clusterNumY: 9,
     clusterNumZ: 16,
-    clusterWorkGroupSize: 256,
+    clusterWorkGroupSize: 32,
     maxLightInCluster: 256,
 
     zNear: 0.1,
