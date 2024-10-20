@@ -10,9 +10,8 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ## Table of Contents
   - Demo
-  - Introduction
-  - Forward Rendering
-  - Forward Plus Rendering
+  - Clustered Forward Rendering(Forward +)
+  - Performance Analysis
 
 ## Demo
 
