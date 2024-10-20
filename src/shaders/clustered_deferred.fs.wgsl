@@ -1,10 +1,6 @@
 // TODO-3: implement the Clustered Deferred G-buffer fragment shader
 
 // This shader should only store G-buffer information and should not do any shading.
-@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
-@group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
-@group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
-
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
 @group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
 
@@ -23,24 +19,12 @@ fn main(in: FragmentInput) -> @location(0) vec4f
         discard;
     }
 
-    let screenSpacePos = (cameraUniforms.viewProjMat * vec4(in.pos, 1.0)).xyz;
-    
-    let clusterPosX = u32(floor(((screenSpacePos.xy / screenSpacePos.z).x * 0.5 + 0.5) * f32(clusterSet.clusterCount[0])));
-    let clusterPosY = u32(floor(((screenSpacePos.xy / screenSpacePos.z).y * 0.5 + 0.5) * f32(clusterSet.clusterCount[1])));
-    let clusterPosZ = u32(floor((-screenSpacePos.z - ${nearPlane}) / (${farPlane} - ${nearPlane}) * f32(clusterSet.clusterCount[2])));
-    
-    let clusterIdx = clusterPosX + 
-                       clusterPosY * clusterSet.clusterCount[0] + 
-                       clusterPosZ * clusterSet.clusterCount[0] * clusterSet.clusterCount[1];
+    // --- Pack color directly ---
+    let r = u32(diffuseColor.r * 255.0);
+    let g = u32(diffuseColor.g * 255.0);
+    let b = u32(diffuseColor.b * 255.0);
+    let packedColor: u32 = (r << 16) | (g << 8) | b;
+    let packedColorFloat = f32(packedColor) / 16777215.0; 
 
-    let cluster = clusterSet.clusters[clusterIdx];
-
-    var totalLightContrib = vec3f(0, 0, 0);
-    for (var lightIdx = 0u; lightIdx < cluster.noOfLights; lightIdx++) {
-        let light = lightSet.lights[cluster.lightArray[lightIdx]];
-        totalLightContrib += calculateLightContrib(light, in.pos, in.nor);
-    }
-
-    var finalColor = diffuseColor.rgb * totalLightContrib;
-    return vec4(finalColor, 1);
+    return vec4(in.nor.x, in.nor.y, in.nor.z, packedColorFloat);
 }

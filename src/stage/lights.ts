@@ -125,7 +125,7 @@ export class Lights {
                 },
                 { // cluster
                     binding: 2,
-                    visibility: GPUShaderStage.COMPUTE,
+                    visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
                     buffer: { type: "storage" }
                 }
             ]
