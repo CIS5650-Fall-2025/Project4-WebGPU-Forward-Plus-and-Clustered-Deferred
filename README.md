@@ -8,7 +8,7 @@ WebGL Forward+ and Clustered Deferred Shading
 * Tested on: Windows 11, i7 13th Gen @ 2.40GHz 16GB, GeForce RTX 4050 8GB (Personal)
 
 ## Screenshots
-
+ 
 ### Forward Plus (2500 Lights)
 ![](images/Forward_Plus_2500.png)
 
