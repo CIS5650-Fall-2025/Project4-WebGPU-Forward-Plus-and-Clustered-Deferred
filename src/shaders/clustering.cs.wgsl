@@ -21,14 +21,13 @@
 //         - Stop adding lights if the maximum number of lights is reached.
 
 //     - Store the number of lights assigned to this cluster.
-
-@group(${bindGroup_scene}) @binding(0) var<uniform> inverseProjMat: mat4x4f;
-@group(${bindGroup_scene}) @binding(1) var<uniform> inverseViewMat: mat4x4f;
-@group(${bindGroup_scene}) @binding(2) var<storage, read_write> lightSet: LightSet;
-@group(${bindGroup_scene}) @binding(3) var<storage, read_write> clusterSet: array<Cluster>;
+@group(${bindGroup_scene}) @binding(0) var<uniform> maxLightsPerCluster: u32;
+@group(${bindGroup_scene}) @binding(1) var<uniform> inverseProjMat: mat4x4f;
+@group(${bindGroup_scene}) @binding(2) var<uniform> inverseViewMat: mat4x4f;
+@group(${bindGroup_scene}) @binding(3) var<storage, read_write> lightSet: LightSet;
+@group(${bindGroup_scene}) @binding(4) var<storage, read_write> clusterSet: array<Cluster>;
 
 const clusterPerDim = 16u;
-const maxLightsPerCluster = 500;
 
 @compute
 @workgroup_size(${moveLightsWorkgroupSize})

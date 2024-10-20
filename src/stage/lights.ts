@@ -36,12 +36,13 @@ export class Lights {
     // cluster param
     screenDimensions = vec2.fromValues(canvas.width, canvas.height);
     static readonly clusterPerDim = 16;
-    static readonly maxLightsPerCluster = 500;
+    static readonly maxLightsPerCluster = 5000;
     // cluster data
     static readonly numFloatsPerCluster = Lights.maxLightsPerCluster + 1; // each indices is just index
     static readonly clusterArraySize = Lights.clusterPerDim * Lights.clusterPerDim * Lights.clusterPerDim;
     clusterSetStorageBuffer: GPUBuffer;
 
+    maxLightsPerClusterUniformBuffer: GPUBuffer;
     constructor(camera: Camera) {
         this.camera = camera;
 
@@ -55,6 +56,12 @@ export class Lights {
 
         this.timeUniformBuffer = device.createBuffer({
             label: "time uniform",
+            size: 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+
+        this.maxLightsPerClusterUniformBuffer = device.createBuffer({
+            label: "max lights per cluster uniform",
             size: 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
@@ -115,23 +122,28 @@ export class Lights {
         this.clusteringComputeBindGroupLayout = device.createBindGroupLayout({
             label: "clustering compute bind group layout",
             entries: [
-                { // inverse proj mat
+                {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" }
                 },
-                { // inverse view mat
+                { // inverse proj mat
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" }
                 },
-                { // lightSet
+                { // inverse view mat
                     binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" }
+                },
+                { // lightSet
+                    binding: 3,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "storage" }
                 },
                 { // clusterSet
-                    binding: 3,
+                    binding: 4,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "storage" }
                 }
@@ -144,18 +156,22 @@ export class Lights {
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.camera.uniformsInverseProjBuffer }
+                    resource: { buffer: this.maxLightsPerClusterUniformBuffer }
                 },
                 {
                     binding: 1,
-                    resource: { buffer: this.camera.uniformsInverseViewBuffer }
+                    resource: { buffer: this.camera.uniformsInverseProjBuffer }
                 },
                 {
                     binding: 2,
-                    resource: { buffer: this.lightSetStorageBuffer }
+                    resource: { buffer: this.camera.uniformsInverseViewBuffer }
                 },
                 {
                     binding: 3,
+                    resource: { buffer: this.lightSetStorageBuffer }
+                },
+                {
+                    binding: 4,
                     resource: { buffer: this.clusterSetStorageBuffer }
                 }
             ]
@@ -190,6 +206,10 @@ export class Lights {
     updateLightSetUniformNumLights() {
         device.queue.writeBuffer(this.lightSetStorageBuffer, 0, new Uint32Array([this.numLights]));
     }
+
+    updateMaxLightsPerClusterUniform() {
+        device.queue.writeBuffer(this.maxLightsPerClusterUniformBuffer, 0, new Uint32Array([Lights.maxLightsPerCluster]));
+    }
     
     createCleanDeviceClusterArray() {
         device.queue.writeBuffer(this.clusterSetStorageBuffer, 0, new Float32Array(Lights.clusterArraySize * Lights.numFloatsPerCluster));
@@ -214,6 +234,7 @@ export class Lights {
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
     onFrame(time: number) {
+        this.updateMaxLightsPerClusterUniform();
         device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
 
         // not using same encoder as render pass so this doesn't interfere with measuring actual rendering performance
@@ -264,8 +285,8 @@ async function readClusterSetBuffer(device, clusterSetBuffer) {
     // Create a view into the buffer
     const data = new Uint32Array(arrayBuffer);
   
-    // Assuming each Cluster has a fixed size of 501 uint32 elements (1 for numLights + 500 for lightIndices)
-    const clusterSize = 501;
+    // Assuming each Cluster has a fixed size of 501 uint32 elements (1 for numLights + 5000 for lightIndices)
+    const clusterSize = 5001;
     const numClusters = data.length / clusterSize;
     
     var totalLights = 0;
