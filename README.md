@@ -76,7 +76,7 @@ As discussed in Part 1, **Naive Shading** is the most inefficient. **Forward Plu
 
 Our tests support the above theoretical comparison. In fact, Naive Shading basically fails to refresh once number of lights exceed 1000. Below is a side by side comparison of Forward Plus vs Deferred Shading's runtime on number of lights. Lower run time (in ms) is beter.
 
-***Note:** Somehow when tested on my desktop computer I am seeing **SIGNIFICANT** performance boost compared to my laptop. This strikes me as a bit confusing since I thought WebGPU abstracts away hardware specifics and should yeild somewhat consistent desult across different platforms. I suspect this could still be due to underlying hardware differences or perhaps even incorrect browser setting on my laptop. Due to the fact that I discovered this last minute, I couldn't investigate further, but I've decided to include both results here. Both results show similar overall trend, however.*
+***Note:** Somehow when tested on my desktop computer I am seeing **SIGNIFICANT** performance boost compared to my laptop. I suspect this could still be due to underlying hardware differences or perhaps most likely incorrect browser setting on my laptop (my laptop has a better GPU than my laptop). Due to the fact that I discovered this last minute, I couldn't investigate further, but I've decided to include both results here. Both results show similar overall trend, however.*
 
 |![chart (1)](https://github.com/user-attachments/assets/e07e5b8d-8499-4c03-b430-30aaaa5cd232)|
 |:--:|
