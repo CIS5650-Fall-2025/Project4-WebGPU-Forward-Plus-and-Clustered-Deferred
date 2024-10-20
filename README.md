@@ -15,7 +15,8 @@ In this project, I implemented a WebGPU renderer that is capable of using Naive,
 
 [Live Demo](https://jiaomama.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
-https://github.com/user-attachments/assets/aecbaf20-b94e-4003-9f14-593b5888082d
+https://github.com/user-attachments/assets/0a094b92-2fed-4b76-b869-90b9b7a7e9ee
+
 
 ### Part 1.1: Naive Shading
 
@@ -75,9 +76,19 @@ As discussed in Part 1, **Naive Shading** is the most inefficient. **Forward Plu
 
 Our tests support the above theoretical comparison. In fact, Naive Shading basically fails to refresh once number of lights exceed 1000. Below is a side by side comparison of Forward Plus vs Deferred Shading's runtime on number of lights. Lower run time (in ms) is beter.
 
+***Note:** Somehow when tested on my desktop computer I am seeing **SIGNIFICANT** performance boost compared to my laptop. This strikes me as a bit confusing since I thought WebGPU abstracts away hardware specifics and should yeild somewhat consistent desult across different platforms. I suspect this could still be due to underlying hardware differences or perhaps even incorrect browser setting on my laptop. Due to the fact that I discovered this last minute, I couldn't investigate further, but I've decided to include both results here. Both results show similar overall trend, however.*
+
+|![chart (1)](https://github.com/user-attachments/assets/e07e5b8d-8499-4c03-b430-30aaaa5cd232)|
+|:--:|
+|*Desktop: clusterWorkgroupSize: [4, 4, 4], clusterDim: [16, 9, 24], maxLightsPerCluster: 500*|
+
+Desktop Spec: Windows 11, 11th Gen Intel(R) Core(TM) i7-11700KF @ 3.60GHz, RTX 3070, Chrome: 129.0.6668.101
+
 |![chart (1)](https://github.com/user-attachments/assets/0323b57b-3e8f-446e-8cc0-8075409f31ad)|
 |:--:|
-|*clusterWorkgroupSize: [4, 4, 4], clusterDim: [16, 9, 24], maxLightsPerCluster: 500*|
+|*Laptop: clusterWorkgroupSize: [4, 4, 4], clusterDim: [16, 9, 24], maxLightsPerCluster: 500*|
+
+Laptop spec: Windows 11, i7-13700HX @ 2.1GHz 32GB, RTX 4060 8GB (Personal Laptop), Chrome: 129.0.6668.101
 
 As we can see from the graph, Deferred Shading is obviously the fastest. While Forward Plus is much faster than Naive, performance significantly degrades as number of lights in the scene increases. This is because we spend time computing lighting for fragments that may not be visible on the screen. On the other hand, Deferred Shading also experience performance drop as number of lights increases - which is understandable since computation is proprotional to number of lights - but overall has much better performance.
 
