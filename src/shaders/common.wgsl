@@ -23,15 +23,10 @@ struct ClusterGridMetadata {
     clusterGridSizeX: u32,
     clusterGridSizeY: u32,
     clusterGridSizeZ: u32,
-    padding1: u32,
-    
     canvasWidth: u32,
-    canvasHeight: u32,
-    padding2: vec2<f32>,
 
-    numLights: u32,
-    maxLightsPerCluster: u32,
-    padding3: vec2<u32>
+    canvasHeight: u32,
+    padding1: vec3<f32>,
 };
 
 struct CameraUniforms {
