@@ -23,11 +23,11 @@ export class ClusterGridMetadata {
     set clusterGridSizeZ(z: number) { this.array[2] = z; }
     get clusterGridSizeZ() { return this.array[2]; }
 
-    set canvasWidth(w: number) { this.array[4] = w; }
-    get canvasWidth() { return this.array[4]; }
+    set canvasWidth(w: number) { this.array[3] = w; }
+    get canvasWidth() { return this.array[3]; }
 
-    set canvasHeight(h: number) { this.array[5] = h; }
-    get canvasHeight() { return this.array[5]; }
+    set canvasHeight(h: number) { this.array[4] = h; }
+    get canvasHeight() { return this.array[4]; }
 
     set numLights(n: number) { this.array[8] = n; }
     get numLights() { return this.array[8]; }
@@ -59,7 +59,12 @@ export class Lights {
     canvasWidth: number = 0;
     canvasHeight: number = 0;
 
+    numDepthSlices = 16;
+    clusterPixelSizeX = 256;
+    clusterPixelSizeY = 256;
+
     numClusters: number = 0;
+    bytesPerCluster: number = 0;
     clusterPixelDims: Vec2 = vec2.create(0, 0);
     clusterGridDims: Vec3 = vec3.create(0, 0, 0);
     clusterBufferSize: number = 0;
@@ -80,6 +85,12 @@ export class Lights {
     workgroupSize: number = 8;
 
     debug: boolean = false;
+
+    perf: boolean = false;
+    perfTotalLightsInAllClustersThisFrame: number = 0;
+    perfAccumulatedTotalLights: number = 0;
+    perfFrameCount: number = 0;
+    perfAverageLightsPerClusterAcrossFrames: number = 0;
 
     constructor(camera: Camera) {
         this.camera = camera;
@@ -245,13 +256,12 @@ export class Lights {
         this.canvasWidth = canvas.width;
         this.canvasHeight = canvas.height;
 
-        this.clusterPixelDims = vec2.create(128, 128);
-        const numDepthSlices = 100;
+        this.clusterPixelDims = vec2.create(this.clusterPixelSizeX, this.clusterPixelSizeY);
 
         this.clusterGridDims = vec3.create(
             Math.ceil(this.canvasWidth / this.clusterPixelDims[0]),
             Math.ceil(this.canvasHeight / this.clusterPixelDims[1]),
-            numDepthSlices
+            this.numDepthSlices
         )
 
         this.numClusters = this.clusterGridDims[0] * this.clusterGridDims[1] * this.clusterGridDims[2];
@@ -260,9 +270,9 @@ export class Lights {
         // Size of u32 in bytes.
         const bytesPerLightIndex = 4;
         // Number of lights (u32, 4 bytes) followed by light indices.
-        const bytesPerCluster = 4 + (this.maxLightsPerCluster * bytesPerLightIndex);
+        this.bytesPerCluster = 4 + (this.maxLightsPerCluster * bytesPerLightIndex);
 
-        this.clusterBufferSize = this.numClusters * bytesPerCluster;
+        this.clusterBufferSize = this.numClusters * this.bytesPerCluster;
         if (this.debug) {
             console.log(`clusterBufferSize: ${this.clusterBufferSize}`);
         }
@@ -304,10 +314,14 @@ export class Lights {
         device.queue.writeBuffer(this.lightSetStorageBuffer, 0, new Uint32Array([this.numLights]));
     }
 
-    doLightClustering(encoder: GPUCommandEncoder) {
+    doLightClustering(encoder: GPUCommandEncoder, querySet: GPUQuerySet|null = null) {
         // TODO-2: run the light clustering compute pass(es) here
         // implementing clustering here allows for reusing the code in both Forward+ and Clustered Deferred
         const computePass = encoder.beginComputePass();
+
+        if (querySet) {
+            computePass.writeTimestamp(querySet, 0);
+        }
 
         computePass.setPipeline(this.clusteringPipeline);
         computePass.setBindGroup(shaders.constants.bindGroup_scene, this.clusteringBindGroup);
@@ -319,6 +333,11 @@ export class Lights {
             console.log(`Dispatching workgroups: x=${numWorkgroupsX}, y=${numWorkgroupsY}, z=${numWorkgroupsZ}`);
         }
         computePass.dispatchWorkgroups(numWorkgroupsX, numWorkgroupsY, numWorkgroupsZ);
+        
+        if (querySet) {
+            computePass.writeTimestamp(querySet, 1);
+        }
+
         computePass.end();
 
         encoder.copyBufferToBuffer(this.clusterBuffer, 0, this.debugClusterBuffer, 0, this.clusterBufferSize);
@@ -340,26 +359,43 @@ export class Lights {
     
         const arrayBuffer = this.debugClusterBuffer.getMappedRange();
         const clusterF32Data = new Float32Array(arrayBuffer);
-    
-        console.log(`debugClusterBuffer.byteLength: ${clusterF32Data.byteLength}`);
-        console.log(`debugClusterBuffer.length: ${clusterF32Data.byteLength}/4 = ${clusterF32Data.byteLength/4} = ${clusterF32Data.length}`);
-        console.log(clusterF32Data);
-        for (let i = 0; i < Math.min(129*this.numClusters, clusterF32Data.length); i++) {
-            console.log(clusterF32Data[i]);
-        }
-
         const clusterUintData = new Uint32Array(arrayBuffer);
     
-        console.log(`debugClusterBuffer.byteLength: ${clusterUintData.byteLength}`);
-        console.log(`debugClusterBuffer.length: ${clusterUintData.byteLength}/4 = ${clusterUintData.byteLength/4} = ${clusterUintData.length}`);
-        for (let i = 0; i < clusterUintData.length; i += 129) {
-            console.log(clusterUintData.slice(i, i + 10));
+        if (this.debug) {
+            console.log(`debugClusterBuffer.byteLength: ${clusterF32Data.byteLength}`);
+            console.log(`debugClusterBuffer.length: ${clusterF32Data.byteLength}/4 = ${clusterF32Data.byteLength/4} = ${clusterF32Data.length}`);
+            console.log(clusterF32Data);
+            for (let i = 0; i < Math.min(129*this.numClusters, clusterF32Data.length); i++) {
+                console.log(clusterF32Data[i]);
+            }
+
+            console.log(`debugClusterBuffer.byteLength: ${clusterUintData.byteLength}`);
+            console.log(`debugClusterBuffer.length: ${clusterUintData.byteLength}/4 = ${clusterUintData.byteLength/4} = ${clusterUintData.length}`);
+            for (let i = 0; i < clusterUintData.length; i += 129) {
+                console.log(clusterUintData.slice(i, i + 10));
+            }
+            for (let i = 0; i < Math.min(257*this.numClusters, clusterUintData.length); i+=256) {
+                console.log(clusterUintData[i]);
+            }
         }
-        for (let i = 0; i < Math.min(257*this.numClusters, clusterUintData.length); i+=256) {
-            console.log(clusterUintData[i]);
+
+        if (this.perf) {
+            for (let i = 0; i < clusterUintData.length; i += shaders.constants.maxLightsPerCluster) {
+                let numLights = clusterUintData[i];
+                this.perfTotalLightsInAllClustersThisFrame += numLights;
+            }
+
+            this.perfAccumulatedTotalLights += this.perfTotalLightsInAllClustersThisFrame;
+            this.perfFrameCount += 1;
+
+            this.perfAverageLightsPerClusterAcrossFrames = (this.perfAccumulatedTotalLights / this.perfFrameCount) / this.numClusters;
+            console.log(`Average lights per cluster (${this.perfFrameCount}): ${this.perfAverageLightsPerClusterAcrossFrames}`);
+
+            this.perfTotalLightsInAllClustersThisFrame = 0;
         }
     
         this.debugClusterBuffer.unmap();
+        this.debugClusterBufferMapped = false;
     }    
 
     // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
