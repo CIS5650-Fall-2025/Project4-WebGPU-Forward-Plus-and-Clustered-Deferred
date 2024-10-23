@@ -14,10 +14,7 @@ WebGPU Forward+ and Clustered Deferred Shading
 
 ### Demo Video/GIF
 
-<video width="640" height="360" controls>
-  <source src="img/video.mp4" type="video/mp4">
-</video>
-![](img/video.mp4)
+https://github.com/user-attachments/assets/e6605346-edd8-4a74-bef5-1b1123f41ada
 
 ## WebGPU-Based Rasterization Renderers
 
