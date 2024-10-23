@@ -13,6 +13,12 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     depthTexture: GPUTexture;
     depthTextureView: GPUTextureView;
 
+    perf: boolean = false;
+    perfQuerySet: GPUQuerySet;
+    perfQueryResults: GPUBuffer;
+    perfQueryResolve: GPUBuffer;
+    perfLastNFrameTimes: number[] = [];
+
     debug: boolean = false;
 
     constructor(stage: Stage) {
@@ -114,6 +120,23 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 ]
             }
         });
+
+        if (this.perf) {
+            this.perfQuerySet = renderer.device.createQuerySet({
+                type: 'timestamp',
+                count: 2,
+            });
+
+            this.perfQueryResults = renderer.device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.QUERY_RESOLVE,
+            });
+
+            this.perfQueryResolve = renderer.device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+            });
+        }
     }
 
     override async draw() {
@@ -123,7 +146,7 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
         const encoder = renderer.device.createCommandEncoder({label: "forward+ draw command encoder"});
     
-        this.lights.doLightClustering(encoder);
+        this.lights.doLightClustering(encoder, this.perf ? null : null);
 
         const renderPass = encoder.beginRenderPass({
             label: "forward+ render pass",
@@ -142,6 +165,8 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 depthStoreOp: "store"
             }
         });
+
+        if (this.perf) renderPass.writeTimestamp(this.perfQuerySet, 0);
  
         renderPass.setPipeline(this.forwardPlusPipeline);
         renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.forwardPlusBindGroup);
@@ -155,6 +180,8 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             renderPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
             renderPass.drawIndexed(primitive.numIndices);
         });
+
+        if (this.perf) renderPass.writeTimestamp(this.perfQuerySet, 1);
  
         renderPass.end();
         renderer.device.queue.submit([encoder.finish()]);
@@ -162,6 +189,29 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         if (this.debug) {
             await renderer.device.queue.onSubmittedWorkDone();
             await this.lights.readClusterBuffer();
+        }
+
+        if (this.perf) {
+            const perfQueryEncoder = renderer.device.createCommandEncoder();
+            perfQueryEncoder.resolveQuerySet(this.perfQuerySet, 0, 2, this.perfQueryResults, 0);
+            const resolveCommandBuffer = perfQueryEncoder.finish();
+            renderer.device.queue.submit([resolveCommandBuffer]);
+
+            const copyEncoder = renderer.device.createCommandEncoder();
+            copyEncoder.copyBufferToBuffer(this.perfQueryResults, 0, this.perfQueryResolve, 0, 16);
+            const copyCommandBuffer = copyEncoder.finish();
+            renderer.device.queue.submit([copyCommandBuffer]);
+
+            await this.perfQueryResolve.mapAsync(GPUMapMode.READ);
+            const arrayBuffer = this.perfQueryResolve.getMappedRange();
+            const timestamps = new BigUint64Array(arrayBuffer);
+            const startTime = timestamps[0];
+            const endTime = timestamps[1];
+            const frameTimeMs = Number(endTime - startTime) / 1e6;
+            this.perfLastNFrameTimes.push(frameTimeMs);
+            if (this.perfLastNFrameTimes.length == 100)
+                console.log(`Average pass execution time: ${this.perfLastNFrameTimes.reduce((a, b) => a + b, 0)/100} ms`);
+            this.perfQueryResolve.unmap();
         }
     }
 }
