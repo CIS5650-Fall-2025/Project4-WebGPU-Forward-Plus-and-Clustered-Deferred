@@ -63,7 +63,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         // recordDistanceLightCluster(light, boundsMin, boundsMax, clusterIndex, i);
 
         if (lightIntersectsCluster(light, boundsMin, boundsMax)) {
-            if (clusters[clusterIndex].numLights < clusterGrid.maxLightsPerCluster) {
+            if (clusters[clusterIndex].numLights < ${maxLightsPerCluster}) {
                 clusters[clusterIndex].lightIndices[clusters[clusterIndex].numLights] = i;
                 clusters[clusterIndex].numLights = clusters[clusterIndex].numLights + 1;
             }
