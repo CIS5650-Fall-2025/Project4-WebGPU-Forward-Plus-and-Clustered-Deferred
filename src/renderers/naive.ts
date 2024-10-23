@@ -11,6 +11,12 @@ export class NaiveRenderer extends renderer.Renderer {
 
     pipeline: GPURenderPipeline;
 
+    perf: boolean = false;
+    perfQuerySet: GPUQuerySet;
+    perfQueryResults: GPUBuffer;
+    perfQueryResolve: GPUBuffer;
+    perfLastNFrameTimes: number[] = [];
+
     constructor(stage: Stage) {
         super(stage);
 
@@ -89,9 +95,26 @@ export class NaiveRenderer extends renderer.Renderer {
                 ]
             }
         });
+
+        if (this.perf) {
+            this.perfQuerySet = renderer.device.createQuerySet({
+                type: 'timestamp',
+                count: 2,
+            });
+
+            this.perfQueryResults = renderer.device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.QUERY_RESOLVE,
+            });
+
+            this.perfQueryResolve = renderer.device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+            });
+        }
     }
 
-    override draw() {
+    override async draw() {
         const encoder = renderer.device.createCommandEncoder();
         const canvasTextureView = renderer.context.getCurrentTexture().createView();
 
@@ -112,6 +135,9 @@ export class NaiveRenderer extends renderer.Renderer {
                 depthStoreOp: "store"
             }
         });
+
+        if (this.perf) renderPass.writeTimestamp(this.perfQuerySet, 0);
+
         renderPass.setPipeline(this.pipeline);
 
         // TODO-1.2: bind `this.sceneUniformsBindGroup` to index `shaders.constants.bindGroup_scene`
@@ -127,8 +153,33 @@ export class NaiveRenderer extends renderer.Renderer {
             renderPass.drawIndexed(primitive.numIndices);
         });
 
+        if (this.perf) renderPass.writeTimestamp(this.perfQuerySet, 1);
+
         renderPass.end();
 
         renderer.device.queue.submit([encoder.finish()]);
+
+        if (this.perf) {
+            const perfQueryEncoder = renderer.device.createCommandEncoder();
+            perfQueryEncoder.resolveQuerySet(this.perfQuerySet, 0, 2, this.perfQueryResults, 0);
+            const resolveCommandBuffer = perfQueryEncoder.finish();
+            renderer.device.queue.submit([resolveCommandBuffer]);
+
+            const copyEncoder = renderer.device.createCommandEncoder();
+            copyEncoder.copyBufferToBuffer(this.perfQueryResults, 0, this.perfQueryResolve, 0, 16);
+            const copyCommandBuffer = copyEncoder.finish();
+            renderer.device.queue.submit([copyCommandBuffer]);
+
+            await this.perfQueryResolve.mapAsync(GPUMapMode.READ);
+            const arrayBuffer = this.perfQueryResolve.getMappedRange();
+            const timestamps = new BigUint64Array(arrayBuffer);
+            const startTime = timestamps[0];
+            const endTime = timestamps[1];
+            const frameTimeMs = Number(endTime - startTime) / 1e6;
+            this.perfLastNFrameTimes.push(frameTimeMs);
+            if (this.perfLastNFrameTimes.length == 100)
+                console.log(`Average pass execution time: ${this.perfLastNFrameTimes.reduce((a, b) => a + b, 0)/100} ms`);
+            this.perfQueryResolve.unmap();
+        }
     }
 }
