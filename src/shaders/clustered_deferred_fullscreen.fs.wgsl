@@ -42,13 +42,18 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     return vec4(finalColor, 1);
 }
 
-fn calculateClusterIndex(fragCoord: vec4f, fragPos: vec3f) -> u32 {
-    let clusterX = u32(fragCoord.x / f32(clusterGrid.canvasWidth) * f32(clusterGrid.clusterGridSizeX));
-    let clusterY = u32(fragCoord.y / f32(clusterGrid.canvasHeight) * f32(clusterGrid.clusterGridSizeY));
-
-    let zDepth = length(fragPos - cameraData.cameraPos);
+fn calculateZIndexFromDepth(depth: f32) -> u32 {
     let logZRatio = log2(cameraData.zFar / cameraData.zNear);
-    let clusterZ = u32(log2(zDepth / cameraData.zNear) / logZRatio * f32(clusterGrid.clusterGridSizeZ));
+    let clusterDepthSize = logZRatio / f32(clusterGrid.clusterGridSizeZ);
+    return u32(log2(depth / cameraData.zNear) / clusterDepthSize);
+}
+
+fn calculateClusterIndex(fragPixelPos: vec4f, fragPosWorld: vec3f) -> u32 {
+    let clusterX = u32(fragPixelPos.x / f32(clusterGrid.canvasWidth) * f32(clusterGrid.clusterGridSizeX));
+    let clusterY = u32(fragPixelPos.y / f32(clusterGrid.canvasHeight) * f32(clusterGrid.clusterGridSizeY));
+
+    let fragPosView: vec4f = cameraData.viewMat * vec4(fragPosWorld, 1);
+    let clusterZ = calculateZIndexFromDepth(abs(fragPosView.z));
 
     return clusterX + clusterY * clusterGrid.clusterGridSizeX + clusterZ * clusterGrid.clusterGridSizeX * clusterGrid.clusterGridSizeY;
 }
