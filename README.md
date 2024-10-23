@@ -8,11 +8,9 @@ WebGPU Forward+ and Clustered Deferred Shading
   * [Personal website](https://carlos-lopez-garces.github.io/)
 * Tested on: Windows 11, 13th Gen Intel(R) Core(TM) i9-13900HX @ 2.20 GHz, RAM 32GB, NVIDIA GeForce RTX 4060, personal laptop.
 
-### Live Demo
+### [Live Demo](https://carlos-lopez-garces.github.io/Penn-CIS-5650-Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
-
-
-[![](img/thumb.png)](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+[![](img/cover.png)](https://carlos-lopez-garces.github.io/Penn-CIS-5650-Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
 ### Demo Video/GIF
 
