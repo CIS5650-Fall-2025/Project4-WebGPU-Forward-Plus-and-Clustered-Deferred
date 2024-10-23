@@ -58,13 +58,18 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     return vec4(finalColor, 1);
 }
 
-fn calculateClusterIndex(fragPixelPos: vec4f, fragPos: vec3f) -> u32 {
+fn calculateZIndexFromDepth(depth: f32) -> u32 {
+    let logZRatio = log2(cameraData.zFar / cameraData.zNear);
+    let clusterDepthSize = logZRatio / f32(clusterGrid.clusterGridSizeZ);
+    return u32(log2(depth / cameraData.zNear) / clusterDepthSize);
+}
+
+fn calculateClusterIndex(fragPixelPos: vec4f, fragPosWorld: vec3f) -> u32 {
     let clusterX = u32(fragPixelPos.x / f32(clusterGrid.canvasWidth) * f32(clusterGrid.clusterGridSizeX));
     let clusterY = u32(fragPixelPos.y / f32(clusterGrid.canvasHeight) * f32(clusterGrid.clusterGridSizeY));
 
-    let zDepth = length(fragPos - cameraData.cameraPos);
-    let logZRatio = log2(cameraData.zFar / cameraData.zNear);
-    let clusterZ = u32(log2(zDepth / cameraData.zNear) / logZRatio * f32(clusterGrid.clusterGridSizeZ));
+    let fragPosView: vec4f = cameraData.viewMat * vec4(fragPosWorld, 1);
+    let clusterZ = calculateZIndexFromDepth(abs(fragPosView.z));
 
     return clusterX + clusterY * clusterGrid.clusterGridSizeX + clusterZ * clusterGrid.clusterGridSizeX * clusterGrid.clusterGridSizeY;
 }
@@ -84,7 +89,8 @@ fn generateClusterGrayscale(clusterIndex: u32) -> vec3<f32> {
 }
 
 fn generateClusterColor(clusterIndex: u32) -> vec3<f32> {
-    let hue = f32(clusterIndex % 360u) / 360.0;
+    let hueStep = 5u;
+    let hue = f32((clusterIndex * hueStep) % 360u) / 360.0;
 
     let c = 1.0;
     let x = c * (1.0 - abs(fract(hue * 6.0) * 2.0 - 1.0));
