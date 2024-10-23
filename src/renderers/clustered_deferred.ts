@@ -152,7 +152,7 @@ class GBuffer {
         });
     }
 
-    draw(encoder: GPUCommandEncoder) {
+    draw(encoder: GPUCommandEncoder, querySet: GPUQuerySet|null = null) {
         // TODO-3: run the Forward+ rendering pass:
         // - run the clustering compute shader
         // - run the G-buffer pass, outputting position, albedo, and normals
@@ -188,6 +188,9 @@ class GBuffer {
             }
         });
 
+        if (querySet)
+            gbufferPass.writeTimestamp(querySet, 0);
+
         gbufferPass.setPipeline(this.gbufferPipeline);
         gbufferPass.setBindGroup(0, this.gbufferBindGroup);
         
@@ -200,6 +203,9 @@ class GBuffer {
             gbufferPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
             gbufferPass.drawIndexed(primitive.numIndices);
         });
+
+        if (querySet)
+            gbufferPass.writeTimestamp(querySet, 1);
 
         gbufferPass.end();
     }
@@ -229,6 +235,12 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
     postprocessingBindGroupLayout: GPUBindGroupLayout;
     postprocessingBindGroup: GPUBindGroup;
     postprocessingPipeline: GPUComputePipeline;
+
+    perf: boolean = false;
+    perfQuerySet: GPUQuerySet;
+    perfQueryResults: GPUBuffer;
+    perfQueryResolve: GPUBuffer;
+    perfLastNFrameTimes: number[] = [];
 
     finalBindGroupLayout: GPUBindGroupLayout;
     finalBindGroup: GPUBindGroup;
@@ -546,9 +558,26 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 stripIndexFormat: 'uint32'
             }
         });
+
+        if (this.perf) {
+            this.perfQuerySet = device.createQuerySet({
+                type: 'timestamp',
+                count: 2,
+            });
+    
+            this.perfQueryResults = device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.QUERY_RESOLVE,
+            });
+    
+            this.perfQueryResolve = device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+            });
+        }
     }
 
-    override draw() {
+    override async draw() {
         // TODO-3: run the Forward+ rendering pass:
         // - run the clustering compute shader
         // - run the G-buffer pass, outputting position, albedo, and normals
@@ -556,9 +585,9 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
 
         const encoder = device.createCommandEncoder({label: "deferred draw command encoder"});
 
-        this.gbuffer.draw(encoder);
+        this.gbuffer.draw(encoder, this.perf ? this.perfQuerySet : null);
 
-        this.lights.doLightClustering(encoder);
+        this.lights.doLightClustering(encoder, this.perf ? this.perfQuerySet : null);
 
         const deferredPass = encoder.beginRenderPass({
             label: "deferred pass",
@@ -571,19 +600,23 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 }
             ]
         });
+        if (this.perf) deferredPass.writeTimestamp(this.perfQuerySet, 0);
         deferredPass.setVertexBuffer(0, this.fullscreenQuadVertexBuffer);
         deferredPass.setPipeline(this.deferredPipeline);
         deferredPass.setBindGroup(0, this.deferredBindGroup);
         deferredPass.draw(4, 1, 0, 0);
+        if (this.perf) deferredPass.writeTimestamp(this.perfQuerySet, 1);
         deferredPass.end();
 
         const computePass = encoder.beginComputePass();
+        if (this.perf) computePass.writeTimestamp(this.perfQuerySet, 0);
         computePass.setPipeline(this.postprocessingPipeline);
         computePass.setBindGroup(0, this.postprocessingBindGroup);
         const workGroupSize = 8;
         const numWorkgroupsX = Math.ceil(renderer.canvas.width / workGroupSize);
         const numWorkgroupsY = Math.ceil(renderer.canvas.height / workGroupSize);
         computePass.dispatchWorkgroups(numWorkgroupsX, numWorkgroupsY);
+        if (this.perf) computePass.writeTimestamp(this.perfQuerySet, 1);
         computePass.end();
 
         if (this.doToonShading) {
@@ -597,13 +630,38 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                     }
                 ]
             });
+            if (this.perf) finalPass.writeTimestamp(this.perfQuerySet, 0);
             finalPass.setPipeline(this.finalPipeline);
             finalPass.setBindGroup(0, this.finalBindGroup);
             finalPass.setVertexBuffer(0, this.fullscreenQuadVertexBuffer);
             finalPass.draw(4, 1, 0, 0);
+            if (this.perf) finalPass.writeTimestamp(this.perfQuerySet, 1);
             finalPass.end();
         }
 
         device.queue.submit([encoder.finish()]);
+
+        if (this.perf) {
+            const perfQueryEncoder = device.createCommandEncoder();
+            perfQueryEncoder.resolveQuerySet(this.perfQuerySet, 0, 2, this.perfQueryResults, 0);
+            const resolveCommandBuffer = perfQueryEncoder.finish();
+            device.queue.submit([resolveCommandBuffer]);
+
+            const copyEncoder = device.createCommandEncoder();
+            copyEncoder.copyBufferToBuffer(this.perfQueryResults, 0, this.perfQueryResolve, 0, 16);
+            const copyCommandBuffer = copyEncoder.finish();
+            device.queue.submit([copyCommandBuffer]);
+
+            await this.perfQueryResolve.mapAsync(GPUMapMode.READ);
+            const arrayBuffer = this.perfQueryResolve.getMappedRange();
+            const timestamps = new BigUint64Array(arrayBuffer);
+            const startTime = timestamps[0];
+            const endTime = timestamps[1];
+            const frameTimeMs = Number(endTime - startTime) / 1e6;
+            this.perfLastNFrameTimes.push(frameTimeMs);
+            if (this.perfLastNFrameTimes.length == 100)
+                console.log(`Average pass execution time: ${this.perfLastNFrameTimes.reduce((a, b) => a + b, 0)/100} ms`);
+            this.perfQueryResolve.unmap();
+        }
     }
 }
