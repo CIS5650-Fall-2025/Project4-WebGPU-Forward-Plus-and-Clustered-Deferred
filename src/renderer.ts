@@ -3,6 +3,8 @@ import { Lights } from './stage/lights';
 import { Camera } from './stage/camera';
 import { Stage } from './stage/stage';
 
+const perf: boolean = false;
+
 export var canvas: HTMLCanvasElement;
 export var canvasFormat: GPUTextureFormat;
 export var context: GPUCanvasContext;
@@ -41,7 +43,14 @@ export async function initWebGPU() {
         throw new Error("no appropriate GPUAdapter found");
     }
 
-    device = await adapter.requestDevice();
+
+    const deviceDescriptor: GPUDeviceDescriptor = {};
+
+    if (perf) {
+        deviceDescriptor.requiredFeatures = [ "chromium-experimental-timestamp-query-inside-passes" ];
+    }
+
+    device = await adapter.requestDevice(deviceDescriptor);
 
     context = canvas.getContext("webgpu")!;
     canvasFormat = navigator.gpu.getPreferredCanvasFormat();
