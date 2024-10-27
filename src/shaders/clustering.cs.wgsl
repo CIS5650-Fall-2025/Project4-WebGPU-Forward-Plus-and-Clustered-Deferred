@@ -67,26 +67,15 @@ fn CalculateClusterBounds(clusterIdx : u32) {
     let depth_min = -nearPlane * pow(farPlane / nearPlane, f32(z) / f32(clusterSet.clustersDim.z));
     let depth_max = -nearPlane * pow(farPlane / nearPlane, f32(z + 1) / f32(clusterSet.clustersDim.z));
 
-    //- Convert these screen and depth bounds into view-space coordinates.
-    let max_plane_viewspace_min = nearToZ(viewSpaceMin, abs(depth_max));
-    let max_plane_viewspace_max = nearToZ(viewSpaceMax, abs(depth_max));
+    let minDepth_ViewSpaceMin = nearToZ(viewSpaceMin, -(depth_min));
+    let maxDepth_ViewSpaceMin = nearToZ(viewSpaceMin, -(depth_max));
+    let minDepth_ViewSpaceMax = nearToZ(viewSpaceMax, -(depth_min));
+    let maxDepth_ViewSpaceMax = nearToZ(viewSpaceMax, -(depth_max));
 
-    // let x_min = min(max_plane_viewspace_min.x,  max_plane_viewspace_max.x);
-    // let y_min = min(max_plane_viewspace_min.y,  max_plane_viewspace_max.y);
-
-    // let x_max = max(max_plane_viewspace_min.x,  max_plane_viewspace_max.x);
-    // let y_max = max(max_plane_viewspace_min.y,  max_plane_viewspace_max.y);
-    //- Store the computed bounding box (AABB) for the cluster
-    // i.e. CALCULATE vec3f minBound and vec3f maxBound!
-    // let minBound = vec3f(x_min, y_min, nearPlane);
-    // let maxBound = vec3f(x_max, y_max, farPlane);
-    // let minBound = vec3f(max_plane_viewspace_min, nearPlane);
-    // let maxBound = vec3f(max_plane_viewspace_max, farPlane);
-    let minBound = vec3f(max_plane_viewspace_min.x, max_plane_viewspace_min.y, -1000);
-    let maxBound = vec3f(max_plane_viewspace_max.x, max_plane_viewspace_max.y, -0.1);
+    let minBound = vec3f(min(min(minDepth_ViewSpaceMin, maxDepth_ViewSpaceMin), min(minDepth_ViewSpaceMax, maxDepth_ViewSpaceMax)), depth_max);
+    let maxBound = vec3f(max(max(minDepth_ViewSpaceMin, maxDepth_ViewSpaceMin), max(minDepth_ViewSpaceMax, maxDepth_ViewSpaceMax)), depth_min);
     clusterSet.clusters[clusterIdx].minBound = minBound;
     clusterSet.clusters[clusterIdx].maxBound = maxBound;
-    // bruh;
 }
 
 fn IntersectLightAABB(lightPos: vec3f, radius: f32, minBound: vec3f, maxBound: vec3f) -> bool {
@@ -118,7 +107,7 @@ fn AssignLightsToClusters(clusterIdx: u32) {
     for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
         let light = lightSet.lights[lightIdx]; //${lightRadius}
         let viewSpaceLightPos : vec4f = cameraUnifs.viewMat * vec4f(light.pos, 1.0f);
-        let doesIntersect = IntersectLightAABB(viewSpaceLightPos.xyz, 0.00000001, 
+        let doesIntersect = IntersectLightAABB(viewSpaceLightPos.xyz, ${lightRadius}, 
                 clusterSet.clusters[clusterIdx].minBound,
                 clusterSet.clusters[clusterIdx].maxBound);
         if (doesIntersect) {
@@ -131,13 +120,4 @@ fn AssignLightsToClusters(clusterIdx: u32) {
         }
     }
     clusterSet.clusters[clusterIdx].numLights = counter;
-    // if (clusterIdx % 2 == 0) {
-    //     clusterSet.clusters[clusterIdx].numLights = counter;
-    // } else {
-    //     clusterSet.clusters[clusterIdx].numLights = 0;
-    // }
 }
-
-/*
-
-*/

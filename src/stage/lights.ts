@@ -32,8 +32,8 @@ export class Lights {
 
     // TODO-2: add layouts, pipelines, textures, etc. needed for light clustering here
 
-    numClusters = 4;
-    clustersDim = new Uint32Array([2,2,1]);
+    numClusters = 10 * 10 * 10;
+    clustersDim = new Uint32Array([10,10,10]);
 
     static readonly maxNumClusters = shaders.constants.maxNumberClusters;
     static readonly numFloatsPerCluster = 16 + 16 + 16 + shaders.constants.maxLightsPerCluster * 4; //minBound (12) + maxBound (12) + numLights (4) + lightArray (16 * 4)

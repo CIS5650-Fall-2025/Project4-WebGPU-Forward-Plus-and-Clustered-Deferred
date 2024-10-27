@@ -44,7 +44,16 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     let x_idx : u32 = u32(screenSpaceCoord.x * f32(clusterSet.clustersDim.x));
     let y_idx : u32 = u32(screenSpaceCoord.y * f32(clusterSet.clustersDim.y));
 
-    let clusterIdx = x_idx + y_idx * clusterSet.clustersDim.x;
+    let viewSpaceCoord = cameraUnifs.viewMat * vec4f(in.pos, 1.0);
+    //let z_idx
+    let z_idx : u32 = u32(floor(
+                                log(viewSpaceCoord.z / -cameraUnifs.nearPlane) / 
+                                log(cameraUnifs.farPlane / cameraUnifs.nearPlane) 
+                                * f32(clusterSet.clustersDim.z)
+                                )
+                        );
+
+    let clusterIdx = x_idx + y_idx * clusterSet.clustersDim.x + z_idx * clusterSet.clustersDim.x * clusterSet.clustersDim.y;
     
     // Rendering Code
     let diffuseColor = textureSample(diffuseTex, diffuseTexSampler, in.uv);
@@ -55,51 +64,14 @@ fn main(in: FragmentInput) -> @location(0) vec4f
     var totalLightContrib = vec3f(0, 0, 0);
 
     // Light Accumulation Loop
-    let cluster = clusterSet.clusters[1];
-    var bruh = vec3f(0,0,0);
-
-    if (clusterIdx != 1) {
-        // return vec4(1,1,1,1);
-        bruh = vec3f(0.1,0.1,0.1);
-    }
-
+    let cluster = clusterSet.clusters[clusterIdx];
     let numLights = cluster.numLights;
     
     for (var lightNum = 0u; lightNum < numLights; lightNum++) {
         let lightIdx = cluster.lights[lightNum];
         let light = lightSet.lights[lightIdx];
         totalLightContrib += calculateLightContrib(light, in.pos, normalize(in.nor));
-        // bruh = vec3f(0,0,1);
     }
-    // bruh = vec3f(0,0,1);
-    // for (var lightIdx = 0u; lightIdx < lightSet.numLights; lightIdx++) {
-    //     let light = lightSet.lights[lightIdx];
-    //     totalLightContrib += calculateLightContrib(light, in.pos, normalize(in.nor));
-    // }
-    // Light Accumulation Loop
-
-
     var finalColor = diffuseColor.rgb * totalLightContrib;
-    // var finalColor = vec3f(1,1,1);
-    // let clusterLights = clusterSet[].numLights;
-    // clusterSet.clusters[0].numLights = 420;
-    // let i = clusterSet.clusters[0].numLights;
-    // i = clipSpaceCoord.z;
-    // let i = clusterSet.numClusters;
-    // let i = clusterSet.clustersDim.z;
-    // let i = z_idx;
-
-    let i = numLights;
-    // if (i > 0) {
-    //     return vec4(1,0,1,1);
-    // } else {
-    //     return vec4(0,1,0,1);
-    // }
-    // let testUVCol : vec3f = vec3f(f32(x_idx) / f32(clusterSet.clustersDim.x), 0, f32(y_idx) / f32(clusterSet.clustersDim.y));
-    // return vec4(testUVCol, 1);
-
-    // let testClusterIdx : vec3f = vec3f(f32(clusterIdx) / f32(clusterSet.numClusters), 0, 0);
-    // return vec4(testClusterIdx, 1);
-
-    return vec4(finalColor + bruh, 1);
+    return vec4(finalColor, 1);
 }
