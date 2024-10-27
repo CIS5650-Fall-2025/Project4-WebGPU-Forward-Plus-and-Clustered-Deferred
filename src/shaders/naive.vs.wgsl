@@ -24,12 +24,21 @@ struct VertexOutput
 @vertex
 fn main(in: VertexInput) -> VertexOutput
 {
+
     let modelPos = modelMat * vec4(in.pos, 1);
 
     var out: VertexOutput;
     out.fragPos = cameraUnifs.viewProjMat * modelPos; // TODO-1.3: replace ??? with the view proj mat from your CameraUniforms uniform variable
     out.pos = modelPos.xyz / modelPos.w;
     out.nor = in.nor;
+    // out.nor = vec3f(cameraUnifs.farPlane);
     out.uv = in.uv;
+    // if (cameraUnifs.nearPlane == 69) {
+    //     // return vec4(1,0,0,1);
+    //     out.pos.x = 1.0;
+    // } else {
+    //     out.pos.x = 0.0;
+    //     // return vec4(1,1,1,1);
+    // }
     return out;
 }
