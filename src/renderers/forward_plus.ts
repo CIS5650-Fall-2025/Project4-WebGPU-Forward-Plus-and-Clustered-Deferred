@@ -55,16 +55,49 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                     resource: { buffer: this.lights.lightSetStorageBuffer }
                 },
                 {
-                    binding: 1,
+                    binding: 2,
                     resource: { buffer: this.lights.clusterBuffer }
                 }
             ]
         });
 
+
+        // Set up pipeline
+        this.forwardPlusPipeline = renderer.device.createRenderPipeline(
+            {
+                layout: renderer.device.createPipelineLayout({
+                    bindGroupLayouts: [
+                        this.sceneUniformsBindGroupLayout,
+                        renderer.modelBindGroupLayout,
+                        renderer.materialBindGroupLayout
+                    ]
+                }),
+                vertex: {
+                    module: renderer.device.createShaderModule({
+                        code: shaders.naiveVertSrc
+                    }),
+                    entryPoint: "main",
+                    buffers: [renderer.vertexBufferLayout]
+                },
+                fragment: {
+                    module: renderer.device.createShaderModule({
+                        code: shaders.forwardPlusFragSrc
+                    }),
+                    entryPoint: "main",
+                    targets: [{ format: renderer.canvasFormat }]
+                },
+                depthStencil: {
+                    depthWriteEnabled: true,
+                    depthCompare: "less",
+                    format: "depth24plus"
+                }
+            }
+        );
+
     }
 
     override draw() {
         // TODO-2: run the Forward+ rendering pass:
-        
+
     }
 }
