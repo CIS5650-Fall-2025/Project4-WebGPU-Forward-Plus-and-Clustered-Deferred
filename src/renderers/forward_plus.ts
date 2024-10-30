@@ -23,6 +23,44 @@ export class ForwardPlusRenderer extends renderer.Renderer {
         });
         this.depthTextureView = this.depthTexture.createView();
 
+        this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
+            label: "scene uniforms bind group layout",
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: "uniform" }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "read-only-storage" }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: "read-only-storage" }
+                }
+            ]
+        });
+        this.sceneUniformsBindGroup = renderer.device.createBindGroup({
+            layout: this.sceneUniformsBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.camera.uniformsBuffer }
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.lights.lightSetStorageBuffer }
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.lights.clusterBuffer }
+                }
+            ]
+        });
+
     }
 
     override draw() {
