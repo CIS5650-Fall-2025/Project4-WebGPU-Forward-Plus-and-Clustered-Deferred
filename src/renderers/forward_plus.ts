@@ -16,9 +16,17 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     constructor(stage: Stage) {
         super(stage);
         // TODO-2: initialize layouts, pipelines, textures, etc. needed for Forward+ here
+        this.depthTexture = renderer.device.createTexture({
+            size: [renderer.canvas.width, renderer.canvas.height],
+            format: "depth24plus",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.depthTextureView = this.depthTexture.createView();
+
     }
 
     override draw() {
         // TODO-2: run the Forward+ rendering pass:
+        
     }
 }
