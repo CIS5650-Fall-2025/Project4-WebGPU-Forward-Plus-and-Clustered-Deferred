@@ -16,7 +16,7 @@ In this project, I explore several different approaches to rendering, from the c
 
 ### ▶️ Live Demo
 
-[Try it out! (on WebGPU-enabled browsers only)](https://mzschwartz5.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
+[Try it out! (on WebGPU-enabled browsers only)](https://mzschwartz5.github.io/WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
 ### 📼 Demo Video
 Sponza Palace: a classic scene for graphics testing. In this case, we've populated it with spot lights which, in a traditional pipeline, would be quite costly to render.
