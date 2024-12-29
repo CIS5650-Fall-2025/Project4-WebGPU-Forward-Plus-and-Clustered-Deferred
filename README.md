@@ -60,7 +60,8 @@ Comparison of Forward+ and Clustered Deferred Shading
 - For any performance differences, explain potential causes.
 
 ### Credits
-
+- [A Primer On Efficient Rendering Algorithms & Clustered Shading](https://www.aortiz.me/2018/12/21/CG.html#deferred-shading)
+- [Clustered Deferred and Forward Shading](https://www.cse.chalmers.se/~uffe/clustered_shading_preprint.pdf)
 - [Vite](https://vitejs.dev/)
 - [loaders.gl](https://loaders.gl/)
 - [dat.GUI](https://github.com/dataarts/dat.gui)
