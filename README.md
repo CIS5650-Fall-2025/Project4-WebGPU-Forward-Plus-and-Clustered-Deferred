@@ -10,9 +10,9 @@ WebGL Forward+ and Clustered Deferred Shading
 * **Processor:** 12th Gen Intel(R) Core(TM) i9-12900H, 2500 Mhz, 14 Core(s), 20 Logical Processor(s) 
 * **GPU:** NVIDIA GeForce RTX 3070 Ti Laptop GPU
 
-### Sneak Peek 👀
+### Live Demo 👀
 
-[![](img/thumb.png)](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+[![](clustered.gif)](http://nadnane.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
 ### Introduction
 
@@ -44,20 +44,25 @@ Light clustering is pretty much exactly the same as Forward+ - you can use the s
 We can reconstruct the world position from the depth buffer
 With just those 3 textures (diffuse color, depth, and normal buffers), you can render the entire scene
 
-### Live Demo
-
-[![](img/thumb.png)](http://nadnane.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
-
-### Demo Video/GIF
-
-[![](img/video.mp4)](TODO)
+### GIFs
+![Naive](naive.gif)
+![Forward+](forward+.gif)
+![Clustered Deferred](clustered.gif)
 
 ### Performance Analysis
 Comparison of Forward+ and Clustered Deferred Shading
-- Which one is faster?
-- Is one of them better at certain types of workloads?
-- What are the benefits and tradeoffs of using one over the other?
-- For any performance differences, explain potential causes.
+* Which one is faster?
+    * The naive method is slowest. The forward+ method is noticeably faster, but the clustered deferred method is the fastest and smoothest of the three.
+
+In general, the three rendering techniques implemented in this project differ in how they handle shading.
+
+Forward Rendering processes all objects in a single pass, applying shading for all lights, regardless of occlusion. This method tends to be less efficient since it doesn't account for which lights are visible.
+
+Forward+ Rendering improves performance by clustering lights in a compute pass. It then shades only the visible lights for each object, reducing unnecessary calculations. However, it still shades all objects regardless of occlusion, which can limit performance, especially when there is heavy occlusion. In cases of minimal occlusion, forward+ rendering might outperform clustered deferred rendering, as it skips the geometry pass.
+
+Clustered Deferred Rendering further enhances this approach by separating the geometry and shading passes. This allows for more efficient shading, as only visible objects are shaded after their visibility is determined. This method is expected to deliver the best average performance, as it consistently shades a number of pixels proportional to the total fragments on screen.
+
+Overall, clustered deferred shading is the most efficient, while forward rendering is the slowest due to its lack of optimization for visible lights and occlusion. From what I observed, the clustered deferred technique consistently achieved around 60 FPS with around 500 lights in the scene. This is a huge performance boost compared to the other two methods, which never reached above 15 FPS with the same number of lights. The naive implementation consistently showed only around 5 FPS, and even without knowing the FPS, the visual difference in terms of lag is hard to miss!
 
 ### Credits
 - [A Primer On Efficient Rendering Algorithms & Clustered Shading](https://www.aortiz.me/2018/12/21/CG.html#deferred-shading)
