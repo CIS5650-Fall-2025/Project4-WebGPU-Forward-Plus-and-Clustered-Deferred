@@ -58,9 +58,6 @@ struct FragmentInput {
     
     // Initialize total light contribution
     var totalLightContribution = vec3f(0.0f, 0.0f, 0.0f);
-
-    // Define an early exit value in case of invalid index
-    var INVALID_INDEX_THRESHOLD = 2u << 30;
     
     // Iterate over all lights in the cluster
     for (var count : u32 = 0; count < clusterGrid.w; count += 1) {
@@ -68,8 +65,7 @@ struct FragmentInput {
         let light_index = clusterSet.lightIndices[startIndex + count];
         
         // Exit loop early if we encounter an invalid index value!
-        // This made a huge difference in performance!
-        if (light_index == INVALID_INDEX_THRESHOLD) 
+        if (light_index == ${invalidIndexValue}) 
         {
             break;
         }
