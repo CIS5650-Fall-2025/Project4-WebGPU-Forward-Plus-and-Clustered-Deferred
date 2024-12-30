@@ -2,7 +2,7 @@ import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
-class CameraUniforms {
+class CameraProps {
     // Define the camera buffer, 208 bytes
     readonly camBuffer = new ArrayBuffer(
         16 * 4 +   // view-projection matrix, 16 elements 4 bytes each
@@ -16,23 +16,23 @@ class CameraUniforms {
 
     //==========================================================================
     // Define setters for each property
-    set viewProjMat(matrix: Float32Array) {
-        this.floatArray.set(matrix, 0);
+    set viewProjMat(viewProjMat: Float32Array) {
+        this.floatArray.set(viewProjMat, 0);
     }
     set camera(value: Float32Array) {
         this.floatArray.set(value, 16);
     }
-    set inverse_projection(matrix: Float32Array) {
-        this.floatArray.set(matrix, 20);
+    set inverseProjMat(inverseProjMat: Float32Array) {
+        this.floatArray.set(inverseProjMat, 20);
     }
-    set inverse_view(matrix: Float32Array) {
-        this.floatArray.set(matrix, 36);
+    set inverseViewMat(inverseViewMat: Float32Array) {
+        this.floatArray.set(inverseViewMat, 36);
     }
     //==========================================================================
 }
 
 export class Camera {
-    uniforms: CameraUniforms = new CameraUniforms();
+    uniforms: CameraProps = new CameraProps();
     uniformsBuffer: GPUBuffer;
 
     // Define camera properties
@@ -146,6 +146,7 @@ export class Camera {
     onFrame(deltaTime: number) {
         this.processInput(deltaTime);
 
+        // Calulcate camera properties
         const lookPos = vec3.add(this.cameraPos, vec3.scale(this.cameraFront, 1));
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
         const viewProjMat = mat4.mul(this.projMat, viewMat);
@@ -162,8 +163,8 @@ export class Camera {
         ];
         
         // Update the inverse projection and view matrices
-        this.uniforms.inverse_projection = mat4.invert(this.projMat);
-        this.uniforms.inverse_view = mat4.invert(viewMat);
+        this.uniforms.inverseProjMat = mat4.invert(this.projMat);
+        this.uniforms.inverseViewMat = mat4.invert(viewMat);
         
         // DONE-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`

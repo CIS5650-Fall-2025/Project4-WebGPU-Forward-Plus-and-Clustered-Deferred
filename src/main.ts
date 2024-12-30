@@ -52,10 +52,10 @@ const stage = new Stage(scene, lights, camera, stats);
 
 var renderer: Renderer | undefined;
 
-function setRenderer(mode: string) {
+function setRenderer(renderMode: string) {
     renderer?.stop();
 
-    switch (mode) {
+    switch (renderMode) {
         case renderModes.naive:
             renderer = new NaiveRenderer(stage);
             break;
@@ -69,7 +69,7 @@ function setRenderer(mode: string) {
 }
 
 const renderModes = { naive: 'naive', forwardPlus: 'forward+', clusteredDeferred: 'clustered deferred' };
-let renderModeController = gui.add({ mode: renderModes.naive }, 'mode', renderModes);
+let renderModeController = gui.add({ renderMode: renderModes.naive }, 'renderMode', renderModes);
 renderModeController.onChange(setRenderer);
 
 setRenderer(renderModeController.getValue());
