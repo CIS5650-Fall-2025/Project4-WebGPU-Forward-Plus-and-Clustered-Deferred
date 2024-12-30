@@ -14,35 +14,29 @@ WebGL Forward+ and Clustered Deferred Shading
 
 [![](clustered.gif)](http://nadnane.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
-### Introduction
+Introduction
+In this project, I implemented two advanced rendering techniques—Forward+ Shading and Clustered Deferred Shading—as part of an exploration into WebGPU. WebGPU is an API that allows applications on the web to take full advantage of GPU hardware capabilities, enabling much faster execution of graphical computations. The scene is based on the Sponza Atrium model, augmented with a large number of point lights, and includes a GUI menu to toggle between different rendering modes.
 
-In this project, I implemented two advanced rendering technques - Forward+ Shading and Clustered Deferred Shading - as an exploration of WebGPU. WebGPU is an API which exposes the capabilities of GPU hardware for applications on the web, allowing for much faster runtimes of graphical computations. The Sponza atrium model and a large number of point lights serve as the basis of our scene, with a GUI menu to toggle between the different rendering modes.
+Naive Renderer (Forward Rendering)
+In the naive renderer, each fragment is checked against every light in the scene, which quickly becomes inefficient. For example, if a cube is present in the scene, the algorithm will check each light for every pixel of the cube—even for pixels that will be overwritten. This results in unnecessary computations and significant performance overhead. While this approach can technically render the scene, it is far from optimal and can be improved.
 
-## Naive Renderer (Forward Rendering)
-For each fragment, the naive implementation involves checking against every light in the scene, which end up being just as slow as it sounds! This means that for example, if we have a cube in our scene, the algorithm will check against every light in the scene for every cube in the pixel - extremely slow and unecessary! By doing this, we are checking lights for fragments which will be overwritten anyways - essentially wasting a lot of work for no reason. This method certainly gets the job done in a pinch, but we can do better :)
+Forward+
+The Forward+ implementation optimizes the naive approach by restricting the light checks to only those within the cluster that the current fragment resides in. This way, only the lights that actually affect the current fragment are considered, significantly reducing unnecessary calculations.
 
-## Forward+
-The forward implementation optimizes the naive implementation by only checking the lights in the cluster that the current fragment is in.
-This way, we are only checking lights that actually affect the current fragment, plus or minus a little wiggle room.
+Clusters are portions of the 3D space, and each cluster corresponds to a tile on the 2D screen. These clusters are aligned with the camera's view, not the scene itself, meaning that when the camera moves, the clusters' positions in world space adjust accordingly.
 
-Clusters: portions of the 3D space that correspond with the tiles on 2D screen
-3D space -> 2D space involves perspective transform
-Clusters in 3D are bounding frustums, and are aligned with the camera, not the scene!
-When you move the camera, the bounding frustums move in world space
-Compute shader - calculates the bounds of the clusters in screen space (2D), then calculate starting and ending depth, convert screen depth bounds to view-space coordinates
+A compute shader is used to calculate the bounds of each cluster in screen space (2D), including the starting and ending depth. The screen-space depth bounds are then converted into view-space coordinates.
 
-Assign lights to clusters, keep track of how many lights are in this cluster up to a hard-coded max num of lights
-For each light, check if it intersects with the cluster's bounding box, if it does, add it to the cluster
-BUT still suffers from the problem of overdraw - you are drawing fragments behind that are going to get overwritten anyway, so you're wasting a lot of work anyway!
+Lights are assigned to clusters, and the shader keeps track of the number of lights within each cluster, up to a hardcoded maximum. For each light, the algorithm checks if it intersects with the cluster's bounding box, adding it to the cluster if there is an intersection.
 
-## Clustered Deferred
-Deferred Shading
-Draw each object in the scene to G-buffers (which include the albedo, normal, position)
-So initial rendering pass is really simple because you're just outputing to a texture and then later on read from those textures to do the final rendering
-This way, there's only one fragment for each pixel as opposed to multiple if you have a scene with a lot of depth
-Light clustering is pretty much exactly the same as Forward+ - you can use the same exact compute shaders
-We can reconstruct the world position from the depth buffer
-With just those 3 textures (diffuse color, depth, and normal buffers), you can render the entire scene
+However, the Forward+ approach still suffers from the problem of overdraw, as fragments that will be overwritten in later passes are still being processed, wasting computational resources.
+
+Clustered Deferred
+Clustered Deferred Shading takes a different approach by separating geometry rendering from shading. During the initial pass, each object in the scene is drawn to G-buffers, which store the albedo, normal, and position data. This results in a relatively simple rendering pass since it only outputs to textures. In subsequent passes, the data is read from the G-buffers to perform the final shading, allowing for more efficient rendering.
+
+This method helps avoid the overdraw problem because only one fragment is processed per pixel, even in scenes with substantial depth.
+
+The light clustering process in Clustered Deferred is similar to Forward+ Shading. The same compute shaders can be used, as they are responsible for calculating cluster bounds and assigning lights. The world position of each fragment can be reconstructed from the depth buffer. With just three textures—the diffuse color, depth, and normal buffers—the entire scene can be rendered, with much improved efficiency.
 
 ### GIFs
 ![Naive](naive.gif)
