@@ -1,7 +1,4 @@
 // CHECKITOUT: this file loads all the shaders and preprocesses them with some common code
-
-import { Camera } from '../stage/camera';
-
 import commonRaw from './common.wgsl?raw';
 
 import naiveVertRaw from './naive.vs.wgsl?raw';
@@ -32,7 +29,7 @@ export const constants = {
     clusterWorkgroupSize: 128,
     moveLightsWorkgroupSize: 128,
     lightRadius: 2,
-    invalidIndexValue: 333333333,
+    invalidIndexValue: 4194304,
 };
 
 // =================================
