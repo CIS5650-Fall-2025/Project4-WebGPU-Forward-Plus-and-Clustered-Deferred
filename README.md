@@ -12,15 +12,15 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ### Live Demo 👀
 
-[![](clustered.gif)](http://nadnane.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+[Click here to run my project in your browser!](http://nadnane.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
-Introduction
+## Introduction
 In this project, I implemented two advanced rendering techniques—Forward+ Shading and Clustered Deferred Shading—as part of an exploration into WebGPU. WebGPU is an API that allows applications on the web to take full advantage of GPU hardware capabilities, enabling much faster execution of graphical computations. The scene is based on the Sponza Atrium model, augmented with a large number of point lights, and includes a GUI menu to toggle between different rendering modes.
 
-Naive Renderer (Forward Rendering)
+## Naive Renderer (Forward Rendering)
 In the naive renderer, each fragment is checked against every light in the scene, which quickly becomes inefficient. For example, if a cube is present in the scene, the algorithm will check each light for every pixel of the cube—even for pixels that will be overwritten. This results in unnecessary computations and significant performance overhead. While this approach can technically render the scene, it is far from optimal and can be improved.
 
-Forward+
+## Forward+
 The Forward+ implementation optimizes the naive approach by restricting the light checks to only those within the cluster that the current fragment resides in. This way, only the lights that actually affect the current fragment are considered, significantly reducing unnecessary calculations.
 
 Clusters are portions of the 3D space, and each cluster corresponds to a tile on the 2D screen. These clusters are aligned with the camera's view, not the scene itself, meaning that when the camera moves, the clusters' positions in world space adjust accordingly.
@@ -31,7 +31,7 @@ Lights are assigned to clusters, and the shader keeps track of the number of lig
 
 However, the Forward+ approach still suffers from the problem of overdraw, as fragments that will be overwritten in later passes are still being processed, wasting computational resources.
 
-Clustered Deferred
+## Clustered Deferred
 Clustered Deferred Shading takes a different approach by separating geometry rendering from shading. During the initial pass, each object in the scene is drawn to G-buffers, which store the albedo, normal, and position data. This results in a relatively simple rendering pass since it only outputs to textures. In subsequent passes, the data is read from the G-buffers to perform the final shading, allowing for more efficient rendering.
 
 This method helps avoid the overdraw problem because only one fragment is processed per pixel, even in scenes with substantial depth.
@@ -44,9 +44,8 @@ The light clustering process in Clustered Deferred is similar to Forward+ Shadin
 ![Clustered Deferred](clustered.gif)
 
 ### Performance Analysis
-Comparison of Forward+ and Clustered Deferred Shading
-* Which one is faster?
-    * The naive method is slowest. The forward+ method is noticeably faster, but the clustered deferred method is the fastest and smoothest of the three.
+
+As expected, the naive method is slowest. The forward+ method is noticeably faster, but the clustered deferred method is the fastest and smoothest of the three.
 
 In general, the three rendering techniques implemented in this project differ in how they handle shading.
 
