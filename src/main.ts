@@ -25,18 +25,37 @@ stats.showPanel(0);
 document.body.appendChild(stats.dom);
 
 const gui = new GUI();
+
+// Add GUI controls
 gui.add(lights, 'numLights').min(1).max(Lights.maxNumLights).step(1).onChange(() => {
     lights.updateLightSetUniformNumLights();
+});
+
+// Add controls for cluster grid properties
+gui.add(lights, 'clusterGridWidth').min(0).max(Lights.maxClusterGridWidth).step(1).onChange(() => {
+    lights.updateClusterSetUniformGridWidth();
+});
+
+gui.add(lights, 'clusterGridHeight').min(0).max(Lights.maxClusterGridHeight).step(1).onChange(() => {
+    lights.updateClusterSetUniformGridHeight();
+});
+
+gui.add(lights, 'clusterGridDepth').min(0).max(Lights.maxClusterGridDepth).step(1).onChange(() => {
+    lights.updateClusterSetUniformGridDepth();
+});
+
+gui.add(lights, 'lightIntensity').min(0.1).max(Lights.maxLightIntensity).step(0.05).onChange(() => {
+    lights.updateLightIntensity();
 });
 
 const stage = new Stage(scene, lights, camera, stats);
 
 var renderer: Renderer | undefined;
 
-function setRenderer(mode: string) {
+function setRenderer(renderMode: string) {
     renderer?.stop();
 
-    switch (mode) {
+    switch (renderMode) {
         case renderModes.naive:
             renderer = new NaiveRenderer(stage);
             break;
@@ -50,7 +69,7 @@ function setRenderer(mode: string) {
 }
 
 const renderModes = { naive: 'naive', forwardPlus: 'forward+', clusteredDeferred: 'clustered deferred' };
-let renderModeController = gui.add({ mode: renderModes.naive }, 'mode', renderModes);
+let renderModeController = gui.add({ renderMode: renderModes.naive }, 'renderMode', renderModes);
 renderModeController.onChange(setRenderer);
 
 setRenderer(renderModeController.getValue());

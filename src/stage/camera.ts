@@ -2,21 +2,40 @@ import { Mat4, mat4, Vec3, vec3 } from "wgpu-matrix";
 import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
-class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
-    private readonly floatView = new Float32Array(this.buffer);
+class CameraProps {
+    // Define the camera buffer, 208 bytes
+    readonly camBuffer = new ArrayBuffer(
+        16 * 4 +   // view-projection matrix, 16 elements 4 bytes each
+        4 * 4  +   // camera vector, 4 elements 4 bytes each
+        16 * 4 +   // inverse projection matrix, 16 elements 4 bytes each
+        16 * 4     // inverse view matrix, 16 elements 4 bytes each
+    );
+    
+    // Store all values directly in Float32Array
+    private readonly floatArray = new Float32Array(this.camBuffer);
 
-    set viewProjMat(mat: Float32Array) {
-        // TODO-1.1: set the first 16 elements of `this.floatView` to the input `mat`
+    //==========================================================================
+    // Define setters for each property
+    set viewProjMat(viewProjMat: Float32Array) {
+        this.floatArray.set(viewProjMat, 0);
     }
-
-    // TODO-2: add extra functions to set values needed for light clustering here
+    set camera(value: Float32Array) {
+        this.floatArray.set(value, 16);
+    }
+    set inverseProjMat(inverseProjMat: Float32Array) {
+        this.floatArray.set(inverseProjMat, 20);
+    }
+    set inverseViewMat(inverseViewMat: Float32Array) {
+        this.floatArray.set(inverseViewMat, 36);
+    }
+    //==========================================================================
 }
 
 export class Camera {
-    uniforms: CameraUniforms = new CameraUniforms();
+    uniforms: CameraProps = new CameraProps();
     uniformsBuffer: GPUBuffer;
 
+    // Define camera properties
     projMat: Mat4 = mat4.create();
     cameraPos: Vec3 = vec3.create(-7, 2, 0);
     cameraFront: Vec3 = vec3.create(0, 0, -1);
@@ -33,12 +52,14 @@ export class Camera {
     keys: { [key: string]: boolean } = {};
 
     constructor () {
-        // TODO-1.1: set `this.uniformsBuffer` to a new buffer of size `this.uniforms.buffer.byteLength`
-        // ensure the usage is set to `GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST` since we will be copying to this buffer
-        // check `lights.ts` for examples of using `device.createBuffer()`
-        //
-        // note that you can add more variables (e.g. inverse proj matrix) to this buffer in later parts of the assignment
-
+        
+        // Define camera uniform buffer
+        this.uniformsBuffer = device.createBuffer({
+            label: "camera",
+            size: this.uniforms.camBuffer.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
 
         this.rotateCamera(0, 0); // set initial camera vectors
@@ -125,14 +146,28 @@ export class Camera {
     onFrame(deltaTime: number) {
         this.processInput(deltaTime);
 
+        // Calulcate camera properties
         const lookPos = vec3.add(this.cameraPos, vec3.scale(this.cameraFront, 1));
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
         const viewProjMat = mat4.mul(this.projMat, viewMat);
-        // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
-
-        // TODO-2: write to extra buffers needed for light clustering here
-
-        // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
+        
+        // Update the view-projection matrix
+        this.uniforms.viewProjMat = viewProjMat;
+        
+        // Update the camera property vector
+        this.uniforms.camera = [
+            Camera.nearPlane,
+            Camera.farPlane,
+            0.0,
+            0.0,
+        ];
+        
+        // Update the inverse projection and view matrices
+        this.uniforms.inverseProjMat = mat4.invert(this.projMat);
+        this.uniforms.inverseViewMat = mat4.invert(viewMat);
+        
+        // DONE-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
         // check `lights.ts` for examples of using `device.queue.writeBuffer()`
+        device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.camBuffer);
     }
 }
