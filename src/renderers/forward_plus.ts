@@ -122,14 +122,14 @@ export class ForwardPlusRenderer extends renderer.Renderer {
 
         // Perform light clustering
         this.lights.doLightClustering(encoder);
-        const attachment_view = renderer.context.getCurrentTexture().createView();
+        const attachmentView = renderer.context.getCurrentTexture().createView();
 
         // Set up the forward plus render pass, bind groups, and pipeline
         const forwardPlusRenderPass = encoder.beginRenderPass({
             label: "forwardPlusRenderPass",
             colorAttachments: [
                 {
-                    view: attachment_view,
+                    view: attachmentView,
                     clearValue: [0, 0, 0, 0],
                     loadOp: "clear",
                     storeOp: "store",

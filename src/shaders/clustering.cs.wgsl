@@ -91,21 +91,21 @@ var<private> cornerSigns = array<vec3i, 8>(
     let z = i32(index.x / (clusterGrid.x * clusterGrid.y));
 
     // Compute the start index for the lights in this cluster
-    let start_index = index.x * clusterGrid.w;
+    let startIndex = index.x * clusterGrid.w;
 
     // Declare the variable for the number of lights in this cluster
     var count = 0u;
 
     // Iterate through all the lights
-    for (var light_index = 0u; light_index < lights.numLights; light_index += 1) {
+    for (var lightIndex = 0u; lightIndex < lights.numLights; lightIndex += 1) {
         // Acquire the current light
-        let light = lights.lights[light_index];
+        let light = lights.lights[lightIndex];
 
         // Initialize min and max indices
-        var min_index = convert(light.pos + vec3f(f32(cornerSigns[0].x) * ${lightRadius}, 
-                                                   f32(cornerSigns[0].y) * ${lightRadius}, 
-                                                   f32(cornerSigns[0].z) * ${lightRadius}));
-        var max_index = min_index;
+        var minIndex = convert(light.pos + vec3f(f32(cornerSigns[0].x) * ${lightRadius}, 
+                                                  f32(cornerSigns[0].y) * ${lightRadius}, 
+                                                  f32(cornerSigns[0].z) * ${lightRadius}));
+        var maxIndex = minIndex;
 
         // Loop through the 8 corners of the bounding box
         for (var i = 0u; i < 8u; i = i + 1u) {
@@ -116,22 +116,22 @@ var<private> cornerSigns = array<vec3i, 8>(
             );
 
             // Calculate the corner index
-            let corner_index = convert(light.pos + offset);
+            let cornerIndex = convert(light.pos + offset);
 
             // Update min and max indices
-            min_index = min(min_index, corner_index);
-            max_index = max(max_index, corner_index);
+            minIndex = min(minIndex, cornerIndex);
+            maxIndex = max(maxIndex, cornerIndex);
         }
 
         // Skip this light if its bounding box is out of range
-        if (min_index.x > x || x > max_index.x ||
-            min_index.y > y || y > max_index.y ||
-            min_index.z > z || z > max_index.z) {
+        if (minIndex.x > x || x > maxIndex.x ||
+            minIndex.y > y || y > maxIndex.y ||
+            minIndex.z > z || z > maxIndex.z) {
             continue;
         }
 
         // Write the light index
-        clusterSet.lightIndices[start_index + count] = light_index;
+        clusterSet.lightIndices[startIndex + count] = lightIndex;
 
         // Increment the light count
         count += 1;
@@ -144,6 +144,6 @@ var<private> cornerSigns = array<vec3i, 8>(
 
     // Write the termination condition if fewer lights are found
     if (count < clusterGrid.w) {
-        clusterSet.lightIndices[start_index + count] = ${invalidIndexValue};
+        clusterSet.lightIndices[startIndex + count] = ${invalidIndexValue};
     }
 }
