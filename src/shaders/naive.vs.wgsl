@@ -1,8 +1,8 @@
 // CHECKITOUT: you can use this vertex shader for all of the renderers
 
-// DONE-1.3: add a uniform variable here for camera uniforms (of type CameraUniforms)
+// DONE-1.3: add a uniform variable here for camera uniforms (of type CameraProps)
 // make sure to use ${bindGroup_scene} for the group
-@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
+@group(${bindGroup_scene}) @binding(0) var<uniform> camera: CameraProps;
 
 @group(${bindGroup_model}) @binding(0) var<uniform> modelMat: mat4x4f;
 
@@ -27,7 +27,7 @@ fn main(in: VertexInput) -> VertexOutput
     let modelPos = modelMat * vec4(in.pos, 1);
 
     var out: VertexOutput;
-    out.fragPos = cameraUniforms.viewProjMat * modelPos; // DONE-1.3: replace ??? with the view proj mat from your CameraUniforms uniform variable
+    out.fragPos = camera.viewProjMat * modelPos; // DONE-1.3: replace ??? with the view proj mat from your CameraProps uniform variable
     out.pos = modelPos.xyz / modelPos.w;
     out.nor = in.nor;
     out.uv = in.uv;
