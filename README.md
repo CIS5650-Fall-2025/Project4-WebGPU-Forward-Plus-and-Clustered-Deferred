@@ -7,7 +7,7 @@ WebGPU Forward+ and Clustered Deferred Shading
 * Tested on: Windows 11,  i7-13700K @ 3.40 GHz, 32GB, RTX 4090 24GB
 
 ### <a name="p1">Live Demo</a>
-[https://jichumao.github.io/WebGPU-Forward-Plus-and-Clustered-Deferred/](https://jichumao.github.io/WebGPU-Forward-Plus-and-Clustered-Deferred/)
+[https://jichumao.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/](https://jichumao.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
 ### Demo GIF
 
