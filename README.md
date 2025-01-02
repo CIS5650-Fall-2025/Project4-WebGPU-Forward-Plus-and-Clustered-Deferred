@@ -1,8 +1,6 @@
 WebGPU Forward+ and Clustered Deferred Shading
 ================
 
-**University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
-
 * Jichu Mao
   * [LinkedIn](https://www.linkedin.com/in/jichu-mao-a3a980226/)
   *  [Personal Website](https://jichu.art/)
@@ -27,7 +25,7 @@ WebGPU Forward+ and Clustered Deferred Shading
 
 ## <a name="pi">Introduction</a>
 
-In this project, I implemented the Forward+ and Clustered Deferred shading methods using WebGPU. The scene features the Sponza Atrium model with a large number of dynamic point lights. The project compares different rendering methods in terms of performance and efficiency, especially in high-resolution settings with thousands of moving lights.
+In this project, I implemented the Forward+ and Clustered Deferred shading methods using WebGPU. The scene features the Sponza Atrium model with a large number of dynamic point lights. The project compares different rendering methods in terms of performance and efficiency, especially in high-resolution settings with thousands of moving lights. The base code for this project is derived from a GPU course project at the University of Pennsylvania
 
 **Key Features**
 - WebGPU-based Rendering Pipelines:
