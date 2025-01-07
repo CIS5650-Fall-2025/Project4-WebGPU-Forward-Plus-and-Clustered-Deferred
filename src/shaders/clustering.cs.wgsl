@@ -1,7 +1,7 @@
 // TODO-2: implement the light clustering compute shader
-@group(${bindGroup_model}) @binding(0) var<uniform> modelMat: mat4x4f;
-@group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
-@group(${bindGroup_scene}) @binding(1) var<uniform> clusteringUniforms: ClusteringUniforms;
+@group(0) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
+@group(0) @binding(1) var<storage, read> lightSet: LightSet;
+@group(0) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 // ------------------------------------
 // Calculating cluster bounds:
 // ------------------------------------
@@ -23,7 +23,64 @@
 //         - Stop adding lights if the maximum number of lights is reached.
 
 //     - Store the number of lights assigned to this cluster.
-@compute
-fn main(@builtin(global_invocation_id) globalIdx: u32) {
 
+// From GamePhysicsCookbook
+// https://github.com/gszauer/GamePhysicsCookbook/blob/master/Code/Geometry3D.cpp#L149
+fn intersectionAABBSphere(center: vec3f, bboxMin: vec3f, bboxMax: vec3f) -> bool {
+    let closestPoint = clamp(center, bboxMin, bboxMax);
+    let closestVector = center - closestPoint;
+    let squaredDistance = dot(closestVector, closestVector);
+    return squaredDistance < ${lightRadius ** 2};
+}
+
+@compute @workgroup_size(${clusterWorkgroupSize})
+fn main(@builtin(global_invocation_id) globalIdx: vec3u, @builtin(num_workgroups) numWorkgropus: vec3u) {
+    if (globalIdx.x >= clusterSet.numClusters.x ||
+        globalIdx.y >= clusterSet.numClusters.y ||
+        globalIdx.z >= clusterSet.numClusters.z) {
+            return;
+    }
+
+    let clusterIdx = calculateClusterIdx(globalIdx, clusterSet.numClusters);
+
+    // Ratio far plane / near plane
+    let clipPlaneRatio = cameraUniforms.clipPlanes[1] / cameraUniforms.clipPlanes[0];
+
+    // Exponential z-spacing from https://www.aortiz.me/2018/12/21/CG.html#part-2
+    let clusterMinNDC = vec4f(
+        2 * f32(globalIdx.x) / f32(clusterSet.numClusters.x) - 1,
+        2 * f32(globalIdx.y) / f32(clusterSet.numClusters.y) - 1,
+    	(pow(clipPlaneRatio, f32(globalIdx.z) / f32(clusterSet.numClusters.z)) - 1) / (clipPlaneRatio - 1),
+        cameraUniforms.invProjMat[3][2]
+    );
+    let clusterMaxNDC = vec4f(
+        2 * f32(globalIdx.x + 1) / f32(clusterSet.numClusters.x) - 1,
+        2 * f32(globalIdx.y + 1) / f32(clusterSet.numClusters.y) - 1,
+    	(pow(clipPlaneRatio, f32(globalIdx.z + 1) / f32(clusterSet.numClusters.z)) - 1) / (clipPlaneRatio - 1),
+        cameraUniforms.invProjMat[3][2]
+    );
+
+    let clusterMinView = cameraUniforms.invProjMat * clusterMinNDC;
+    let clusterMaxView = cameraUniforms.invProjMat * clusterMaxNDC;
+
+    let bboxMin = vec3f(clusterMaxView.xy, clusterMinView.z);
+    let bboxMax = vec3f(clusterMaxView.xy, clusterMaxView.z);
+
+    let cluster = &clusterSet.clusters[clusterIdx];
+    var count = 0u;
+    for (var i: u32 = 0; i < lightSet.numLights; i++) {
+        let light = &lightSet.lights[i];
+
+        let lightViewPos = cameraUniforms.viewMat * vec4((*light).pos, 1);
+        
+        if (intersectionAABBSphere(lightViewPos.xyz, bboxMin, bboxMax)) {
+            (*cluster).lightIndices[count] = i;
+            count++;
+            if (count == ${maxLightsPerCluster}) {
+                break;
+            }
+        }
+    }
+
+    (*cluster).numLights = count;
 }
