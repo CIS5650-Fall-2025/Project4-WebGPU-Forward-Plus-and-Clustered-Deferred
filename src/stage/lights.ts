@@ -193,13 +193,13 @@ export class Lights {
         computePass.dispatchWorkgroups(
             Math.ceil(shaders.constants.numClusters[0] / shaders.constants.clusterWorkgroupSize[0]),
             Math.ceil(shaders.constants.numClusters[1] / shaders.constants.clusterWorkgroupSize[1]),
-            Math.ceil(shaders.constants.numClusters[2] / shaders.constants.clusterWorkgroupSize[2]),
+            Math.ceil(shaders.constants.numClusters[2] / shaders.constants.clusterWorkgroupSize[2])
         );
 
         computePass.end();
     }
 
-    // CHECKITOUT: this is where the light movement compute shader is dispatched from the host
+    // this is where the light movement compute shader is dispatched from the host
     onFrame(time: number) {
         device.queue.writeBuffer(this.timeUniformBuffer, 0, new Float32Array([time]));
 

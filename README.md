@@ -8,6 +8,8 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ### Live Demo
 
+https://domino0o.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/
+
 [![](img/thumb.png)](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
 ### Demo Video/GIF

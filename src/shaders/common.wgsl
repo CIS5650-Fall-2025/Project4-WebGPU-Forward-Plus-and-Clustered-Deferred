@@ -1,4 +1,4 @@
-// CHECKITOUT: code that you add here will be prepended to all shaders
+// code that you add here will be prepended to all shaders
 
 struct Light {
     pos: vec3f,
@@ -27,7 +27,7 @@ struct CameraUniforms {
     clipPlanes: vec2f
 }
 
-// CHECKITOUT: this special attenuation function ensures lights don't affect geometry outside the maximum light radius
+// this special attenuation function ensures lights don't affect geometry outside the maximum light radius
 fn rangeAttenuation(distance: f32) -> f32 {
     return clamp(1.f - pow(distance / ${lightRadius}, 4.f), 0.f, 1.f) / (distance * distance);
 }

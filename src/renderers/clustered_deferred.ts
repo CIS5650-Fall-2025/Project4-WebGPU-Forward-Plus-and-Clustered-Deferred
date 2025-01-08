@@ -3,8 +3,6 @@ import * as shaders from '../shaders/shaders';
 import { Stage } from '../stage/stage';
 
 export class ClusteredDeferredRenderer extends renderer.Renderer {
-    // TODO-3: add layouts, pipelines, textures, etc. needed for Forward+ here
-    // you may need extra uniforms such as the camera view matrix and the canvas resolution
     sceneBindGroupLayout: GPUBindGroupLayout;
     sceneBindGroup: GPUBindGroup;
     gBufferGroupLayout: GPUBindGroupLayout;
@@ -37,7 +35,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
             size: [renderer.canvas.width, renderer.canvas.height],
             format: "bgra8unorm",
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING 
-        }); // storage-binding not available by default for rgba8unorm
+        }); // storage-binding not available by default for bgra8unorm
         this.albedoTextureView = this.albedoTexture.createView();
 
         this.normalTexture = renderer.device.createTexture({
@@ -119,7 +117,7 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                         access: "read-only",
                         format: "rgba16float",
                     }
-                }
+                },
             ]
         });
 
@@ -170,13 +168,13 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
                 }),
                 targets: [
                     {
-                        format: this.positionTexture.format,
+                        format: this.positionTexture.format
                     },
                     {
-                        format: this.albedoTexture.format,
+                        format: this.albedoTexture.format
                     },
                     {
-                        format: this.normalTexture.format,
+                        format: this.normalTexture.format
                     }
                 ]
             }
@@ -268,10 +266,10 @@ export class ClusteredDeferredRenderer extends renderer.Renderer {
         const fullscreenPass = encoder.beginRenderPass({
             label: "fullscreen render pass",
             colorAttachments: [{
-                    view: canvasTextureView,
-                    clearValue: [0, 0, 0, 0],
-                    loadOp: "clear",
-                    storeOp: "store"
+                view: canvasTextureView,
+                clearValue: [0, 0, 0, 0],
+                loadOp: "clear",
+                storeOp: "store"
             }]
         });
         fullscreenPass.setPipeline(this.fullscreenPipeline);

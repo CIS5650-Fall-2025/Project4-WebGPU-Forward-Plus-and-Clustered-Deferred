@@ -11,7 +11,7 @@ struct FragmentInput {
 struct FragmentOutput {
     @location(0) pos: vec4f,
     @location(1) alb: vec4f,
-    @location(2) nor: vec4f
+    @location(2) nor: vec4f,
 }
 
 @fragment

@@ -47,7 +47,6 @@ fn perlin3(lightIdx: u32, scaledTime: f32) -> vec3f {
 const bboxMin = vec3f(-10, 0, -5);
 const bboxMax = vec3f(10, 8, 5);
 
-// CHECKITOUT: this is an example of a compute shader entry point function
 @compute
 @workgroup_size(${moveLightsWorkgroupSize})
 fn main(@builtin(global_invocation_id) globalIdx: vec3u) {

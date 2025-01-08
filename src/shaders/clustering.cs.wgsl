@@ -34,7 +34,7 @@ fn intersectionAABBSphere(center: vec3f, bboxMin: vec3f, bboxMax: vec3f) -> bool
 }
 
 @compute @workgroup_size(${clusterWorkgroupSize})
-fn main(@builtin(global_invocation_id) globalIdx: vec3u, @builtin(num_workgroups) numWorkgropus: vec3u) {
+fn main(@builtin(global_invocation_id) globalIdx: vec3u) {
     if (globalIdx.x >= clusterSet.numClusters.x ||
         globalIdx.y >= clusterSet.numClusters.y ||
         globalIdx.z >= clusterSet.numClusters.z) {

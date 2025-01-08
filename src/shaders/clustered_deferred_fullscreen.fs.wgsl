@@ -6,12 +6,11 @@
 @group(1) @binding(1) var albTexture: texture_2d<f32>;
 @group(1) @binding(2) var norTexture: texture_storage_2d<rgba16float, read>;
 
-
 @fragment
 fn main(@builtin(position) screenPos : vec4f) -> @location(0) vec4f {
-    let position = textureLoad(posTexture, vec2i(floor(screenPos.xy))).xyz;
-    let albedo   = textureLoad(albTexture, vec2i(floor(screenPos.xy)), 0).xyz;
-    let normal   = textureLoad(norTexture, vec2i(floor(screenPos.xy))).xyz;
+    let position = textureLoad(posTexture, vec2i(floor(screenPos.xy))).rgb;
+    let albedo   = textureLoad(albTexture, vec2i(floor(screenPos.xy)), 0).rgb;
+    let normal   = textureLoad(norTexture, vec2i(floor(screenPos.xy))).rgb;
 
     let clusterPos = calculateClusterPos(position, &cameraUniforms, clusterSet.numClusters);
 
