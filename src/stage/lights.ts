@@ -47,11 +47,12 @@ export class Lights {
         this.populateLightsBuffer();
         this.updateLightSetUniformNumLights();
 
-        // numLights + buffer with 16 byte alignment
-        const clusterArrayBytes = 4 * Lights.numClustersTotal * (shaders.constants.maxLightsPerCluster + 1);
-        const clusterSetBytes = Math.ceil((clusterArrayBytes + 4) / 16) * 16;
+        // buffer with array of length maxLightsPerCluster + numLights
+        const clusterArrayBytes = Lights.numClustersTotal * 4 * (shaders.constants.maxLightsPerCluster + 1);
+        // numClusters + buffer with 16 byte alignment
+        const clusterSetBytes = Math.ceil((clusterArrayBytes + 12) / 16) * 16;
         this.clusterSetStorageBuffer = device.createBuffer({
-            label: "cluster set uniform",
+            label: "cluster set storage buffer",
             size: clusterSetBytes,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
@@ -181,8 +182,6 @@ export class Lights {
     }
 
     doLightClustering(encoder: GPUCommandEncoder) {
-        // TODO-2: run the light clustering compute pass(es) here
-        // implementing clustering here allows for reusing the code in both Forward+ and Clustered Deferred
         const computePass = encoder.beginComputePass({
             label: "light clustering compute render pass"
         })

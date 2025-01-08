@@ -9,7 +9,7 @@ class CameraUniforms {
     set viewProjMat(mat: Float32Array) {
         this.floatView.set(mat);
     }
-    set invProjMat(mat: Float32Array) {
+    set projMat(mat: Float32Array) {
         this.floatView.set(mat, 16);
     }
     set viewMat(mat: Float32Array) {
@@ -51,9 +51,18 @@ export class Camera {
 
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
         
-        this.uniforms.invProjMat = mat4.inverse(this.projMat);
+        this.uniforms.projMat = this.projMat;
         this.uniforms.nearClippingPlane = Camera.nearPlane;
         this.uniforms.farClippingPlane = Camera.farPlane;
+
+        let focalLength = 1/Math.tan(toRadians(fovYDegrees)/2);
+        console.log(this.projMat.at(14));
+        // console.log(-Camera.farPlane * Camera.nearPlane / (focalLength * (Camera.farPlane - Camera.nearPlane)) * aspectRatio) ;
+        console.log((Camera.farPlane * Camera.nearPlane)/(Camera.nearPlane - Camera.farPlane));
+        console.log(this.projMat.at(10));
+        //console.log(Camera.farPlane / (focalLength * (Camera.farPlane - Camera.nearPlane)) * aspectRatio) ;
+        console.log((Camera.farPlane + Camera.nearPlane)/(Camera.nearPlane - Camera.farPlane));
+        console.log(1/focalLength);
 
         this.rotateCamera(0, 0); // set initial camera vectors
 

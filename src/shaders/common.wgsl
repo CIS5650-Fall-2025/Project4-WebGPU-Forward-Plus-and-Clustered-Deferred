@@ -22,7 +22,7 @@ struct ClusterSet {
 
 struct CameraUniforms {
     viewProjMat: mat4x4f,
-    invProjMat: mat4x4f,
+    projMat: mat4x4f,
     viewMat: mat4x4f,
     clipPlanes: vec2f
 }
@@ -42,6 +42,6 @@ fn calculateLightContrib(light: Light, posWorld: vec3f, nor: vec3f) -> vec3f {
 
 fn calculateClusterIdx(clusterIdx: vec3u, numClusters: vec3u) -> u32 {
     return clusterIdx.x +
-           clusterIdx.y *  numClusters.x +
-           clusterIdx.z * (numClusters.x + numClusters.y);
+           clusterIdx.y * numClusters.x +
+           clusterIdx.z * numClusters.x * numClusters.y;
 }
