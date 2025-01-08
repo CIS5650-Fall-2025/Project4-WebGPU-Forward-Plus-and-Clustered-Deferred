@@ -1,6 +1,3 @@
-@group(0) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
-@group(0) @binding(1) var<storage, read> lightSet: LightSet;
-@group(0) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 // ------------------------------------
 // Calculating cluster bounds:
 // ------------------------------------
@@ -22,6 +19,10 @@
 //         - Stop adding lights if the maximum number of lights is reached.
 
 //     - Store the number of lights assigned to this cluster.
+
+@group(0) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
+@group(0) @binding(1) var<storage, read> lightSet: LightSet;
+@group(0) @binding(2) var<storage, read_write> clusterSet: ClusterSet;
 
 // From GamePhysicsCookbook
 // https://github.com/gszauer/GamePhysicsCookbook/blob/master/Code/Geometry3D.cpp#L149

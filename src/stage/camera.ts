@@ -55,15 +55,6 @@ export class Camera {
         this.uniforms.nearClippingPlane = Camera.nearPlane;
         this.uniforms.farClippingPlane = Camera.farPlane;
 
-        let focalLength = 1/Math.tan(toRadians(fovYDegrees)/2);
-        console.log(this.projMat.at(14));
-        // console.log(-Camera.farPlane * Camera.nearPlane / (focalLength * (Camera.farPlane - Camera.nearPlane)) * aspectRatio) ;
-        console.log((Camera.farPlane * Camera.nearPlane)/(Camera.nearPlane - Camera.farPlane));
-        console.log(this.projMat.at(10));
-        //console.log(Camera.farPlane / (focalLength * (Camera.farPlane - Camera.nearPlane)) * aspectRatio) ;
-        console.log((Camera.farPlane + Camera.nearPlane)/(Camera.nearPlane - Camera.farPlane));
-        console.log(1/focalLength);
-
         this.rotateCamera(0, 0); // set initial camera vectors
 
         window.addEventListener('keydown', (event) => this.onKeyEvent(event, true));
@@ -151,14 +142,10 @@ export class Camera {
         const lookPos = vec3.add(this.cameraPos, vec3.scale(this.cameraFront, 1));
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
         const viewProjMat = mat4.mul(this.projMat, viewMat);
-        // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
+
         this.uniforms.viewProjMat = viewProjMat;
         this.uniforms.viewMat = viewMat;
 
-        // TODO-2: write to extra buffers needed for light clustering here
-
-        // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
-        // check `lights.ts` for examples of using `device.queue.writeBuffer()`
         device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);
     }
 }

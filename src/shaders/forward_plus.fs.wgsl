@@ -1,7 +1,3 @@
-// TODO-2: implement the Forward+ fragment shader
-
-// See naive.fs.wgsl for basic fragment shader setup; this shader should use light clusters instead of looping over all lights
-
 // ------------------------------------
 // Shading process:
 // ------------------------------------
@@ -14,6 +10,7 @@
 //     Add the calculated contribution to the total light accumulation.
 // Multiply the fragment’s diffuse color by the accumulated light contribution.
 // Return the final color, ensuring that the alpha component is set appropriately (typically to 1).
+
 @group(${bindGroup_scene}) @binding(0) var<uniform> cameraUniforms: CameraUniforms;
 @group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
 @group(${bindGroup_scene}) @binding(2) var<storage, read> clusterSet: ClusterSet;
@@ -35,22 +32,7 @@ fn main(in: FragmentInput) -> @location(0) vec4f {
         discard;
     }
 
-    let clipPlaneRatio = cameraUniforms.clipPlanes[1] / cameraUniforms.clipPlanes[0];
-
-    // Get position in view space
-    let posView = cameraUniforms.viewMat * vec4f(in.pos, 1);
-    
-    // Get x- and y-coordinate in NDC space
-    let posClip = cameraUniforms.viewProjMat  * vec4f(in.pos, 1);
-    let xyNDC = posClip.xy / posClip.w;
-
-    // Get cluster position from calculated coordinates
-    let clusterPos = vec3u(
-        u32(0.5 * (xyNDC.x + 1) * f32(clusterSet.numClusters.x)),
-        u32(0.5 * (xyNDC.y + 1) * f32(clusterSet.numClusters.y)),
-        // Get z-slice from z-coordinate in view space (negative z!)
-        u32(f32(clusterSet.numClusters.z) * log(- posView.z / cameraUniforms.clipPlanes[0]) / log(clipPlaneRatio))
-    );
+    let clusterPos = calculateClusterPos(in.pos, &cameraUniforms, clusterSet.numClusters);
 
     let clusterIdx = calculateClusterIdx(clusterPos, clusterSet.numClusters);
 

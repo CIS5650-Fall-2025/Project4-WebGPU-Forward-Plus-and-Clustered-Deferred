@@ -1,8 +1,4 @@
-// TODO-3: implement the Clustered Deferred G-buffer fragment shader
-
 // This shader should only store G-buffer information and should not do any shading.
-@group(${bindGroup_scene}) @binding(1) var<storage, read> lightSet: LightSet;
-
 @group(${bindGroup_material}) @binding(0) var diffuseTex: texture_2d<f32>;
 @group(${bindGroup_material}) @binding(1) var diffuseTexSampler: sampler;
 
@@ -20,12 +16,13 @@ struct FragmentOutput {
 
 @fragment
 fn main(in: FragmentInput) -> FragmentOutput {
+    // Get albedo from texture
     let albedo = textureSample(diffuseTex, diffuseTexSampler, in.uv);
 
-    var finalColor = diffuseColor.rgb * totalLightContrib;
+    // Other values are just passed through to g-buffer
     return FragmentOutput(
-        vec4f(pos, 1.0),
+        vec4f(in.pos, 1.0),
         albedo,
-        vec4f(normal, 1.0)
+        vec4f(in.nor, 1.0)
     );
 }
