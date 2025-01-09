@@ -8,13 +8,11 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ### Live Demo
 
-https://domino0o.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/
+[Click here for an interactive live demo of the various renderers!](https://domino0o.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/)
 
-[![](img/thumb.png)](http://TODO.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+### Demo Video
 
-### Demo Video/GIF
-
-[![](img/video.mp4)](TODO)
+[![Quick video showing a recording of the interactive demo](img/demo-video.mp4)]
 
 ### (TODO: Your README)
 
@@ -22,6 +20,10 @@ https://domino0o.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred/
 
 ### Credits
 
+- [Intersection Algorithm](https://github.com/gszauer/GamePhysicsCookbook/blob/master/Code/Geometry3D.cpp#L149)
+- [LearnWebGPU: Projection Matrices](https://eliemichel.github.io/LearnWebGPU/basic-3d-rendering/3d-meshes/projection-matrices.html)
+- [WebGPU Fundamentals](https://webgpufundamentals.org/)
+- [WebGPU.rocks](https://webgpu.rocks/)
 - [Vite](https://vitejs.dev/)
 - [loaders.gl](https://loaders.gl/)
 - [dat.GUI](https://github.com/dataarts/dat.gui)
