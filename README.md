@@ -12,6 +12,8 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ## Demo Video
 
+<iframe src="https://drive.google.com/file/d/15AUsiGxuSv7EtoFERDr166y03AKaNxW2/preview" ></iframe>
+
 ![Quick video showing a recording of the interactive demo](img/demo-video.mp4)
 
 # Implemented Features
@@ -63,8 +65,8 @@ I compressed the normal and position vectors into 32-bit integers, a feature tha
 By packing together two floats into one integer, I could fit the in total six vector components into the remaining three 32-bit integers.
 
 ## Credits
-
-- [Intersection Algorithm](https://github.com/gszauer/GamePhysicsCookbook/blob/master/Code/Geometry3D.cpp#L149)
+- [WebGPU Struct Alignment](https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html)
+- [Intersection Algorithm](https://github.com/gszauer/GamePhysicsCookbook/blob/master/Code/Geometry3D.cpp#L319)
 - [LearnWebGPU: Projection Matrices](https://eliemichel.github.io/LearnWebGPU/basic-3d-rendering/3d-meshes/projection-matrices.html)
 - [WebGPU Fundamentals](https://webgpufundamentals.org/)
 - [WebGPU.rocks](https://webgpu.rocks/)
