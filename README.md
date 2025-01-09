@@ -12,9 +12,7 @@ WebGL Forward+ and Clustered Deferred Shading
 
 ## Demo Video
 
-<iframe src="https://drive.google.com/file/d/15AUsiGxuSv7EtoFERDr166y03AKaNxW2/preview" ></iframe>
-
-![Quick video showing a recording of the interactive demo](img/demo-video.mp4)
+![Quick video showing a recording of the interactive demo](img/demo.gif)
 
 # Implemented Features
 
@@ -63,6 +61,29 @@ Using bit shift operations, all four color channels fit into a single 32-bit val
 
 I compressed the normal and position vectors into 32-bit integers, a feature that is natively supported by WebGPU ([WebGPU.rocks](https://webgpu.rocks/wgsl/functions/packing/)).
 By packing together two floats into one integer, I could fit the in total six vector components into the remaining three 32-bit integers.
+
+# Performance Analysis
+
+<img src="img/performance.svg" alt="Performance chart of the different renderers." style="display: block; margin: auto;"/>
+
+The above diagram shows the average time per frame for a duration of a minute of the sponza scene as shown in the above gif.
+Compared are the four presented renderers.
+In all cases the lights buffer was sized to the maximum number of lights which is 5000.
+For the clustered implementations, the maximum number of lights per cluster was set to 1024.
+The number of clusters was 16 x 9 x 32 = 4608.
+
+The naive renderer is overall by far the slowest - it also shows the worst scaling with the number of lights.
+Both deferred renderers show very good scaling with an increasing number of lights. 
+There’s little difference between the two, probably because the performance of the application is not memory bound.
+Thus, a decrease in memory usage will not yield a big improvement.
+The performance of the forward+ implementation lies between the other two types of renders.
+
+The same trends can be observed with different numbers of clusters and with different (maximum) number of lights per cluster.
+This makes sense because the implementation with regards to the clustering is the same for the Forward+ and the two deferred renderers.
+I would expect an even more significant performance difference if a different scene with more prominent object occlusion was rendered.
+On the flip-side, a scene with basically no occlusion should result in very similar performance.
+Indeed, if the camera is turned by 180° and mostly looking at a flat wall, the performance difference is significantly smaller.
+For 3200 lights, the difference between the deferred and forward+ implementation is only around 5 %, compared to the nearly 300 % in the original orientation.
 
 ## Credits
 - [WebGPU Struct Alignment](https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html)
