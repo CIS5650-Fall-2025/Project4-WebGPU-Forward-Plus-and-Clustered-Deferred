@@ -15,7 +15,6 @@ export const fovYDegrees = 45;
 export var modelBindGroupLayout: GPUBindGroupLayout;
 export var materialBindGroupLayout: GPUBindGroupLayout;
 
-// CHECKITOUT: this function initializes WebGPU and also creates some bind group layouts shared by all the renderers
 export async function initWebGPU() {
     canvas = document.getElementById("mainCanvas") as HTMLCanvasElement;
 
@@ -126,7 +125,7 @@ export abstract class Renderer {
 
     protected abstract draw(): void;
 
-    // CHECKITOUT: this is the main rendering loop
+    // main rendering loop
     private onFrame(time: number) {
         if (this.prevTime == 0) {
             this.prevTime = time;
