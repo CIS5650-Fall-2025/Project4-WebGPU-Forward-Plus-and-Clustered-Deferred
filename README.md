@@ -4,11 +4,7 @@
 
 WebGPU Forward+ and Clustered Deferred Shading
 ======================
-
-University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4
-
-- Matt Schwartz
-- Tested on: Windows 10 22H2, Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz, NVIDIA GeForce RTX 2060
+ Tested on: Windows 10 22H2, Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz, NVIDIA GeForce RTX 2060
 
 # Overview
 
