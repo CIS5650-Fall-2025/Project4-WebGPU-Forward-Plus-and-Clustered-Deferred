@@ -30,8 +30,17 @@ export const constants = {
 
     moveLightsWorkgroupSize: 128,
 
-    lightRadius: 2
+    lightRadius: 2,
+
+    // ✅ Add these for Forward+ and Clustered Deferred
+    clustersX: 16,
+    clustersY: 9,
+    clustersZ: 24,
+    maxLightsPerCluster: 100,
+    clusterWorkgroupSize: 128
+
 };
+
 
 // =================================
 
