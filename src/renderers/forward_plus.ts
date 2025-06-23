@@ -7,52 +7,46 @@ export class ForwardPlusRenderer extends renderer.Renderer {
     // you may need extra uniforms such as the camera view matrix and the canvas resolution
     sceneBindGroupLayout: GPUBindGroupLayout;
     sceneBindGroup: GPUBindGroup;
-    depthBuffer: GPUTexture;
-    depthView: GPUTextureView;
-
-    clusteredLightingPipeline: GPURenderPipeline;
+    depthBufferTexture: GPUTexture;
+    depthBufferView: GPUTextureView;
+    forwardPlusRenderPipeline: GPURenderPipeline;
 
     constructor(stage: Stage) {
         super(stage);
-
         // TODO-2: initialize layouts, pipelines, textures, etc. needed for Forward+ here
-        // ─────────────── Depth texture setup ───────────────
-        this.depthBuffer = renderer.device.createTexture({
-            label: "Depth Buffer",
-            size: {
-                width: renderer.canvas.width,
-                height: renderer.canvas.height,
-                depthOrArrayLayers: 1
-            },
+
+        // === Create Depth Buffer Resources ===
+        this.depthBufferTexture = renderer.device.createTexture({
+            size: [renderer.canvas.width, renderer.canvas.height],
             format: "depth24plus",
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         });
-        this.depthView = this.depthBuffer.createView();
+        this.depthBufferView = this.depthBufferTexture.createView();
 
-        // ─────────────── Scene bind group layout ───────────────
+        // === Define Scene Bind Group Layout ===
         this.sceneBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "Scene Bind Group Layout",
             entries: [
                 {
-                    binding: 0, // Camera uniform
+                    binding: 0, // Camera uniforms
                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" }
                 },
                 {
-                    binding: 1, // Light data (read-only)
+                    binding: 1, // Light set (read-only)
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" }
                 },
                 {
-                    binding: 2, // Cluster data (read-only)
+                    binding: 2, // Light cluster buffer (read-only)
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: "read-only-storage" }
-                }]
+                }
+            ]
         });
 
-        // ─────────────── Scene bind group ───────────────
+        // === Create Scene Bind Group ===
         this.sceneBindGroup = renderer.device.createBindGroup({
-            label: "Scene Bind Group",
             layout: this.sceneBindGroupLayout,
             entries: [
                 {
@@ -65,21 +59,20 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 },
                 {
                     binding: 2,
-                    resource: { buffer: this.lights.clusterSetBuffer }
-                }]
+                    resource: { buffer: this.lights.clusterDataBuffer }
+                }
+            ]
         });
 
-        // ─────────────── Forward+ Render Pipeline ───────────────
-        this.clusteredLightingPipeline = renderer.device.createRenderPipeline({
-            label: "Clustered Lighting Pipeline",
+        // === Setup Forward+ Render Pipeline ===
+        this.forwardPlusRenderPipeline = renderer.device.createRenderPipeline({
             layout: renderer.device.createPipelineLayout({
-                label: "Clustered Lighting Pipeline Layout",
                 bindGroupLayouts: [
                     this.sceneBindGroupLayout,
                     renderer.modelBindGroupLayout,
-                    renderer.materialBindGroupLayout]
+                    renderer.materialBindGroupLayout
+                ]
             }),
-
             vertex: {
                 module: renderer.device.createShaderModule({
                     code: shaders.naiveVertSrc
@@ -87,7 +80,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 entryPoint: "main",
                 buffers: [renderer.vertexBufferLayout]
             },
-
             fragment: {
                 module: renderer.device.createShaderModule({
                     code: shaders.forwardPlusFragSrc
@@ -95,7 +87,6 @@ export class ForwardPlusRenderer extends renderer.Renderer {
                 entryPoint: "main",
                 targets: [{ format: renderer.canvasFormat }]
             },
-
             depthStencil: {
                 depthWriteEnabled: true,
                 depthCompare: "less",
@@ -103,59 +94,60 @@ export class ForwardPlusRenderer extends renderer.Renderer {
             }
         });
 
+
     }
 
     override draw() {
-
+        // TODO-2: run the Forward+ rendering pass:
+        // === begin encoding commands === 
         const encoder = renderer.device.createCommandEncoder();
+
+        // === compute light clustering before rendering === 
         this.lights.doLightClustering(encoder);
 
-        // ───── get current canvas view ─────
-        const colorAttachment: GPURenderPassColorAttachment = {
-            view: renderer.context.getCurrentTexture().createView(),
-            clearValue: [0.0, 0.0, 0.0, 1.0],
-            loadOp: "clear",
-            storeOp: "store"
-        };
+        // === prepare render targets === 
+        const colorAttachmentView = renderer.context.getCurrentTexture().createView();
 
-        // ───── configure depth attachment ─────
-        const depthAttachment: GPURenderPassDepthStencilAttachment = {
-            view: this.depthView,
-            depthClearValue: 1.0,
-            depthLoadOp: "clear",
-            depthStoreOp: "store"
-        };
-
-        // ───── begin the render pass ─────
-        const renderPass = encoder.beginRenderPass({
+        const renderPassDescriptor: GPURenderPassDescriptor = {
             label: "Forward+ Render Pass",
-            colorAttachments: [colorAttachment],
-            depthStencilAttachment: depthAttachment
-        });
+            colorAttachments: [
+                {
+                    view: colorAttachmentView,
+                    loadOp: "clear",
+                    storeOp: "store",
+                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                },
+            ],
+            depthStencilAttachment: {
+                view: this.depthBufferView,
+                depthClearValue: 1.0,
+                depthLoadOp: "clear",
+                depthStoreOp: "store",
+            },
+        };
 
-        // ───── set pipeline and scene bind group ─────
-        renderPass.setPipeline(this.clusteredLightingPipeline);
-        renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneBindGroup);
+        // === render pass === 
+        const pass = encoder.beginRenderPass(renderPassDescriptor);
+        pass.setPipeline(this.forwardPlusRenderPipeline);
+        pass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneBindGroup);
 
-        // ───── draw each object in the scene ─────
+        // === render each object in the scene === 
         this.scene.iterate(
-            node => {
-                renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
+            model => {
+                pass.setBindGroup(shaders.constants.bindGroup_model, model.modelBindGroup);
             },
             material => {
-                renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+                pass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
             },
-            primitive => {
-                renderPass.setVertexBuffer(0, primitive.vertexBuffer);
-                renderPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
-                renderPass.drawIndexed(primitive.numIndices);
+            geometry => {
+                pass.setVertexBuffer(0, geometry.vertexBuffer);
+                pass.setIndexBuffer(geometry.indexBuffer, 'uint32');
+                pass.drawIndexed(geometry.numIndices);
             }
         );
 
-        // ───── end the render pass ─────
-        renderPass.end();
-
-        // ───── submit all GPU commands ─────
+        // === finalize render pass and submit GPU work === 
+        pass.end();
         renderer.device.queue.submit([encoder.finish()]);
     }
 }

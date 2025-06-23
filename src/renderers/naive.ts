@@ -14,7 +14,6 @@ export class NaiveRenderer extends renderer.Renderer {
     constructor(stage: Stage) {
         super(stage);
 
-        //Defines the structure of what's going into the shader.: The shader will use a buffer at binding 0 (camera) and binding 1 (lights).
         this.sceneUniformsBindGroupLayout = renderer.device.createBindGroupLayout({
             label: "scene uniforms bind group layout",
             entries: [
@@ -32,7 +31,6 @@ export class NaiveRenderer extends renderer.Renderer {
             ]
         });
 
-        //This actually binds the real GPU buffers to those layout entries.
         this.sceneUniformsBindGroup = renderer.device.createBindGroup({
             label: "scene uniforms bind group",
             layout: this.sceneUniformsBindGroupLayout,
@@ -42,7 +40,7 @@ export class NaiveRenderer extends renderer.Renderer {
                 // if you run into TypeScript errors, you're probably trying to upload the host buffer instead
                 {
                     binding: 0,
-                    resource: { buffer: this.camera.uniformsBuffer}
+                    resource: { buffer: this.camera.uniformsBuffer }
                 },
                 {
                     binding: 1,
@@ -77,7 +75,7 @@ export class NaiveRenderer extends renderer.Renderer {
                     label: "naive vert shader",
                     code: shaders.naiveVertSrc
                 }),
-                buffers: [ renderer.vertexBufferLayout ]
+                buffers: [renderer.vertexBufferLayout]
             },
             fragment: {
                 module: renderer.device.createShaderModule({
@@ -117,18 +115,29 @@ export class NaiveRenderer extends renderer.Renderer {
         renderPass.setPipeline(this.pipeline);
 
         // TODO-1.2: bind `this.sceneUniformsBindGroup` to index `shaders.constants.bindGroup_scene`
+        // Bind global scene data (camera and lights)
         renderPass.setBindGroup(shaders.constants.bindGroup_scene, this.sceneUniformsBindGroup);
 
-        this.scene.iterate(node => {
-            renderPass.setBindGroup(shaders.constants.bindGroup_model, node.modelBindGroup);
-        }, material => {
-            renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
-        }, primitive => {
-            renderPass.setVertexBuffer(0, primitive.vertexBuffer);
-            renderPass.setIndexBuffer(primitive.indexBuffer, 'uint32');
-            renderPass.drawIndexed(primitive.numIndices);
-        });
+        // Traverse and render the scene
+        this.scene.iterate(
+            modelNode => {
+                // Bind model transform matrix and other per-object data
+                renderPass.setBindGroup(shaders.constants.bindGroup_model, modelNode.modelBindGroup);
+            },
+            material => {
+                // Bind material-specific properties like textures and parameters
+                renderPass.setBindGroup(shaders.constants.bindGroup_material, material.materialBindGroup);
+            },
+            mesh => {
+                // Set vertex and index buffers
+                renderPass.setVertexBuffer(0, mesh.vertexBuffer);
+                renderPass.setIndexBuffer(mesh.indexBuffer, 'uint32');
+                // Issue draw call
+                renderPass.drawIndexed(mesh.numIndices);
+            }
+        );
 
+        // Finalize render pass
         renderPass.end();
 
         renderer.device.queue.submit([encoder.finish()]);
