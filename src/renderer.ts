@@ -15,6 +15,8 @@ export const fovYDegrees = 45;
 export var modelBindGroupLayout: GPUBindGroupLayout;
 export var materialBindGroupLayout: GPUBindGroupLayout;
 
+
+
 // CHECKITOUT: this function initializes WebGPU and also creates some bind group layouts shared by all the renderers
 export async function initWebGPU() {
     canvas = document.getElementById("mainCanvas") as HTMLCanvasElement;
@@ -25,8 +27,7 @@ export async function initWebGPU() {
 
     aspectRatio = canvas.width / canvas.height;
 
-    if (!navigator.gpu)
-    {
+    if (!navigator.gpu) {
         let errorMessageElement = document.createElement("h1");
         errorMessageElement.textContent = "This browser doesn't support WebGPU! Try using Google Chrome.";
         errorMessageElement.style.paddingLeft = '0.4em';
@@ -36,8 +37,7 @@ export async function initWebGPU() {
     }
 
     const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter)
-    {
+    if (!adapter) {
         throw new Error("no appropriate GPUAdapter found");
     }
 
@@ -111,6 +111,23 @@ export abstract class Renderer {
     private prevTime: number = 0;
     private frameRequestId: number;
 
+
+    private fpsLog: number[] = [];
+    private frameCount = 0;
+    private lastLogTime = performance.now();
+
+    private logFPS(currentTime: number) {
+        this.frameCount++;
+
+        if (currentTime - this.lastLogTime >= 1000) {
+            const fps = (this.frameCount * 1000) / (currentTime - this.lastLogTime);
+            this.fpsLog.push(fps);
+            console.log(`FPS: ${fps.toFixed(1)}`);
+            this.lastLogTime = currentTime;
+            this.frameCount = 0;
+        }
+    }
+
     constructor(stage: Stage) {
         this.scene = stage.scene;
         this.lights = stage.lights;
@@ -137,6 +154,8 @@ export abstract class Renderer {
         this.lights.onFrame(time);
 
         this.stats.begin();
+
+        this.logFPS(time);
 
         this.draw();
 

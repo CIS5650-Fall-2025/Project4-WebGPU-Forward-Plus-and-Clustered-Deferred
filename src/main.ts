@@ -24,6 +24,15 @@ const stats = new Stats();
 stats.showPanel(0);
 document.body.appendChild(stats.dom);
 
+// Force max FPS scale to 240
+// const fpsPanel = (stats as any).__panels?.[0];
+// if (fpsPanel) {
+//     const originalUpdate = fpsPanel.update;
+//     fpsPanel.update = function (value: number, _maxValue: number) {
+//         return originalUpdate.call(this, value, 240);
+//     };
+// }
+
 const gui = new GUI();
 gui.add(lights, 'numLights').min(1).max(Lights.maxNumLights).step(1).onChange(() => {
     lights.updateLightSetUniformNumLights();
