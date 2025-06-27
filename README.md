@@ -7,7 +7,9 @@
 ---
 
 ## Demo Video & Live Demo
-[![Live Demo](images/demo.gif)](https://yiliu7.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+![Live Demo](images/demo.gif)
+
+[Try the Live Demo](https://yiliu7.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
 
 ---
