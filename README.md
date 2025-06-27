@@ -2,14 +2,14 @@
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**  
 **Author**: Yi Liu  
-**Tested on**: Google Chrome 124.0 on Windows 11, i9-14900K, 64 GB RAM, RTX 4090 (Moore 100 Lab)
+**Tested on**: Google Chrome 124.0 on Windows 11, i9-14900K, 64 GB RAM, RTX 4090
 
 ---
 
 ## Demo Video & Live Demo
 ![Live Demo](images/demo.gif)
 
-[Try the Live Demo](https://yiliu7.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+[Try the Live Demo](https://yiliu7.github.io/WebGPU-Lighting)
 
 
 ---
@@ -90,6 +90,4 @@ This setup enables lighting to be computed in a fullscreen pass using only visib
 - [dat.GUI](https://github.com/dataarts/dat.gui) for renderer toggle
 - [Chrome WebGPU DevTools](https://chromewebstore.google.com/detail/webgpu-devtools/ckabpgjkjmbkfmichbbgcgbelkbbpopi) for frame capture
 
-
----
 
