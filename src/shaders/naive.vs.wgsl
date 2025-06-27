@@ -1,34 +1,34 @@
 // CHECKITOUT: you can use this vertex shader for all of the renderers
 
-// TODO-1.3: add a uniform variable here for camera uniforms (of type CameraUniforms)
-// make sure to use ${bindGroup_scene} for the group
+// Declare the camera's uniform variable
+@group(${bindGroup_scene}) @binding(0)
+var<uniform> camera: CameraUniforms;
 
-@group(${bindGroup_model}) @binding(0) var<uniform> modelMat: mat4x4f;
+@group(${bindGroup_model}) @binding(0)
+var<uniform> modelMat: mat4x4f;
 
-struct VertexInput
-{
-    @location(0) pos: vec3f,
-    @location(1) nor: vec3f,
+struct VertexInput {
+    @location(0) pos: vec3f,  // obj-space position
+    @location(1) nor: vec3f, // obj-space normal
     @location(2) uv: vec2f
 }
 
-struct VertexOutput
-{
+struct VertexOutput {
     @builtin(position) fragPos: vec4f,
-    @location(0) pos: vec3f,
-    @location(1) nor: vec3f,
+    @location(0) pos: vec3f, // world-space position
+    @location(1) nor: vec3f, // world-space normal
     @location(2) uv: vec2f
 }
 
 @vertex
-fn main(in: VertexInput) -> VertexOutput
-{
+fn main(in: VertexInput) -> VertexOutput {
     let modelPos = modelMat * vec4(in.pos, 1);
+    let modelNor = normalize((modelMat * vec4(in.nor, 0.0)).xyz);
 
     var out: VertexOutput;
-    out.fragPos = ??? * modelPos; // TODO-1.3: replace ??? with the view proj mat from your CameraUniforms uniform variable
-    out.pos = modelPos.xyz / modelPos.w;
-    out.nor = in.nor;
+    out.fragPos = camera.viewProjMat * modelPos;
+    out.pos = modelPos.xyz / modelPos.w;  // world space
+    out.nor = modelNor;                   // world space
     out.uv = in.uv;
     return out;
 }

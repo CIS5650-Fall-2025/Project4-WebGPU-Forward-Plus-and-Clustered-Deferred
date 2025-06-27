@@ -3,15 +3,33 @@ import { toRadians } from "../math_util";
 import { device, canvas, fovYDegrees, aspectRatio } from "../renderer";
 
 class CameraUniforms {
-    readonly buffer = new ArrayBuffer(16 * 4);
-    private readonly floatView = new Float32Array(this.buffer);
+    readonly buffer = new ArrayBuffer(
+        16 * 4 +   // viewProjMat
+        16 * 4 +   // invProjMat
+        16 * 4 +    // invViewMat
+        4 * 4   // cameraParams
+    );
 
     set viewProjMat(mat: Float32Array) {
-        // TODO-1.1: set the first 16 elements of `this.floatView` to the input `mat`
+        new Float32Array(this.buffer).set(mat, 0);
     }
 
-    // TODO-2: add extra functions to set values needed for light clustering here
+    set invViewProjMat(matrix: Float32Array) {
+        new Float32Array(this.buffer).set(matrix, 16);
+    }
+
+    set invViewMat(matrix: Float32Array) {
+        new Float32Array(this.buffer).set(matrix, 32);
+    }
+
+    set cameraParams(value: Float32Array) {
+        new Float32Array(this.buffer).set(value, 48);
+    }
+
 }
+
+
+
 
 export class Camera {
     uniforms: CameraUniforms = new CameraUniforms();
@@ -32,12 +50,14 @@ export class Camera {
 
     keys: { [key: string]: boolean } = {};
 
-    constructor () {
-        // TODO-1.1: set `this.uniformsBuffer` to a new buffer of size `this.uniforms.buffer.byteLength`
-        // ensure the usage is set to `GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST` since we will be copying to this buffer
-        // check `lights.ts` for examples of using `device.createBuffer()`
-        //
-        // note that you can add more variables (e.g. inverse proj matrix) to this buffer in later parts of the assignment
+    constructor() {
+
+        // allocate the camera's uniform buffer
+        this.uniformsBuffer = device.createBuffer({
+            label: "camera",
+            size: this.uniforms.buffer.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
 
         this.projMat = mat4.perspective(toRadians(fovYDegrees), aspectRatio, Camera.nearPlane, Camera.farPlane);
 
@@ -87,38 +107,21 @@ export class Camera {
     }
 
     private processInput(deltaTime: number) {
-        let moveDir = vec3.create(0, 0, 0);
-        if (this.keys['w']) {
-            moveDir = vec3.add(moveDir, this.cameraFront);
-        }
-        if (this.keys['s']) {
-            moveDir = vec3.sub(moveDir, this.cameraFront);
-        }
-        if (this.keys['a']) {
-            moveDir = vec3.sub(moveDir, this.cameraRight);
-        }
-        if (this.keys['d']) {
-            moveDir = vec3.add(moveDir, this.cameraRight);
-        }
-        if (this.keys['q']) {
-            moveDir = vec3.sub(moveDir, this.cameraUp);
-        }
-        if (this.keys['e']) {
-            moveDir = vec3.add(moveDir, this.cameraUp);
-        }
+        let moveDir = vec3.create();
 
-        let moveSpeed = this.moveSpeed * deltaTime;
-        const moveSpeedMultiplier = 3;
-        if (this.keys['shift']) {
-            moveSpeed *= moveSpeedMultiplier;
-        }
-        if (this.keys['alt']) {
-            moveSpeed /= moveSpeedMultiplier;
-        }
+        if (this.keys['w']) moveDir = vec3.add(moveDir, this.cameraFront);
+        if (this.keys['s']) moveDir = vec3.sub(moveDir, this.cameraFront);
+        if (this.keys['a']) moveDir = vec3.sub(moveDir, this.cameraRight);
+        if (this.keys['d']) moveDir = vec3.add(moveDir, this.cameraRight);
+        if (this.keys['q']) moveDir = vec3.sub(moveDir, this.cameraUp);
+        if (this.keys['e']) moveDir = vec3.add(moveDir, this.cameraUp);
+
+        let speed = this.moveSpeed * deltaTime;
+        if (this.keys['shift']) speed *= 3;
+        if (this.keys['alt']) speed /= 3;
 
         if (vec3.length(moveDir) > 0) {
-            const moveAmount = vec3.scale(vec3.normalize(moveDir), moveSpeed);
-            this.cameraPos = vec3.add(this.cameraPos, moveAmount);
+            this.cameraPos = vec3.add(this.cameraPos, vec3.scale(vec3.normalize(moveDir), speed));
         }
     }
 
@@ -128,11 +131,13 @@ export class Camera {
         const lookPos = vec3.add(this.cameraPos, vec3.scale(this.cameraFront, 1));
         const viewMat = mat4.lookAt(this.cameraPos, lookPos, [0, 1, 0]);
         const viewProjMat = mat4.mul(this.projMat, viewMat);
-        // TODO-1.1: set `this.uniforms.viewProjMat` to the newly calculated view proj mat
 
-        // TODO-2: write to extra buffers needed for light clustering here
+        this.uniforms.viewProjMat = viewProjMat;
+        this.uniforms.cameraParams = [Camera.nearPlane, Camera.farPlane, 0.0, 0.0];
 
-        // TODO-1.1: upload `this.uniforms.buffer` (host side) to `this.uniformsBuffer` (device side)
-        // check `lights.ts` for examples of using `device.queue.writeBuffer()`
+        this.uniforms.invViewProjMat = mat4.invert(this.projMat);
+        this.uniforms.invViewMat = mat4.invert(viewMat);
+
+        device.queue.writeBuffer(this.uniformsBuffer, 0, this.uniforms.buffer);
     }
 }
