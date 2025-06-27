@@ -7,8 +7,7 @@
 ---
 
 ## Demo Video & Live Demo
-
-[![Live Demo](img/demo.gif)](https://yiliu7.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
+[![Live Demo](images/demo.gif)](https://yiliu7.github.io/Project4-WebGPU-Forward-Plus-and-Clustered-Deferred)
 
 
 ---
@@ -72,7 +71,7 @@ All three methods were evaluated across varying light counts and resolutions.
 
 ## G-Buffer Implementation
 
-Our **G-buffer** stores essential per-fragment data during the geometry pass to support **clustered deferred shading**. Specifically, we write the following to the G-buffer:
+G-buffer stores essential per-fragment data during the geometry pass to support **clustered deferred shading**. Specifically, we write the following to the G-buffer:
 
 - `rgba8unorm`: Encodes **albedo** (diffuse color).
 - `rg16snorm`: Packs the **normal vector** using octahedral encoding.
